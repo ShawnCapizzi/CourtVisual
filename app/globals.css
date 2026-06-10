@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap');
 
 * { box-sizing: border-box; }
 html, body {
@@ -9,7 +9,7 @@ html, body {
 }
 
 /* One family, two weights — display is the same material as the UI, machined heavier */
-.g-display { font-family: 'Archivo Black', 'Archivo', sans-serif; letter-spacing: -0.015em; line-height: 0.95; font-variant-numeric: tabular-nums; }
+.g-display { font-family: 'Anton', 'Archivo Black', 'Archivo', sans-serif; letter-spacing: 0.005em; line-height: 0.95; font-variant-numeric: tabular-nums; }
 .g-ui { font-family: 'Archivo', sans-serif; font-variant-numeric: tabular-nums; }
 .g-eyebrow { font-family: 'Archivo', sans-serif; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
 
@@ -19,6 +19,10 @@ html, body {
 
 .g-in { font-family: 'Archivo', sans-serif; font-size: 16px; color: #16130F; background: transparent; border: none; outline: none; width: 100%; }
 .g-in::placeholder { color: rgba(22,19,15,0.4); }
+
+/* Dark-field variant — used on the games search bar over the stadium backdrop */
+.g-in-dark { font-family: 'Archivo', sans-serif; font-size: 16px; color: #ECE7DB; background: transparent; border: none; outline: none; width: 100%; }
+.g-in-dark::placeholder { color: rgba(236,231,219,0.42); }
 
 /* Mechanical press feedback on every control — felt, not seen */
 button { transition: transform .14s ease, box-shadow .14s ease, opacity .14s ease; }
