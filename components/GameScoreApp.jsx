@@ -202,6 +202,41 @@ function StyleMini({ variant }) {
   );
 }
 
+function Shell({ children }) {
+  return (
+    <div className="g-ui" style={{ background: PAGE, color: INK, width: "100%", minHeight: "100vh" }}>
+      <div style={{ maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
+    </div>
+  );
+}
+
+function Nav({ view, setView }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+      <LogoPlate />
+      <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
+        {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
+          const on = view === k;
+          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : "rgba(22,19,15,0.55)", boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(22,19,15,0.16)" : "none" }}>{l}</button>);
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ContextCard({ title, body, primary, teamRecord }) {
+  return (
+    <div style={{ background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ ...tick, background: primary, marginRight: 0 }} />
+        <span className="g-display" style={{ fontSize: 16, color: INK }}>{title}</span>
+        {teamRecord && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "rgba(22,19,15,0.55)" }}>{teamRecord.str}</span>}
+      </div>
+      <p style={{ fontSize: 13, color: "rgba(22,19,15,0.6)", marginTop: 8, lineHeight: 1.45 }}>{body}</p>
+    </div>
+  );
+}
+
 function LogoPlate() {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", padding: "5px 10px", background: "#F2EFE4", borderRadius: 10, border: "1px solid rgba(22,19,15,0.10)" }}>
@@ -428,11 +463,6 @@ export default function GameScoreApp() {
   };
   const clearSearch = () => { setEventResults(null); setEventQuery(""); setJump(""); };
 
-  const Shell = ({ children }) => (
-    <div className="g-ui" style={{ background: PAGE, color: INK, width: "100%", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
-    </div>
-  );
   const screenH = { fontSize: 40, margin: "10px 0 6px" };
 
   // ---------- ONBOARDING ----------
@@ -506,30 +536,8 @@ export default function GameScoreApp() {
     );
   }
 
-  const Nav = () => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-      <LogoPlate />
-      <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
-        {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
-          const on = view === k;
-          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : "rgba(22,19,15,0.55)", boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(22,19,15,0.16)" : "none" }}>{l}</button>);
-        })}
-      </div>
-    </div>
-  );
-
   // ---------- GAMES ----------
   const LEAGUE = (team.league || "").toUpperCase();
-  const ContextCard = ({ title, body }) => (
-    <div style={{ background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ ...tick, background: primary, marginRight: 0 }} />
-        <span className="g-display" style={{ fontSize: 16, color: INK }}>{title}</span>
-        {teamRecord && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "rgba(22,19,15,0.55)" }}>{teamRecord.str}</span>}
-      </div>
-      <p style={{ fontSize: 13, color: "rgba(22,19,15,0.6)", marginTop: 8, lineHeight: 1.45 }}>{body}</p>
-    </div>
-  );
   let gamesView;
   {
     let base, sub, context = null;
@@ -537,17 +545,17 @@ export default function GameScoreApp() {
       base = liveGames; sub = "Live schedule + prices via Ticketmaster.";
     } else if (slateMode === "league" && leagueGames?.length) {
       base = leagueGames; sub = `Live in the ${LEAGUE} right now.`;
-      context = <ContextCard title={`The ${team.name} season has ended`} body={`No upcoming ${team.name} games right now${teamRecord ? ` — they finished ${teamRecord.str}` : ""}. Here's what's live in the ${LEAGUE}, ranked by your taste.`} />;
+      context = <ContextCard primary={primary} teamRecord={teamRecord} title={`The ${team.name} season has ended`} body={`No upcoming ${team.name} games right now${teamRecord ? ` — they finished ${teamRecord.str}` : ""}. Here's what's live in the ${LEAGUE}, ranked by your taste.`} />;
     } else {
       base = sampleSlate(team); sub = "Example matchups — the season's not live yet.";
-      context = <ContextCard title={`The ${LEAGUE} is in its off-season`} body={teamRecord ? `The ${team.name} finished ${teamRecord.str}. Here's a taste of the matchups to come.` : `No games scheduled right now. Here's a taste of the matchups to come.`} />;
+      context = <ContextCard primary={primary} teamRecord={teamRecord} title={`The ${LEAGUE} is in its off-season`} body={teamRecord ? `The ${team.name} finished ${teamRecord.str}. Here's a taste of the matchups to come.` : `No games scheduled right now. Here's a taste of the matchups to come.`} />;
     }
     gamesView = { sub, context, ranked: [...base].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)) };
   }
   if (view === "games") {
     return (
       <Shell>
-        <Nav />
+        <Nav view={view} setView={setView} />
         <div style={{ position: "relative", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 12, padding: "11px 14px" }}>
             <Search size={17} color="rgba(22,19,15,0.5)" />
@@ -608,7 +616,7 @@ export default function GameScoreApp() {
 
   return (
     <Shell>
-      <Nav />
+      <Nav view={view} setView={setView} />
       <h1 className="g-display cv-gleam" style={screenH}>FAVORITES</h1>
             <Section label="Teams">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
