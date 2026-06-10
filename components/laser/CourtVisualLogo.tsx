@@ -1,16 +1,13 @@
 /**
- * CourtVisual wordmark — v7: measured geometry.
+ * CourtVisual wordmark — v8: WebKit-safe gradient.
  *
- * All positions computed from Archivo Black's real font metrics (fontTools):
- *   'Court'  @52px advance = 156.0px
- *   'Visual' @52px advance = 176.2px  -> starts x=164 (8px gap), ends x=340.2
- *   capHeight @52px = 35.8px          -> baseline 40, caps top ~4.2
+ * "Visual" is colored by clipping a gradient-filled <rect> to the text shape,
+ * instead of filling the <text> with the gradient directly. Gradient-on-text
+ * inside a transformed group renders inconsistently in mobile WebKit (colorless
+ * "Visual"); gradient-on-rect-with-text-clip is reliable everywhere.
  *
- * Italic comes from an explicit skewX(-12) (Archivo Black has no true italic;
- * browser-synthesized oblique varies and overflows). translate(9,0) compensates
- * the skew's leftward shift at baseline (tan 12deg * 40 = 8.5).
- *
- * viewBox 0 0 390 46 hugs the content: glyphs end ~348, speed lines end ~386.
+ * Geometry from Archivo Black metrics: Court advance 156 @52px, Visual 176.2,
+ * Visual starts x=164. Italic via explicit skewX(-12). Generous viewBox margins.
  */
 
 import { useId } from "react";
@@ -22,46 +19,47 @@ interface CourtVisualLogoProps {
 }
 
 export default function CourtVisualLogo({
-  width = 170,
+  width = 185,
   className = "",
   fontFamily = "'Archivo Black', sans-serif",
 }: CourtVisualLogoProps) {
   const style = { fontFamily, fontSize: 52, letterSpacing: "0" } as const;
-  // Unique per mount: Safari can resolve url(#id) against a removed twin when
-  // the nav remounts on view switch, painting the fallback ("muted") color.
   const uid = useId().replace(/[:]/g, "");
   const heatId = `cv-heat-${uid}`;
   const speedId = `cv-speed-${uid}`;
+  const clipId = `cv-clip-${uid}`;
 
   return (
     <svg
-      viewBox="0 0 390 46"
+      viewBox="0 0 410 56"
       width={width}
       className={className}
       role="img"
       aria-label="CourtVisual"
     >
       <defs>
-        {/* userSpaceOnUse + explicit coords: a bounding-box gradient on skewed
-            text resolves inconsistently across browsers/views (flat/muted).
-            Spanning the measured Visual glyph box makes it deterministic. */}
         <linearGradient id={heatId} x1="164" y1="2" x2="340" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#FFA52B" />
           <stop offset="55%" stopColor="#FF5A2C" />
           <stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
-        {/* Lines need userSpaceOnUse: bounding-box gradients don't render on zero-height elements */}
         <linearGradient id={speedId} x1="346" y1="0" x2="384" y2="0" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#FF5A2C" />
           <stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
+        {/* Clip = the "Visual" glyph shapes; the gradient rect shows through it. */}
+        <clipPath id={clipId}>
+          <text x="164" y="40" style={style}>Visual</text>
+        </clipPath>
       </defs>
 
-      <g transform="translate(9 0) skewX(-12)">
+      <g transform="translate(14 6) skewX(-12)">
         <text x="0" y="40" fill="var(--cv-ink)" style={style}>Court</text>
-        <text x="164" y="40" fill={`url(#${heatId})`} style={style}>Visual</text>
 
-        {/* Speed lines — start after Visual's measured end (340), clear of glyphs */}
+        {/* Gradient-filled rect, clipped to the Visual text — WebKit-safe color */}
+        <rect x="160" y="-6" width="200" height="56" fill={`url(#${heatId})`} clipPath={`url(#${clipId})`} />
+
+        {/* Speed lines tailing off the final L */}
         <g stroke={`url(#${speedId})`} strokeLinecap="round">
           <line x1="348" y1="14" x2="374" y2="14" strokeWidth="3.5" />
           <line x1="352" y1="25" x2="382" y2="25" strokeWidth="3" />
