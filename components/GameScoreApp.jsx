@@ -74,7 +74,7 @@ const REACTS = [["love", "I love this game", Flame], ["go", "Let's go", Ticket],
 function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch }) {
   const score = scoreOf(game, weights);
   const anim = useCountUp(score, style);
-  const [open, setOpen] = useState(true); // first accordion open by default
+  const [open, setOpen] = useState(rank === 1); // only the top-ranked game opens by default; rest collapsed for density
   const dark = style === "dashboard";
   const ink = dark ? "#FFFFFF" : INK;
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(22,19,15,0.58)";
@@ -125,6 +125,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         {open && <div style={{ paddingBottom: 6 }}><Bars g={game} accent={primary} weights={weights} dark={dark} /></div>}
       </div>
 
+      {open && (
       <div style={{ marginTop: 12, paddingTop: 12, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {REACTS.map(([id, label, Icon]) => {
@@ -148,6 +149,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           </button>
         </div>
       </div>
+      )}
     </div>
   );
   return laser ? <LaserFrame mode="loop" radius={22} style={{ marginBottom: 14 }}>{body}</LaserFrame> : body;
@@ -261,6 +263,7 @@ export default function GameScoreApp() {
   }, []);
 
   useEffect(() => { try { setIsTouch(window.matchMedia("(hover: none)").matches); } catch {} }, []);
+  useEffect(() => { setVisible(8); }, [primarySlug, eventQuery]);
 
   // Self-heal stale bundles: after a deploy, a cached shell can reference JS
   // chunks that no longer exist -> "client-side exception". Reload once.
@@ -326,6 +329,7 @@ export default function GameScoreApp() {
   const [eventResults, setEventResults] = useState(null);
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
+  const [visible, setVisible] = useState(8);
   useEffect(() => {
     if (!team) return;
     let cancel = false;
@@ -372,6 +376,44 @@ export default function GameScoreApp() {
     setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
   };
 
+
+  // ---------- ranked list renderer (progressive "Show more" + rivalry focus) ----------
+  const STEP = 8;
+  // When rivalry is ~the only thing the fan weights (>=90% share), show ONLY
+  // rivalry matchups instead of padding the list with non-rivalry games.
+  const RIVALRY_FOCUS = 0.9;
+  const wTotal = (weights.playoff + weights.rivalry + weights.hot + weights.historic) || 1;
+  const rivalryOnly = weights.rivalry / wTotal >= RIVALRY_FOCUS;
+
+  const renderGames = (list) => {
+    let full = list;
+    let note = null;
+    if (rivalryOnly) {
+      const rivals = list.filter((g) => g.topRivals || g.rivalry > 4);
+      if (rivals.length) { full = rivals; note = "Rivalry focus — showing rivalry matchups only."; }
+      else { note = "No rivalry games on this schedule right now — showing the full ranking."; }
+    }
+    const shown = full.slice(0, visible);
+    const remaining = full.length - shown.length;
+    return (
+      <>
+        {note && (
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(22,19,15,0.55)", marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Flame size={12} color="#FF5A2C" /> {note}
+          </div>
+        )}
+        {shown.map((g, i) => (
+          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
+            primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
+        ))}
+        {remaining > 0 && (
+          <button onClick={() => setVisible((v) => v + STEP)} style={{ width: "100%", marginTop: 4, marginBottom: 4, padding: "13px", borderRadius: 12, cursor: "pointer", background: "#fff", border: "1px solid rgba(22,19,15,0.1)", boxShadow: DEPTH, color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            Show {Math.min(STEP, remaining)} more {remaining === 1 ? "game" : "games"} <ChevronDown size={15} />
+          </button>
+        )}
+      </>
+    );
+  };
 
   // ---------- search (jump to team / search any sport, place, or event) ----------
   const teamMatches = jump.trim() ? TEAMS.filter((t) => t.label.toLowerCase().includes(jump.trim().toLowerCase())).slice(0, 5) : [];
@@ -531,10 +573,7 @@ export default function GameScoreApp() {
             <h1 className="g-display cv-gleam" style={screenH}>{eventQuery.toUpperCase()}</h1>
             <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
             <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
-            {[...eventResults].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)).map((g, i) => (
-              <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
-                primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
-            ))}
+            {renderGames([...eventResults].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)))}
           </>
         ) : (
           <>
@@ -547,10 +586,7 @@ export default function GameScoreApp() {
             <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
             <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{gamesView.sub}</p>
             {gamesView.context}
-            {gamesView.ranked.map((g, i) => (
-              <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
-                primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
-            ))}
+            {renderGames(gamesView.ranked)}
             <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Star size={14} /> Tune your favorites & view
             </button>
