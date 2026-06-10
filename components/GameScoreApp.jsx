@@ -258,7 +258,7 @@ export default function GameScoreApp() {
   useEffect(() => {
     if (!team) return;
     let cancel = false;
-    fetch(`/api/games?label=${encodeURIComponent(team.label)}&name=${encodeURIComponent(team.name)}&city=${encodeURIComponent(team.city)}&slug=${team.slug}`)
+    fetch(`/api/games?label=${encodeURIComponent(team.label)}&name=${encodeURIComponent(team.name)}&city=${encodeURIComponent(team.city)}&slug=${team.slug}&league=${team.league || ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => { if (!cancel) setLiveGames(d.games?.length ? d.games : null); })
       .catch(() => { if (!cancel) setLiveGames(null); });
