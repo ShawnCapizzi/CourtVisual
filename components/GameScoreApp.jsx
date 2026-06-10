@@ -98,7 +98,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
             </span>
           </div>
           <div style={{ fontSize: 10.5, fontWeight: 600, color: muted, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{game.tag}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}{game.minPrice ? ` · From $${game.minPrice}` : ""}</div>
         </div>
       </div>
 
@@ -252,6 +252,19 @@ export default function GameScoreApp() {
   const primary = override || team.primary;
   const secondary = team.secondary;
 
+  // Live schedule via /api/games (Ticketmaster). Falls back to the sample slate
+  // when no API key is configured or the team has no upcoming listed events.
+  const [liveGames, setLiveGames] = useState(null);
+  useEffect(() => {
+    if (!team) return;
+    let cancel = false;
+    fetch(`/api/games?label=${encodeURIComponent(team.label)}&name=${encodeURIComponent(team.name)}&city=${encodeURIComponent(team.city)}&slug=${team.slug}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => { if (!cancel) setLiveGames(d.games?.length ? d.games : null); })
+      .catch(() => { if (!cancel) setLiveGames(null); });
+    return () => { cancel = true; };
+  }, [team?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const results = useMemo(() => {
     if (!q.trim()) return TEAMS.slice(0, 6);
     const s = q.toLowerCase();
@@ -270,7 +283,7 @@ export default function GameScoreApp() {
   };
   const signOut = async () => { await supabase.auth.signOut(); setAuthMsg(""); };
   const onShare = (g, kind) => {
-    if (kind === "buy") { window.open(`https://www.tickpick.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
+    if (kind === "buy") { window.open(g.url || `https://www.tickpick.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
     if (kind === "gift") { window.open(`https://www.tickpick.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
     const url = `https://courtvisual.com/g/${team.slug}-vs-${g.oppSlug}-${g.ds}`;
     const take = reactions[g.oppSlug] === "love" ? "I love this game — " : reactions[g.oppSlug] === "go" ? "Let's go to this one — " : reactions[g.oppSlug] === "excited" ? "So excited for this — " : "";
@@ -280,7 +293,7 @@ export default function GameScoreApp() {
     setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
   };
 
-  const ranked = useMemo(() => [...GAMES].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)), [weights]);
+  const ranked = useMemo(() => [...(liveGames || GAMES)].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)), [weights, liveGames]);
 
   const Shell = ({ children }) => (
     <div className="g-ui" style={{ background: PAGE, color: INK, width: "100%", minHeight: "100vh" }}>
@@ -362,7 +375,7 @@ export default function GameScoreApp() {
         )}
         <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
         <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
-        <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>Sample slate — live schedule loads per team via the API.</p>
+        <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{liveGames ? "Live schedule + prices via Ticketmaster." : "Sample slate — add a Ticketmaster API key for live games."}</p>
         {ranked.map((g, i) => (
           <GameModule key={g.oppSlug} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
             primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
