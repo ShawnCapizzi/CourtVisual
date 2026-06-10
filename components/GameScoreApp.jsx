@@ -98,14 +98,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
             </span>
           </div>
           <div style={{ fontSize: 10.5, fontWeight: 600, color: muted, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{game.tag}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}{game.minPrice ? ` · From $${game.minPrice}` : ""}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
         </div>
       </div>
 
       <LaserFrame mode={isTouch ? "once" : "hover"} radius={12} style={{ marginTop: 14 }}>
       <button onClick={() => onShare(game, "buy")}
-        style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", cursor: "pointer", background: secondary, color: textOn(secondary), fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: BTN }}>
-        <Ticket size={15} /> Get tickets <ArrowUpRight size={13} />
+        style={{ width: "100%", padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", background: secondary, color: textOn(secondary), fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: game.minPrice ? "space-between" : "center", gap: 8, boxShadow: BTN }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Ticket size={15} /> Get tickets <ArrowUpRight size={13} /></span>
+        {game.minPrice ? <span style={{ fontWeight: 800 }}>From ${game.minPrice}</span> : null}
       </button>
       </LaserFrame>
 
