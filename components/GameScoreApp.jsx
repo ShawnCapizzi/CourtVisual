@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
-import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Gift, Mail } from "lucide-react";
+import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import LaserFrame from "./laser/LaserFrame";
@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabaseClient";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
+const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const BTN = "inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -3px 6px rgba(0,0,0,0.22), 2px 3px 6px rgba(18,20,28,0.18), 3px 8px 18px rgba(18,20,28,0.13)";
 const BTN_SOFT = "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -2px 4px rgba(0,0,0,0.20), 1px 2px 4px rgba(18,20,28,0.16)";
 
@@ -80,7 +81,12 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(22,19,15,0.58)";
   const card = {
     borderRadius: 22, padding: 18, marginBottom: laser ? 0 : 14, position: "relative", overflow: "hidden",
-    background: dark ? "#161B26" : "#F7F2E6",
+    backgroundColor: dark ? "#161B26" : "#F7F2E6",
+    // depth gradient (top) + jersey mesh texture + team-color wash (bottom), over the base color
+    backgroundImage: `linear-gradient(157deg, rgba(255,255,255,0.06), rgba(0,0,0,0.20)), url(/mesh.webp), linear-gradient(160deg, ${hexA(primary, dark ? 0.30 : 0.16)}, ${hexA(primary, dark ? 0.08 : 0.04)} 58%, rgba(0,0,0,0))`,
+    backgroundBlendMode: "overlay, soft-light, normal",
+    backgroundSize: "cover, 230px, cover",
+    backgroundRepeat: "no-repeat, repeat, no-repeat",
     border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(22,19,15,0.06)",
     boxShadow: `${DEPTH}, ${dark ? "inset 0 1px 0 rgba(255,255,255,0.07)" : "inset 0 1px 0 rgba(255,255,255,0.9)"}`,
   };
@@ -142,11 +148,6 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
               </button>
             );
           })}
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <button onClick={() => onShare(game, "gift")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <Gift size={13} /> Gift this game
-          </button>
         </div>
       </div>
       )}
@@ -374,7 +375,10 @@ export default function GameScoreApp() {
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
   const [visible, setVisible] = useState(8);
+  const [hotSlugs, setHotSlugs] = useState([]);
+  const DEFAULT_POPULAR = ["giants", "mets", "cowboys", "new-york-red-bulls", "la-galaxy", "chiefs", "knicks", "bulls"];
   useEffect(() => { setVisible(8); }, [primarySlug, eventQuery]); // reset reveal count on team/search change
+  useEffect(() => { fetch("/api/popular").then((r) => r.json()).then((d) => { if (Array.isArray(d.hot)) setHotSlugs(d.hot); }).catch(() => {}); }, []);
   useEffect(() => {
     if (!team) return;
     let cancel = false;
@@ -392,10 +396,17 @@ export default function GameScoreApp() {
   }, [team?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const results = useMemo(() => {
-    if (!q.trim()) return TEAMS.slice(0, 6);
+    if (!q.trim()) {
+      const base = DEFAULT_POPULAR.map((sl) => teamBySlug(sl)).filter(Boolean);
+      if (hotSlugs.length) {
+        const order = new Map(hotSlugs.map((sl, i) => [sl, i]));
+        return [...base].sort((a, b) => (order.get(a.slug) ?? 99) - (order.get(b.slug) ?? 99));
+      }
+      return base;
+    }
     const s = q.toLowerCase();
     return TEAMS.filter((t) => t.label.toLowerCase().includes(s)).slice(0, 8);
-  }, [q]);
+  }, [q, hotSlugs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addTeam = (t) => { if (!teamSlugs.includes(t.slug)) { setTeamSlugs([...teamSlugs, t.slug]); if (!primarySlug) setPrimarySlug(t.slug); } setQ(""); };
   const removeTeam = (t) => { const next = teamSlugs.filter((s) => s !== t.slug); setTeamSlugs(next); if (primarySlug === t.slug) setPrimarySlug(next[0] || null); };
@@ -471,6 +482,23 @@ export default function GameScoreApp() {
     setEventLoading(false);
   };
   const clearSearch = () => { setEventResults(null); setEventQuery(""); setJump(""); };
+  const fetchWeekend = async (lat, lng) => {
+    try {
+      const u = (lat != null && lng != null) ? `/api/games?weekend=1&lat=${lat}&lng=${lng}` : "/api/games?weekend=1";
+      const r = await fetch(u); const d = await r.json(); setEventResults(d.games || []);
+    } catch { setEventResults([]); }
+    setEventLoading(false);
+  };
+  const weekendNearMe = () => {
+    setEventLoading(true); setEventQuery("Games this weekend near you"); setJump(""); setView("games");
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchWeekend(pos.coords.latitude, pos.coords.longitude),
+        () => fetchWeekend(null, null),
+        { timeout: 8000, maximumAge: 600000 }
+      );
+    } else { fetchWeekend(null, null); }
+  };
 
   const screenH = { fontSize: 40, margin: "10px 0 6px" };
 
@@ -520,6 +548,9 @@ export default function GameScoreApp() {
             <Search size={15} color="rgba(22,19,15,0.55)" /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
           </button>
         )}
+        <button onClick={weekendNearMe} style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 600 }}>
+          <MapPin size={15} color="#FF5A2C" /> <span>Games this weekend near you →</span>
+        </button>
         <div style={{ marginTop: 24 }}>
           <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.55)", marginBottom: 10 }}>Choose your view · change anytime</div>
           <div style={{ display: "flex", gap: 10 }}>
@@ -584,6 +615,10 @@ export default function GameScoreApp() {
             </div>
           )}
         </div>
+
+        <button onClick={weekendNearMe} style={{ marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 7, background: "#fff", border: "1px solid rgba(22,19,15,0.1)", boxShadow: DEPTH, borderRadius: 999, padding: "8px 14px", cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600 }}>
+          <MapPin size={14} color="#FF5A2C" /> Games this weekend near you
+        </button>
 
         {eventResults !== null ? (
           <>
