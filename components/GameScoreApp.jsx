@@ -9,6 +9,8 @@ const PAGE = "#E7E3D8", INK = "#16130F";
 const ON = "#ECE7DB", ON_MUTED = "rgba(236,231,219,0.60)", ON_FAINT = "rgba(236,231,219,0.40)", HAIR = "rgba(236,231,219,0.14)";
 const CREAM = "#ECE7DB"; /* solid cream replaces the old foil gradient on CTAs and active chips */
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
+// Very-light jersey weave for the dialed-back card magic on the Favorites surfaces (lighter + coarser than the game card's)
+const FABRIC = "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 // Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
@@ -233,7 +235,7 @@ function ContextCard({ title, body, primary, teamRecord }) {
 
 function Section({ label, children, primary }) {
   return (
-    <div style={{ borderTop: `1px solid ${HAIR}`, padding: "20px 0" }}>
+    <div style={{ borderRadius: 16, padding: "16px 16px 18px", marginBottom: 12, background: "rgba(255,255,255,0.022)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.06)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)" }}>
       <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
       {children}
     </div>
@@ -516,7 +518,7 @@ export default function GameScoreApp() {
     setEventLoading(false);
   };
 
-  const screenH = { fontSize: 40, margin: "10px 0 6px" };
+  const screenH = { fontSize: 40, margin: "10px 0 6px", color: ON };
 
   // ---------- ONBOARDING ----------
   if (view === "onboarding") {
@@ -678,7 +680,7 @@ export default function GameScoreApp() {
   }
 
   // ---------- FAVORITES ----------
-  const field = { display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", borderRadius: 12, padding: "11px 14px" };
+  const field = { display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, padding: "12px 14px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" };
 
   return (
     <Shell>
@@ -694,12 +696,12 @@ export default function GameScoreApp() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
           {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
         </div>
-        <div style={{ background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 16, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 32px" }}>
+        <div style={{ background: "rgba(255,255,255,0.035)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.28)", borderRadius: 16, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 32px" }}>
           {FACTORS.map((f) => (
             <div key={f.key}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600 }}>{f.label}</span>
-                <span className="g-display" style={{ fontSize: 17, backgroundImage: "linear-gradient(180deg,#34A934 0%,#0B3E13 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#0F4A18" }}>{weights[f.key]}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: ON }}>{f.label}</span>
+                <span className="g-display" style={{ fontSize: 17, backgroundImage: "linear-gradient(180deg,#8FE89E 0%,#39B24C 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#6FD680" }}>{weights[f.key]}</span>
               </div>
               <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
             </div>
@@ -717,7 +719,7 @@ export default function GameScoreApp() {
             <p style={{ fontSize: 13.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.45 }}>
               Fast and free — just your email, no password. Your teams and excitement settings stay saved on every device.
             </p>
-            <div style={field}><Mail size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
+            <div style={field}><Mail size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
               <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
               {authMsg && <span style={{ fontSize: 12, color: ON_MUTED }}>{authMsg}</span>}
@@ -745,20 +747,20 @@ export default function GameScoreApp() {
       </Section>
       <Section primary={primary} label="Players you follow">
         <div style={field}>
-          <User size={16} color="rgba(22,19,15,0.55)" />
-          <input className="g-in" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
+          <User size={16} color="rgba(236,231,219,0.5)" />
+          <input className="g-in-dark" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
         </div>
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
       </Section>
       <Section primary={primary} label="Home market">
-        <div style={field}><MapPin size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+        <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
       </Section>
             <Section primary={primary} label="Module style">
         <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
           {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
             const on = cardStyle === k;
-            return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
+            return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
           })}
         </div>
       </Section>
