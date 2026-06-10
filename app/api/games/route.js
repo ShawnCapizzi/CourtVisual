@@ -8,6 +8,8 @@
 // Factor scores for live games are v1 heuristics (event-name keywords + a small
 // rivalry map). Star power is a baseline until a stats feed is wired in.
 
+import { getLeagueContext } from "../../../lib/espn";
+
 export const revalidate = 300;
 
 const RIVALS = {
@@ -83,6 +85,8 @@ export async function GET(request) {
   const name = (p.get("name") || "").toLowerCase();   // "knicks"
   const city = (p.get("city") || "").toLowerCase();   // "new york"
   const slug = p.get("slug") || "";
+  const league = p.get("league") || "";
+  const debug = p.get("debug") === "1";
 
   const key = process.env.TICKETMASTER_API_KEY;
   if (!key) return Response.json({ games: [], source: "none", reason: "no_key" });
@@ -139,7 +143,35 @@ export async function GET(request) {
       if (games.length >= 6) break;
     }
 
-    return Response.json({ games, source: games.length ? "ticketmaster" : "none" });
+    // ESPN enrichment — raises star power / playoff stakes / historic weight
+    // from live data when available; silently no-ops on any failure.
+    let enriched = null;
+    try {
+      const ctx = await getLeagueContext(league);
+      if (ctx) {
+        enriched = ctx._debug;
+        for (const g of games) {
+          const sMine = ctx.star(label);
+          const sOpp = ctx.star(g.opp);
+          if (sMine != null || sOpp != null) {
+            g.hot = Math.max(g.hot, Math.round((sMine || 0) * 0.55 + (sOpp || 0) * 0.45) || g.hot);
+          }
+          const cMine = ctx.contention(label);
+          const cOpp = ctx.contention(g.opp);
+          if (cMine != null && cOpp != null) {
+            g.playoff = Math.max(g.playoff, Math.round((cMine + cOpp) / 2));
+          }
+          if (ctx.storyline(label) || ctx.storyline(g.opp)) {
+            g.historic = Math.max(g.historic, 9);
+            if (g.tag === "Regular season") g.tag = "Storyline game";
+          }
+        }
+      }
+    } catch {}
+
+    const body = { games, source: games.length ? "ticketmaster" : "none" };
+    if (debug) body.enrich = enriched || { note: "no espn context (league missing or all calls failed)" };
+    return Response.json(body);
   } catch (e) {
     return Response.json({ games: [], source: "none", reason: "fetch_error" });
   }
