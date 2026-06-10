@@ -3,21 +3,17 @@ import React, { useEffect, useMemo, useState, useRef, useId } from "react";
 import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
-import LaserFrame from "./laser/LaserFrame";
-import CourtVisualLogo from "./laser/CourtVisualLogo";
 import { supabase } from "../lib/supabaseClient";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
 const ON = "#ECE7DB", ON_MUTED = "rgba(236,231,219,0.60)", ON_FAINT = "rgba(236,231,219,0.40)", HAIR = "rgba(236,231,219,0.14)";
-const FOIL = "linear-gradient(165deg, #F6F2E9 0%, #D2CBBB 32%, #FCFAF4 50%, #C3BBAA 68%, #EBE5D7 100%)";
+const CREAM = "#ECE7DB"; /* solid cream replaces the old foil gradient on CTAs and active chips */
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 // Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
 const deepen = (hex, target) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = (n & 255); const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; const k = lum > target ? target / lum : 1; r = Math.round(r * k); g = Math.round(g * k); b = Math.round(b * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketball" }, { id: "mlb", label: "Baseball" }, { id: "nhl", label: "Hockey" }, { id: "mls", label: "Soccer" }, { id: "wnba", label: "WNBA" }, { id: "boxing", label: "Boxing" }];
-const BTN = "inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -3px 6px rgba(0,0,0,0.22), 2px 3px 6px rgba(18,20,28,0.18), 3px 8px 18px rgba(18,20,28,0.13)";
-const BTN_SOFT = "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -2px 4px rgba(0,0,0,0.20), 1px 2px 4px rgba(18,20,28,0.16)";
 
 function useCountUp(target, dep) {
   const [v, setV] = useState(0);
@@ -86,17 +82,19 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(22,19,15,0.58)";
   const deepBase = deepen(primary, 0.13); // clean, deep team color for dark cards (replaces murky gray slate)
   const card = {
-    borderRadius: 22, padding: 18, marginBottom: laser ? 0 : 14, position: "relative", overflow: "hidden",
+    borderRadius: 22, padding: 18, marginBottom: 14, position: "relative", overflow: "hidden",
     backgroundColor: dark ? deepBase : "#FCFBF8",
-    // Mobile-safe jersey texture (plain alpha, no background-blend-mode — iOS WebKit drops blend
-    // under border-radius + overflow:hidden). Dark: rich team base + weave + depth. Light: bright off-white + faint wash.
+    // Dark: team atmosphere (top-lit radial deepening to the edges) + soft top glow + a fine white-alpha
+    // jersey weave, all CSS so it themes per team. Light: bright off-white + the original mesh wash.
     backgroundImage: dark
-      ? `linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20)), url(/mesh.webp)`
+      ? `repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.10), rgba(255,255,255,0) 55%), radial-gradient(135% 95% at 50% -12%, ${deepBase} 0%, ${deepBase} 42%, ${shade(deepBase, 0.40)} 100%)`
       : `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.06)), url(/mesh.webp), linear-gradient(180deg, ${hexA(primary, 0.05)}, ${hexA(primary, 0.02)})`,
-    backgroundSize: dark ? "cover, 200px" : "cover, 200px, cover",
-    backgroundRepeat: dark ? "no-repeat, repeat" : "no-repeat, repeat, no-repeat",
+    backgroundSize: dark ? "auto" : "cover, 200px, cover",
+    backgroundRepeat: dark ? "repeat" : "no-repeat, repeat, no-repeat",
     border: dark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(22,19,15,0.06)",
-    boxShadow: `${DEPTH}, ${dark ? "inset 0 1px 0 rgba(255,255,255,0.07)" : "inset 0 1px 0 rgba(255,255,255,0.9)"}`,
+    boxShadow: dark
+      ? `${DEPTH}, inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -46px 70px rgba(0,0,0,0.40)`
+      : `${DEPTH}, inset 0 1px 0 rgba(255,255,255,0.9)`,
   };
   const body = (
     <div style={card}>
@@ -108,11 +106,11 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
             {game.topRivals ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "linear-gradient(135deg,#FF5A2C,#B3122A)", color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.02em", boxShadow: BTN_SOFT }}>
-                Top Rivals 🔥
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
+                <Flame size={10} /> Top Rivals
               </span>
             ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: primary, color: textOn(primary), fontSize: 10, fontWeight: 700, boxShadow: BTN_SOFT }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: dark ? "rgba(255,255,255,0.10)" : hexA(primary, 0.10), color: dark ? "rgba(255,255,255,0.85)" : INK, fontSize: 10, fontWeight: 700 }}>
                 <Flame size={10} /> {verdict(score)}
               </span>
             )}
@@ -122,13 +120,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         </div>
       </div>
 
-      <LaserFrame mode={isTouch ? "once" : "hover"} radius={12} style={{ marginTop: 14 }}>
       <button onClick={() => onShare(game, "buy")}
-        style={{ width: "100%", padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", background: secondary, color: textOn(secondary), fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: game.minPrice ? "space-between" : "center", gap: 8, boxShadow: BTN }}>
+        style={{ width: "100%", marginTop: 14, padding: "13px 16px", borderRadius: 13, border: "none", cursor: "pointer",
+          color: textOn(secondary), backgroundColor: secondary,
+          backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), linear-gradient(180deg, ${secondary} 0%, ${shade(secondary, 0.12)} 100%)`,
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.34), 0 6px 15px rgba(0,0,0,0.30)",
+          fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: game.minPrice ? "space-between" : "center", gap: 8 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Ticket size={15} /> Get tickets <ArrowUpRight size={13} /></span>
         {game.minPrice ? <span style={{ fontWeight: 800 }}>From ${game.minPrice}</span> : null}
       </button>
-      </LaserFrame>
 
       <div style={{ marginTop: 14, paddingTop: 11, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -144,10 +144,10 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
 
     </div>
   );
-  return laser ? <LaserFrame mode="loop" radius={22} style={{ marginBottom: 14 }}>{body}</LaserFrame> : body;
+  return body;
 }
 
-const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.18)"}`, background: active ? FOIL : "rgba(255,255,255,0.05)", color: active ? INK : ON, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
+const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? "transparent" : "rgba(236,231,219,0.20)"}`, background: active ? CREAM : "transparent", color: active ? INK : ON, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
 const dots = (t) => (
   <span style={{ display: "inline-flex" }}>
     <span style={{ width: 11, height: 11, borderRadius: 999, background: t.primary, border: "1.5px solid #fff" }} />
@@ -211,7 +211,7 @@ function Nav({ view, setView }) {
       <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
         {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
           const on = view === k;
-          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
+          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
         })}
       </div>
     </div>
@@ -242,8 +242,8 @@ function Section({ label, children, primary }) {
 
 function LogoPlate() {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", padding: "5px 10px", background: "#F2EFE4", borderRadius: 10, border: "1px solid rgba(22,19,15,0.10)" }}>
-      <CourtVisualLogo width={185} className="cv-logo" />
+    <span className="g-display" style={{ fontSize: "clamp(20px, 5.6vw, 25px)", lineHeight: 1, letterSpacing: "0.01em", color: ON }}>
+      Court<span style={{ color: "#E1641F" }}>Visual</span>
     </span>
   );
 }
@@ -524,7 +524,7 @@ export default function GameScoreApp() {
       <Shell>
         <div style={{ marginBottom: 20 }}><LogoPlate /></div>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
-        <h1 className="g-display cv-gleam" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
+        <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
           Welcome to CourtVisual — the ticket app customized for you, by you.
         </p>
@@ -582,7 +582,7 @@ export default function GameScoreApp() {
         </div>
 
         <button disabled={!teamSlugs.length} onClick={() => setView("games")}
-          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? FOIL : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
+          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? CREAM : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
           {teamSlugs.length ? `Continue with ${teamSlugs.length} team${teamSlugs.length > 1 ? "s" : ""}` : "Add a team to continue"}
         </button>
       </Shell>
@@ -611,10 +611,10 @@ export default function GameScoreApp() {
         <Nav view={view} setView={setView} />
         <div style={{ display: "flex", alignItems: "stretch", gap: 8, marginBottom: 16, position: "relative" }}>
           <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 12, padding: "11px 14px" }}>
-              <Search size={17} color="rgba(22,19,15,0.5)" />
-              <input className="g-in" placeholder="Team, sport, or event…" value={jump} onChange={(e) => setJump(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runEventSearch(jump); }} />
-              {(jump || eventResults !== null) && <button onClick={clearSearch} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(22,19,15,0.45)", padding: 0, display: "flex" }}><X size={16} /></button>}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(236,231,219,0.06)", border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, padding: "11px 14px" }}>
+              <Search size={17} color="rgba(236,231,219,0.5)" />
+              <input className="g-in-dark" placeholder="Team, sport, or event…" value={jump} onChange={(e) => setJump(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runEventSearch(jump); }} />
+              {(jump || eventResults !== null) && <button onClick={clearSearch} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(236,231,219,0.5)", padding: 0, display: "flex" }}><X size={16} /></button>}
             </div>
             {jump.trim() && (
               <div style={{ position: "absolute", zIndex: 30, top: "100%", left: 0, right: 0, marginTop: 6, background: "#fff", borderRadius: 12, boxShadow: DEPTH, border: "1px solid rgba(22,19,15,0.06)", overflow: "hidden" }}>
@@ -629,7 +629,7 @@ export default function GameScoreApp() {
               </div>
             )}
           </div>
-          <button aria-label="Filter games" onClick={() => setFilterOpen((v) => !v)} style={{ flexShrink: 0, width: 46, display: "flex", alignItems: "center", justifyContent: "center", background: filterOpen ? FOIL : "#fff", color: INK, border: "1px solid rgba(22,19,15,0.10)", boxShadow: DEPTH, borderRadius: 12, cursor: "pointer" }}>
+          <button aria-label="Filter games" onClick={() => setFilterOpen((v) => !v)} style={{ flexShrink: 0, width: 46, display: "flex", alignItems: "center", justifyContent: "center", background: filterOpen ? "rgba(236,231,219,0.14)" : "rgba(236,231,219,0.06)", color: ON, border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, cursor: "pointer" }}>
             <SlidersHorizontal size={18} />
           </button>
           {filterOpen && <div onClick={() => setFilterOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 35 }} />}
@@ -651,7 +651,7 @@ export default function GameScoreApp() {
         {eventResults !== null ? (
           <>
             <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: primary }} />Search results</div>
-            <h1 className="g-display cv-gleam" style={screenH}>{eventQuery.toUpperCase()}</h1>
+            <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
             <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
             {renderGames([...eventResults].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)))}
@@ -663,8 +663,8 @@ export default function GameScoreApp() {
                 {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name}</span>))}
               </div>
             )}
-            <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
-            <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
+            <h1 className="g-display" style={screenH}>{team.label.toUpperCase()}</h1>
+            <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{gamesView.sub}</p>
             {gamesView.context}
             {renderGames(gamesView.ranked)}
@@ -683,7 +683,7 @@ export default function GameScoreApp() {
   return (
     <Shell>
       <Nav view={view} setView={setView} />
-      <h1 className="g-display cv-gleam" style={screenH}>FAVORITES</h1>
+      <h1 className="g-display" style={screenH}>FAVORITES</h1>
             <Section primary={primary} label="Teams">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
@@ -770,7 +770,7 @@ export default function GameScoreApp() {
           {override && <button onClick={() => setOverride(null)} style={{ ...chip(false), padding: "5px 10px" }}>Reset to team</button>}
         </div>
       </Section>
-      <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: FOIL, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>See the ranking</button>
+      <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>See the ranking</button>
     </Shell>
   );
 }
