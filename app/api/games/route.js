@@ -33,6 +33,8 @@ const RIVALS = {
   padres: ["dodgers", "giants"],
 };
 
+const LEAGUE_KW = { nba: "NBA", mlb: "MLB", nhl: "NHL", nfl: "NFL" };
+
 // Strip playoff/qualifier noise so the opponent parses cleanly.
 function cleanEventName(name) {
   let s = name || "";
@@ -171,7 +173,60 @@ export async function GET(request) {
       if (games.length >= 6) break;
     }
 
-    const body = { games, source: games.length ? "ticketmaster" : "none" };
+    const teamRecord = ctx?.record(label) || null;
+    let leagueGames = [];
+    let mode = games.length ? "team" : "offseason";
+
+    // No team games? See whether the league itself is live (postseason in progress).
+    if (!games.length && key) {
+      try {
+        const kw = LEAGUE_KW[league];
+        if (kw) {
+          const lurl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}` +
+            `&keyword=${encodeURIComponent(kw)}&classificationName=Sports&sort=date,asc&size=24`;
+          const lres = await fetch(lurl, { next: { revalidate: 600 } });
+          if (lres.ok) {
+            const ldata = await lres.json();
+            const levents = ldata?._embedded?.events || [];
+            const lseen = new Set();
+            for (const ev of levents) {
+              const parts = cleanEventName(ev.name || "").split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
+              if (parts.length !== 2) continue;
+              const r1 = ctx?.resolveTeam(parts[0]); const n1 = r1?.nick || lastWord(parts[0]);
+              const r2 = ctx?.resolveTeam(parts[1]); const n2 = r2?.nick || lastWord(parts[1]);
+              if (!n1 || !n2 || /^\d+$/.test(n1) || /^\d+$/.test(n2) || n1 === n2) continue;
+              const dt = ev.dates?.start?.dateTime;
+              const { date, ds } = fmtDate(dt, ev.dates?.start?.localDate);
+              const keyd = `${slugify(n1)}-${slugify(n2)}-${ds}`;
+              if (lseen.has(keyd)) continue;
+              lseen.add(keyd);
+              const f = deriveFactors(ev.name || "", n2, "", dt);
+              const venue = ev._embedded?.venues?.[0];
+              const minP = ev.priceRanges?.[0]?.min;
+              const g = {
+                matchup: `${n1} vs ${n2}`, opp: n2, oppSlug: slugify(`${n1}-vs-${n2}`),
+                date, ds, home: false, tag: f.tag,
+                playoff: f.playoff, rivalry: 5, hot: f.hot, historic: f.historic,
+                url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
+              };
+              if (ctx) {
+                const s1 = ctx.star(n1), s2 = ctx.star(n2);
+                const ss = [s1, s2].filter((x) => x != null);
+                if (ss.length) g.hot = Math.max(g.hot, Math.round(ss.reduce((a, b) => a + b, 0) / ss.length));
+                const c1 = ctx.contention(n1), c2 = ctx.contention(n2);
+                if (c1 != null && c2 != null) g.playoff = Math.max(g.playoff, Math.round((c1 + c2) / 2));
+                if (ctx.storyline(n1) || ctx.storyline(n2)) { g.historic = Math.max(g.historic, 9); if (g.tag === "Regular season") g.tag = "Storyline game"; }
+              }
+              leagueGames.push(g);
+              if (leagueGames.length >= 6) break;
+            }
+          }
+        }
+      } catch {}
+      mode = leagueGames.length ? "league" : "offseason";
+    }
+
+    const body = { games, leagueGames, mode, teamRecord, source: games.length ? "ticketmaster" : "none" };
     if (debug) body.enrich = ctx?._debug || { note: "no espn context (league missing or all calls failed)" };
     return Response.json(body);
   } catch (e) {
