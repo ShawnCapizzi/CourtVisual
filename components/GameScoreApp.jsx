@@ -155,6 +155,14 @@ const dots = (t) => (
 );
 const tick = { display: "inline-block", width: 16, height: 4, background: "#E8401F", borderRadius: 1, marginRight: 9, verticalAlign: "middle" };
 
+function LogoPlate() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "5px 10px", background: "#F2EFE4", borderRadius: 10, border: "1px solid rgba(22,19,15,0.10)" }}>
+      <CourtVisualLogo width={185} className="cv-logo" />
+    </span>
+  );
+}
+
 export default function GameScoreApp() {
   const [view, setView] = useState("onboarding");
   const [teamSlugs, setTeamSlugs] = useState([]);
@@ -285,10 +293,14 @@ export default function GameScoreApp() {
   if (view === "onboarding") {
     return (
       <Shell>
-        <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={tick} />CourtVisual · Setup</div>
+        <div style={{ marginBottom: 20 }}><LogoPlate /></div>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={tick} />Welcome</div>
         <h1 className="g-display cv-gleam" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: INK, marginTop: 14, lineHeight: 1.4 }}>
-          The only ticket app that scores every game by what excites <em>you</em>.
+          Welcome to CourtVisual — the ticket app customized for you, by you.
+        </p>
+        <p style={{ fontSize: 13.5, color: "rgba(22,19,15,0.7)", marginTop: 8, lineHeight: 1.45 }}>
+          You set what makes a game exciting. We score and rank every game to match.
         </p>
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
           {[
@@ -328,9 +340,7 @@ export default function GameScoreApp() {
 
   const Nav = () => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-      <span style={{ display: "inline-flex", alignItems: "center", padding: "5px 10px", background: "#F2EFE4", borderRadius: 10, border: "1px solid rgba(22,19,15,0.10)" }}>
-        <CourtVisualLogo width={185} className="cv-logo" />
-      </span>
+      <LogoPlate />
       <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
         {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
           const on = view === k;
@@ -377,39 +387,11 @@ export default function GameScoreApp() {
     <Shell>
       <Nav />
       <h1 className="g-display cv-gleam" style={screenH}>FAVORITES</h1>
-      <Section label="Account">
-        {session?.user ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: "rgba(22,19,15,0.7)" }}>Signed in as <b style={{ color: INK }}>{session.user.email}</b> — favorites sync to your account.</span>
-            <button onClick={signOut} style={chip(false)}>Sign out</button>
-          </div>
-        ) : (
-          <div>
-            <div style={field}><Mail size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
-              <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
-              {authMsg && <span style={{ fontSize: 12, color: "rgba(22,19,15,0.6)" }}>{authMsg}</span>}
-            </div>
-            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.45)", marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
-          </div>
-        )}
-      </Section>
-      <Section label="Teams">
+            <Section label="Teams">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
           <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
         </div>
-      </Section>
-      <Section label="Players you follow">
-        <div style={field}>
-          <User size={16} color="rgba(22,19,15,0.55)" />
-          <input className="g-in" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
-        </div>
-        {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
-      </Section>
-      <Section label="Home market">
-        <div style={field}><MapPin size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
       </Section>
       <Section label="Type of excitement you want">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
@@ -427,7 +409,38 @@ export default function GameScoreApp() {
           ))}
         </div>
       </Section>
-      <Section label="Module style">
+      <Section label="Account">
+        {session?.user ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, color: "rgba(22,19,15,0.7)" }}>Signed in as <b style={{ color: INK }}>{session.user.email}</b> — favorites sync to your account.</span>
+            <button onClick={signOut} style={chip(false)}>Sign out</button>
+          </div>
+        ) : (
+          <div>
+            <p style={{ fontSize: 13.5, color: "rgba(22,19,15,0.7)", margin: "0 0 12px", lineHeight: 1.45 }}>
+              Fast and free — just your email, no password. Your teams and excitement settings stay saved on every device.
+            </p>
+            <div style={field}><Mail size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+              <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
+              {authMsg && <span style={{ fontSize: 12, color: "rgba(22,19,15,0.6)" }}>{authMsg}</span>}
+            </div>
+            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.45)", marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
+          </div>
+        )}
+      </Section>
+      <Section label="Players you follow">
+        <div style={field}>
+          <User size={16} color="rgba(22,19,15,0.55)" />
+          <input className="g-in" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
+        </div>
+        {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
+      </Section>
+      <Section label="Home market">
+        <div style={field}><MapPin size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+      </Section>
+            <Section label="Module style">
         <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
           {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
             const on = cardStyle === k;
