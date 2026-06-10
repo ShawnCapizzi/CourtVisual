@@ -1,13 +1,16 @@
 /**
- * CourtVisual wordmark — v6: italic sporty mark.
+ * CourtVisual wordmark — v7: measured geometry.
  *
- * Court (ink) sits beside Visual (heat-gradient — same colors as the score ring,
- * so the wordmark and scoring system speak one color language).
- * White laser traces the outline of Visual with a long, slow stroke.
- * Three speed-lines tail off the final L.
+ * All positions computed from Archivo Black's real font metrics (fontTools):
+ *   'Court'  @52px advance = 156.0px
+ *   'Visual' @52px advance = 176.2px  -> starts x=164 (8px gap), ends x=340.2
+ *   capHeight @52px = 35.8px          -> baseline 40, caps top ~4.2
  *
- * Geometry note: word gap is set in *viewBox* units (not letter-spacing) so it
- * never collides with the next word regardless of font-metric drift.
+ * Italic comes from an explicit skewX(-12) (Archivo Black has no true italic;
+ * browser-synthesized oblique varies and overflows). translate(9,0) compensates
+ * the skew's leftward shift at baseline (tan 12deg * 40 = 8.5).
+ *
+ * viewBox 0 0 390 46 hugs the content: glyphs end ~348, speed lines end ~386.
  */
 
 interface CourtVisualLogoProps {
@@ -17,27 +20,21 @@ interface CourtVisualLogoProps {
 }
 
 export default function CourtVisualLogo({
-  width = 240,
+  width = 170,
   className = "",
   fontFamily = "'Archivo Black', sans-serif",
 }: CourtVisualLogoProps) {
-  const style = {
-    fontFamily,
-    fontSize: 52,
-    fontStyle: "italic",
-    letterSpacing: "0",
-  } as const;
+  const style = { fontFamily, fontSize: 52, letterSpacing: "0" } as const;
 
   return (
     <svg
-      viewBox="0 0 372 64"
+      viewBox="0 0 390 46"
       width={width}
       className={className}
       role="img"
       aria-label="CourtVisual"
     >
       <defs>
-        {/* Heat gradient — identical stops to the score ring */}
         <linearGradient id="cv-visual-heat" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#FFA52B" />
           <stop offset="55%" stopColor="#FF5A2C" />
@@ -45,14 +42,16 @@ export default function CourtVisualLogo({
         </linearGradient>
       </defs>
 
-      <text x="0" y="50" fill="var(--cv-ink)" style={style}>Court</text>
-      <text x="160" y="50" fill="url(#cv-visual-heat)" style={style}>Visual</text>
+      <g transform="translate(9 0) skewX(-12)">
+        <text x="0" y="40" fill="var(--cv-ink)" style={style}>Court</text>
+        <text x="164" y="40" fill="url(#cv-visual-heat)" style={style}>Visual</text>
 
-      {/* Speed-lines off the final L */}
-      <g stroke="url(#cv-visual-heat)" strokeLinecap="round">
-        <line x1="324" y1="32" x2="352" y2="32" strokeWidth="3.5" />
-<line x1="330" y1="44" x2="360" y2="44" strokeWidth="3" />
-<line x1="326" y1="55" x2="348" y2="55" strokeWidth="2.5" />
+        {/* Speed lines — start after Visual's measured end (340), clear of glyphs */}
+        <g stroke="url(#cv-visual-heat)" strokeLinecap="round">
+          <line x1="348" y1="14" x2="374" y2="14" strokeWidth="3.5" />
+          <line x1="352" y1="25" x2="382" y2="25" strokeWidth="3" />
+          <line x1="350" y1="35" x2="372" y2="35" strokeWidth="2.5" />
+        </g>
       </g>
     </svg>
   );
