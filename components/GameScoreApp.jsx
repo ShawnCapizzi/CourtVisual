@@ -8,6 +8,7 @@ import CourtVisualLogo from "./laser/CourtVisualLogo";
 import { supabase } from "../lib/supabaseClient";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
+const ON = "#ECE7DB", ON_MUTED = "rgba(236,231,219,0.60)", ON_FAINT = "rgba(236,231,219,0.40)", HAIR = "rgba(236,231,219,0.14)";
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
@@ -85,15 +86,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const deepBase = deepen(primary, 0.13); // clean, deep team color for dark cards (replaces murky gray slate)
   const card = {
     borderRadius: 22, padding: 18, marginBottom: laser ? 0 : 14, position: "relative", overflow: "hidden",
-    backgroundColor: dark ? deepBase : "#F7F2E6",
+    backgroundColor: dark ? deepBase : "#FCFBF8",
     // Mobile-safe jersey texture (plain alpha, no background-blend-mode — iOS WebKit drops blend
-    // under border-radius + overflow:hidden). Dark: rich team base + weave + depth. Light: cream + faint wash.
+    // under border-radius + overflow:hidden). Dark: rich team base + weave + depth. Light: bright off-white + faint wash.
     backgroundImage: dark
       ? `linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20)), url(/mesh.webp)`
-      : `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.14)), url(/mesh.webp), linear-gradient(180deg, ${hexA(primary, 0.12)}, ${hexA(primary, 0.035)})`,
+      : `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.06)), url(/mesh.webp), linear-gradient(180deg, ${hexA(primary, 0.05)}, ${hexA(primary, 0.02)})`,
     backgroundSize: dark ? "cover, 200px" : "cover, 200px, cover",
     backgroundRepeat: dark ? "no-repeat, repeat" : "no-repeat, repeat, no-repeat",
-    border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(22,19,15,0.06)",
+    border: dark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(22,19,15,0.06)",
     boxShadow: `${DEPTH}, ${dark ? "inset 0 1px 0 rgba(255,255,255,0.07)" : "inset 0 1px 0 rgba(255,255,255,0.9)"}`,
   };
   const body = (
@@ -194,8 +195,10 @@ function StyleMini({ variant }) {
 
 function Shell({ children }) {
   return (
-    <div className="g-ui" style={{ background: PAGE, color: INK, width: "100%", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
+    <div className="g-ui" style={{ color: ON, width: "100%", minHeight: "100vh", position: "relative" }}>
+      <div className="cv-stage" aria-hidden="true" />
+      <div className="cv-grain" aria-hidden="true" />
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
     </div>
   );
 }
@@ -204,10 +207,10 @@ function Nav({ view, setView }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
       <LogoPlate />
-      <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
+      <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
         {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
           const on = view === k;
-          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : "rgba(22,19,15,0.55)", boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(22,19,15,0.16)" : "none" }}>{l}</button>);
+          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
         })}
       </div>
     </div>
@@ -229,8 +232,8 @@ function ContextCard({ title, body, primary, teamRecord }) {
 
 function Section({ label, children, primary }) {
   return (
-    <div style={{ borderTop: "1px solid rgba(22,19,15,0.12)", padding: "20px 0" }}>
-      <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)", marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
+    <div style={{ borderTop: `1px solid ${HAIR}`, padding: "20px 0" }}>
+      <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
       {children}
     </div>
   );
@@ -444,7 +447,7 @@ export default function GameScoreApp() {
     return (
       <>
         {note && (
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: "rgba(22,19,15,0.55)", marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: ON_MUTED, marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Flame size={12} color="#FF5A2C" /> {note}
           </div>
         )}
@@ -519,12 +522,12 @@ export default function GameScoreApp() {
     return (
       <Shell>
         <div style={{ marginBottom: 20 }}><LogoPlate /></div>
-        <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={tick} />Welcome</div>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display cv-gleam" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
-        <p style={{ fontSize: 15, fontWeight: 700, color: INK, marginTop: 14, lineHeight: 1.4 }}>
+        <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
           Welcome to CourtVisual — the ticket app customized for you, by you.
         </p>
-        <p style={{ fontSize: 13.5, color: "rgba(22,19,15,0.7)", marginTop: 8, lineHeight: 1.45 }}>
+        <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
           You set what makes a game exciting. We score and rank every game to match.
         </p>
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -535,11 +538,11 @@ export default function GameScoreApp() {
           ].map(([t, d]) => (
             <div key={t} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
               <span style={{ ...tick, flexShrink: 0, marginRight: 0 }} />
-              <span style={{ fontSize: 13.5, color: "rgba(22,19,15,0.7)", lineHeight: 1.45 }}><b style={{ color: INK }}>{t}.</b> {d}</span>
+              <span style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.45 }}><b style={{ color: ON }}>{t}.</b> {d}</span>
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 13, color: "rgba(22,19,15,0.55)", marginTop: 16 }}>Pick your team to start — the app themes to its colors.</p>
+        <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Pick your team to start — the app themes to its colors.</p>
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 14, padding: "13px 16px", marginTop: 22 }}>
           <Search size={18} color="rgba(22,19,15,0.55)" />
           <input className="g-in" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
@@ -549,19 +552,19 @@ export default function GameScoreApp() {
             {favTeams.map((t) => (<span key={t.slug} style={chip(true)} onClick={() => removeTeam(t)}>{dots(t)} {t.name} <X size={13} /></span>))}
           </div>
         )}
-        <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.55)", margin: "22px 0 10px" }}>{q.trim() ? "Results" : "Popular"}</div>
+        <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "22px 0 10px" }}>{q.trim() ? "Results" : "Popular"}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {results.map((t) => (
             <button key={t.slug} style={chip(false)} onClick={() => addTeam(t)}>{teamSlugs.includes(t.slug) ? <Check size={13} /> : dots(t)} {t.label}</button>
           ))}
         </div>
         {q.trim() && (
-          <button onClick={() => { runEventSearch(q); setView("games"); }} style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 600, textAlign: "left" }}>
-            <Search size={15} color="rgba(22,19,15,0.55)" /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
+          <button onClick={() => { runEventSearch(q); setView("games"); }} style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 600, textAlign: "left" }}>
+            <Search size={15} color={ON_MUTED} /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
           </button>
         )}
         <div style={{ marginTop: 24 }}>
-          <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.55)", marginBottom: 10 }}>Choose your view · change anytime</div>
+          <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, marginBottom: 10 }}>Choose your view · change anytime</div>
           <div style={{ display: "flex", gap: 10 }}>
             {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
               const on = cardStyle === k;
@@ -578,7 +581,7 @@ export default function GameScoreApp() {
         </div>
 
         <button disabled={!teamSlugs.length} onClick={() => setView("games")}
-          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? INK : "rgba(22,19,15,0.2)", color: PAGE, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
+          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? INK : "rgba(255,255,255,0.12)", color: teamSlugs.length ? PAGE : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
           {teamSlugs.length ? `Continue with ${teamSlugs.length} team${teamSlugs.length > 1 ? "s" : ""}` : "Add a team to continue"}
         </button>
       </Shell>
@@ -646,10 +649,10 @@ export default function GameScoreApp() {
 
         {eventResults !== null ? (
           <>
-            <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />Search results</div>
+            <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: primary }} />Search results</div>
             <h1 className="g-display cv-gleam" style={screenH}>{eventQuery.toUpperCase()}</h1>
-            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
-            <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
+            <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
+            <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
             {renderGames([...eventResults].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)))}
           </>
         ) : (
@@ -659,12 +662,12 @@ export default function GameScoreApp() {
                 {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name}</span>))}
               </div>
             )}
-            <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
+            <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
             <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
-            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{gamesView.sub}</p>
+            <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{gamesView.sub}</p>
             {gamesView.context}
             {renderGames(gamesView.ranked)}
-            <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Star size={14} /> Tune your favorites & view
             </button>
           </>
@@ -705,30 +708,30 @@ export default function GameScoreApp() {
       <Section primary={primary} label="Account">
         {session?.user ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: "rgba(22,19,15,0.7)" }}>Signed in as <b style={{ color: INK }}>{session.user.email}</b> — favorites sync to your account.</span>
+            <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b> — favorites sync to your account.</span>
             <button onClick={signOut} style={chip(false)}>Sign out</button>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: 13.5, color: "rgba(22,19,15,0.7)", margin: "0 0 12px", lineHeight: 1.45 }}>
+            <p style={{ fontSize: 13.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.45 }}>
               Fast and free — just your email, no password. Your teams and excitement settings stay saved on every device.
             </p>
             <div style={field}><Mail size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
               <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
-              {authMsg && <span style={{ fontSize: 12, color: "rgba(22,19,15,0.6)" }}>{authMsg}</span>}
+              {authMsg && <span style={{ fontSize: 12, color: ON_MUTED }}>{authMsg}</span>}
             </div>
-            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.45)", marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
+            <p style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
           </div>
         )}
       </Section>
       <Section primary={primary} label="Sport focus">
-        <p style={{ fontSize: 12.5, color: "rgba(22,19,15,0.55)", margin: "0 0 12px", lineHeight: 1.4 }}>Pick a sport to pull up its teams — tap to follow. Come back anytime to add more.</p>
+        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.4 }}>Pick a sport to pull up its teams — tap to follow. Come back anytime to add more.</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: sportFocus ? 14 : 0 }}>
           {SPORTS.map((sp) => (<button key={sp.id} style={chip(sportFocus === sp.id)} onClick={() => setSportFocus(sportFocus === sp.id ? null : sp.id)}>{sp.label}</button>))}
         </div>
         {sportFocus === "boxing" && (
-          <p style={{ fontSize: 13, color: "rgba(22,19,15,0.6)", lineHeight: 1.45, margin: 0 }}>Big fights are coming soon. For now, search any bout from the search bar on the Games tab.</p>
+          <p style={{ fontSize: 13, color: ON_MUTED, lineHeight: 1.45, margin: 0 }}>Big fights are coming soon. For now, search any bout from the search bar on the Games tab.</p>
         )}
         {sportFocus && sportFocus !== "boxing" && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -751,10 +754,10 @@ export default function GameScoreApp() {
         <div style={field}><MapPin size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
       </Section>
             <Section primary={primary} label="Module style">
-        <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
+        <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
           {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
             const on = cardStyle === k;
-            return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : "rgba(22,19,15,0.55)", boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(22,19,15,0.16)" : "none" }}>{l}</button>);
+            return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
           })}
         </div>
       </Section>
