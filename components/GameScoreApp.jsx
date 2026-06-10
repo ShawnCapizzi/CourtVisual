@@ -259,7 +259,8 @@ export default function GameScoreApp() {
     if (s.cardStyle) setCardStyle(s.cardStyle);
     if (s.override !== undefined) setOverride(s.override);
     if (s.reactions) setReactions(s.reactions);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+    if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }, []);
 
   useEffect(() => { try { setIsTouch(window.matchMedia("(hover: none)").matches); } catch {} }, []);
