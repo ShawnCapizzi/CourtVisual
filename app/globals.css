@@ -2,7 +2,7 @@
 
 * { box-sizing: border-box; }
 html, body {
-  margin: 0; padding: 0; background: #E7E3D8;
+  margin: 0; padding: 0; background: #0A0D12;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
@@ -36,3 +36,25 @@ button:active { transform: scale(0.985); }
 
 /* Logo: fixed presence on desktop, clamps on narrow screens so nav never crowds */
 .cv-logo { width: clamp(130px, 42vw, 185px); height: auto; display: block; }
+
+/* Stadium-light backdrop: dark base, soft corner floodlights, warm pitch glow, vignette.
+   Fixed so content scrolls over it (parallax feel); slow drift gives the beams life. */
+.cv-stage {
+  position: fixed; inset: -6%; z-index: 0; pointer-events: none; will-change: transform;
+  background:
+    radial-gradient(70% 55% at 18% -6%, rgba(255,244,224,0.20), rgba(255,244,224,0) 60%),
+    radial-gradient(70% 55% at 82% -6%, rgba(206,224,255,0.16), rgba(206,224,255,0) 60%),
+    radial-gradient(120% 90% at 50% 116%, rgba(255,132,56,0.08), rgba(255,132,56,0) 55%),
+    radial-gradient(120% 100% at 50% 38%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.45) 100%),
+    linear-gradient(180deg, #131822 0%, #0C1017 55%, #090B11 100%);
+  animation: cv-drift 26s ease-in-out infinite;
+}
+@keyframes cv-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.0); }
+  50%      { transform: translate3d(0, -1.2%, 0) scale(1.025); }
+}
+.cv-grain {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
