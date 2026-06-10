@@ -117,14 +117,9 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </LaserFrame>
 
       <div style={{ marginTop: 14, paddingTop: 11, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
-          <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            {shared ? <><Check size={13} /> Copied</> : <><Share2 size={13} /> Share</>}
-          </button>
-          <button onClick={() => onShare(game, "gift")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <Gift size={13} /> Gift
-          </button>
-        </div>
+        <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {shared ? <><Check size={13} /> Copied</> : <><Share2 size={13} /> Share with friends</>}
+        </button>
         <button onClick={() => setOpen(!open)} aria-expanded={open}
           style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <span className="g-eyebrow" style={{ fontSize: 9.5 }}>Why this game scores {score.toFixed(1)}</span>
@@ -147,6 +142,11 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
               </button>
             );
           })}
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button onClick={() => onShare(game, "gift")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <Gift size={13} /> Gift this game
+          </button>
         </div>
       </div>
       )}
