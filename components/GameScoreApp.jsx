@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
-import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail } from "lucide-react";
+import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import LaserFrame from "./laser/LaserFrame";
@@ -10,6 +10,7 @@ import { supabase } from "../lib/supabaseClient";
 const PAGE = "#E7E3D8", INK = "#16130F";
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
+const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketball" }, { id: "mlb", label: "Baseball" }, { id: "nhl", label: "Hockey" }, { id: "mls", label: "Soccer" }, { id: "wnba", label: "WNBA" }, { id: "boxing", label: "Boxing" }];
 const BTN = "inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -3px 6px rgba(0,0,0,0.22), 2px 3px 6px rgba(18,20,28,0.18), 3px 8px 18px rgba(18,20,28,0.13)";
 const BTN_SOFT = "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -2px 4px rgba(0,0,0,0.20), 1px 2px 4px rgba(18,20,28,0.16)";
 
@@ -82,10 +83,10 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const card = {
     borderRadius: 22, padding: 18, marginBottom: laser ? 0 : 14, position: "relative", overflow: "hidden",
     backgroundColor: dark ? "#161B26" : "#F7F2E6",
-    // depth gradient (top) + jersey mesh texture + team-color wash (bottom), over the base color
-    backgroundImage: `linear-gradient(157deg, rgba(255,255,255,0.06), rgba(0,0,0,0.20)), url(/mesh.webp), linear-gradient(160deg, ${hexA(primary, dark ? 0.30 : 0.16)}, ${hexA(primary, dark ? 0.08 : 0.04)} 58%, rgba(0,0,0,0))`,
-    backgroundBlendMode: "overlay, soft-light, normal",
-    backgroundSize: "cover, 230px, cover",
+    // neutral-gray jersey weave (soft-light preserves base luminance) + subtle team wash + depth
+    backgroundImage: `linear-gradient(157deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16)), url(/mesh.webp), linear-gradient(160deg, ${hexA(primary, dark ? 0.20 : 0.12)}, ${hexA(primary, 0)} 62%)`,
+    backgroundBlendMode: "soft-light, soft-light, normal",
+    backgroundSize: "cover, 200px, cover",
     backgroundRepeat: "no-repeat, repeat, no-repeat",
     border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(22,19,15,0.06)",
     boxShadow: `${DEPTH}, ${dark ? "inset 0 1px 0 rgba(255,255,255,0.07)" : "inset 0 1px 0 rgba(255,255,255,0.9)"}`,
@@ -374,6 +375,8 @@ export default function GameScoreApp() {
   const [eventResults, setEventResults] = useState(null);
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sportFocus, setSportFocus] = useState(null);
   const [visible, setVisible] = useState(8);
   const [hotSlugs, setHotSlugs] = useState([]);
   const DEFAULT_POPULAR = ["giants", "mets", "cowboys", "new-york-red-bulls", "la-galaxy", "chiefs", "knicks", "bulls"];
@@ -474,9 +477,12 @@ export default function GameScoreApp() {
   // ---------- search (jump to team / search any sport, place, or event) ----------
   const teamMatches = jump.trim() ? TEAMS.filter((t) => t.label.toLowerCase().includes(jump.trim().toLowerCase())).slice(0, 5) : [];
   const jumpToTeam = (t) => { if (!teamSlugs.includes(t.slug)) setTeamSlugs([...teamSlugs, t.slug]); setPrimarySlug(t.slug); setJump(""); setEventResults(null); setEventQuery(""); };
+  // Switch to the results view immediately with a loading state, so taps feel responsive
+  // (esp. weekend, where the geolocation prompt can take a few seconds).
+  const beginSearch = (label) => { setEventLoading(true); setEventResults([]); setEventQuery(label); setJump(""); setFilterOpen(false); setView("games"); };
   const runEventSearch = async (query) => {
     const qq = (query || "").trim(); if (!qq) return;
-    setEventLoading(true); setEventQuery(qq); setJump("");
+    beginSearch(qq);
     try { const r = await fetch(`/api/games?q=${encodeURIComponent(qq)}`); const d = await r.json(); setEventResults(d.games || []); }
     catch { setEventResults([]); }
     setEventLoading(false);
@@ -490,7 +496,7 @@ export default function GameScoreApp() {
     setEventLoading(false);
   };
   const weekendNearMe = () => {
-    setEventLoading(true); setEventQuery("Games this weekend near you"); setJump(""); setView("games");
+    beginSearch("Games this weekend near you");
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => fetchWeekend(pos.coords.latitude, pos.coords.longitude),
@@ -498,6 +504,25 @@ export default function GameScoreApp() {
         { timeout: 8000, maximumAge: 600000 }
       );
     } else { fetchWeekend(null, null); }
+  };
+  const FILTERS = [
+    { id: "weekend", label: "Games this weekend near you", icon: MapPin, color: "#FF5A2C" },
+    { id: "hot", label: "Hottest games of the season", icon: Flame, color: "#B3122A" },
+    { id: "rivalry", label: "Rivalry showdowns", icon: Zap, color: "#E8401F" },
+    { id: "stakes", label: "Championship & playoff games", icon: Trophy, color: "#0F4A18" },
+  ];
+  const runFilter = async (kind) => {
+    if (kind === "weekend") { weekendNearMe(); return; }
+    const label = (FILTERS.find((f) => f.id === kind) || {}).label || "Hot games";
+    beginSearch(label);
+    try {
+      const r = await fetch("/api/games?hot=1"); const d = await r.json();
+      let g = d.games || [];
+      if (kind === "rivalry") g = g.filter((x) => x.topRivals || x.rivalry >= 7);
+      if (kind === "stakes") g = g.filter((x) => x.playoff >= 7 || x.historic >= 8);
+      setEventResults(g);
+    } catch { setEventResults([]); }
+    setEventLoading(false);
   };
 
   const screenH = { fontSize: 40, margin: "10px 0 6px" };
@@ -548,9 +573,6 @@ export default function GameScoreApp() {
             <Search size={15} color="rgba(22,19,15,0.55)" /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
           </button>
         )}
-        <button onClick={weekendNearMe} style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 600 }}>
-          <MapPin size={15} color="#FF5A2C" /> <span>Games this weekend near you →</span>
-        </button>
         <div style={{ marginTop: 24 }}>
           <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.55)", marginBottom: 10 }}>Choose your view · change anytime</div>
           <div style={{ display: "flex", gap: 10 }}>
@@ -596,29 +618,44 @@ export default function GameScoreApp() {
     return (
       <Shell>
         <Nav view={view} setView={setView} />
-        <div style={{ position: "relative", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 12, padding: "11px 14px" }}>
-            <Search size={17} color="rgba(22,19,15,0.5)" />
-            <input className="g-in" placeholder="Jump to a team, sport, or event…" value={jump} onChange={(e) => setJump(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runEventSearch(jump); }} />
-            {(jump || eventResults !== null) && <button onClick={clearSearch} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(22,19,15,0.45)", padding: 0, display: "flex" }}><X size={16} /></button>}
-          </div>
-          {jump.trim() && (
-            <div style={{ position: "absolute", zIndex: 30, top: "100%", left: 0, right: 0, marginTop: 6, background: "#fff", borderRadius: 12, boxShadow: DEPTH, border: "1px solid rgba(22,19,15,0.06)", overflow: "hidden" }}>
-              {teamMatches.map((t) => (
-                <button key={t.slug} onClick={() => jumpToTeam(t)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", border: "none", borderBottom: "1px solid rgba(22,19,15,0.05)", background: "none", cursor: "pointer", textAlign: "left" }}>
-                  {dots(t)} <span style={{ fontSize: 14, fontWeight: 600, color: INK }}>{t.label}</span>
+        <div style={{ display: "flex", alignItems: "stretch", gap: 8, marginBottom: 16, position: "relative" }}>
+          <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 12, padding: "11px 14px" }}>
+              <Search size={17} color="rgba(22,19,15,0.5)" />
+              <input className="g-in" placeholder="Team, sport, or event…" value={jump} onChange={(e) => setJump(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runEventSearch(jump); }} />
+              {(jump || eventResults !== null) && <button onClick={clearSearch} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(22,19,15,0.45)", padding: 0, display: "flex" }}><X size={16} /></button>}
+            </div>
+            {jump.trim() && (
+              <div style={{ position: "absolute", zIndex: 30, top: "100%", left: 0, right: 0, marginTop: 6, background: "#fff", borderRadius: 12, boxShadow: DEPTH, border: "1px solid rgba(22,19,15,0.06)", overflow: "hidden" }}>
+                {teamMatches.map((t) => (
+                  <button key={t.slug} onClick={() => jumpToTeam(t)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", border: "none", borderBottom: "1px solid rgba(22,19,15,0.05)", background: "none", cursor: "pointer", textAlign: "left" }}>
+                    {dots(t)} <span style={{ fontSize: 14, fontWeight: 600, color: INK }}>{t.label}</span>
+                  </button>
+                ))}
+                <button onClick={() => runEventSearch(jump)} style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "11px 14px", border: "none", background: "none", cursor: "pointer", textAlign: "left", color: INK }}>
+                  <Search size={14} color="rgba(22,19,15,0.55)" /> <span style={{ fontSize: 13.5 }}>Search all events for &ldquo;{jump.trim()}&rdquo;</span>
                 </button>
-              ))}
-              <button onClick={() => runEventSearch(jump)} style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "11px 14px", border: "none", background: "none", cursor: "pointer", textAlign: "left", color: INK }}>
-                <Search size={14} color="rgba(22,19,15,0.55)" /> <span style={{ fontSize: 13.5 }}>Search all events for &ldquo;{jump.trim()}&rdquo;</span>
-              </button>
+              </div>
+            )}
+          </div>
+          <button aria-label="Filter games" onClick={() => setFilterOpen((v) => !v)} style={{ flexShrink: 0, width: 46, display: "flex", alignItems: "center", justifyContent: "center", background: filterOpen ? INK : "#fff", color: filterOpen ? PAGE : INK, border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 12, cursor: "pointer" }}>
+            <SlidersHorizontal size={18} />
+          </button>
+          {filterOpen && <div onClick={() => setFilterOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 35 }} />}
+          {filterOpen && (
+            <div style={{ position: "absolute", zIndex: 40, top: "100%", right: 0, marginTop: 6, width: 280, maxWidth: "calc(100vw - 48px)", background: "#fff", borderRadius: 14, boxShadow: DEPTH, border: "1px solid rgba(22,19,15,0.06)", overflow: "hidden" }}>
+              <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.5)", padding: "12px 16px 6px", letterSpacing: "0.08em" }}>Find games by</div>
+              {FILTERS.map((f) => {
+                const Ico = f.icon;
+                return (
+                  <button key={f.id} onClick={() => runFilter(f.id)} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "12px 16px", border: "none", borderTop: "1px solid rgba(22,19,15,0.05)", background: "none", cursor: "pointer", textAlign: "left", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 600 }}>
+                    <Ico size={16} color={f.color} /> {f.label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
-
-        <button onClick={weekendNearMe} style={{ marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 7, background: "#fff", border: "1px solid rgba(22,19,15,0.1)", boxShadow: DEPTH, borderRadius: 999, padding: "8px 14px", cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600 }}>
-          <MapPin size={14} color="#FF5A2C" /> Games this weekend near you
-        </button>
 
         {eventResults !== null ? (
           <>
@@ -695,6 +732,23 @@ export default function GameScoreApp() {
               {authMsg && <span style={{ fontSize: 12, color: "rgba(22,19,15,0.6)" }}>{authMsg}</span>}
             </div>
             <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.45)", marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
+          </div>
+        )}
+      </Section>
+      <Section primary={primary} label="Sport focus">
+        <p style={{ fontSize: 12.5, color: "rgba(22,19,15,0.55)", margin: "0 0 12px", lineHeight: 1.4 }}>Pick a sport to pull up its teams — tap to follow. Come back anytime to add more.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: sportFocus ? 14 : 0 }}>
+          {SPORTS.map((sp) => (<button key={sp.id} style={chip(sportFocus === sp.id)} onClick={() => setSportFocus(sportFocus === sp.id ? null : sp.id)}>{sp.label}</button>))}
+        </div>
+        {sportFocus === "boxing" && (
+          <p style={{ fontSize: 13, color: "rgba(22,19,15,0.6)", lineHeight: 1.45, margin: 0 }}>Big fights are coming soon. For now, search any bout from the search bar on the Games tab.</p>
+        )}
+        {sportFocus && sportFocus !== "boxing" && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {TEAMS.filter((t) => t.league === sportFocus).map((t) => {
+              const on = teamSlugs.includes(t.slug);
+              return (<button key={t.slug} style={chip(on)} onClick={() => (on ? removeTeam(t) : addTeam(t))}>{dots(t)} {t.name} {on ? <Check size={12} /> : <Plus size={12} />}</button>);
+            })}
           </div>
         )}
       </Section>
