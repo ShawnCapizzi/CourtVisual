@@ -33,6 +33,20 @@ const RIVALS = {
   padres: ["dodgers", "giants"],
 };
 
+// Strip playoff/qualifier noise so the opponent parses cleanly.
+function cleanEventName(name) {
+  let s = name || "";
+  s = s.split(/\s[-\u2013\u2014]\s/)[0];          // drop "- Game 5", "\u2013 If Necessary"
+  s = s.replace(/\(.*?\)/g, " ");                    // parentheticals
+  s = s.replace(/\bgame\s*\d+\b/gi, " ");
+  s = s.replace(/\bif necessary\b/gi, " ");
+  s = s.replace(/\b(nba finals|world series|stanley cup|finals|playoffs?|postseason|first round|conference (?:semi)?finals?|division series|wild ?card|presented by[^,]*)\b/gi, " ");
+  s = s.replace(/\b\d{4}\b/g, " ");
+  return s.replace(/[:,]/g, " ").replace(/\s+/g, " ").trim();
+}
+const slugify = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const lastWord = (s) => { const w = (s || "").trim().split(/\s+/); return w[w.length - 1] || s; };
+
 function deriveFactors(eventName, oppName, teamSlug, startsAt) {
   const n = eventName.toLowerCase();
   const opp = oppName.toLowerCase();
@@ -102,12 +116,15 @@ export async function GET(request) {
     const data = await res.json();
     const events = data?._embedded?.events || [];
 
+    let ctx = null;
+    try { ctx = await getLeagueContext(league); } catch {}
+
     const games = [];
     const seen = new Set();
 
     for (const ev of events) {
       const evName = ev.name || "";
-      const parts = evName.split(/\s+(?:vs\.?|v\.?|at)\s+/i);
+      const parts = cleanEventName(evName).split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
       if (parts.length !== 2) continue;
 
       const teamFirst = parts[0].toLowerCase().includes(name);
@@ -115,9 +132,10 @@ export async function GET(request) {
       if (!teamFirst && !teamSecond) continue;
 
       const oppFull = (teamFirst ? parts[1] : parts[0]).trim();
-      const oppWords = oppFull.split(/\s+/);
-      const opp = oppWords[oppWords.length - 1];
-      const oppSlug = opp.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const resolved = ctx?.resolveTeam(oppFull);
+      const opp = resolved?.nick || lastWord(oppFull);
+      const oppSlug = slugify(opp);
+      if (!opp || /^\d+$/.test(opp)) continue; // guard against junk like "5"
 
       const dt = ev.dates?.start?.dateTime;
       const { date, ds } = fmtDate(dt, ev.dates?.start?.localDate);
@@ -129,48 +147,32 @@ export async function GET(request) {
       const venueCity = (venue?.city?.name || "").toLowerCase();
       const home = venueCity ? venueCity === city : teamFirst;
 
-      const f = deriveFactors(evName, oppFull, slug, dt);
+      const f = deriveFactors(evName, opp, slug, dt);
       const minPrice = ev.priceRanges?.[0]?.min;
 
-      games.push({
+      const g = {
         opp, oppSlug, date, ds, home,
         tag: f.tag,
         playoff: f.playoff, rivalry: f.rivalry, hot: f.hot, historic: f.historic,
         url: ev.url || null,
         minPrice: typeof minPrice === "number" ? Math.round(minPrice) : null,
         venue: venue?.name || null,
-      });
+      };
+
+      if (ctx) {
+        const sMine = ctx.star(label), sOpp = ctx.star(opp);
+        if (sMine != null || sOpp != null) g.hot = Math.max(g.hot, Math.round((sMine || 0) * 0.55 + (sOpp || 0) * 0.45) || g.hot);
+        const cMine = ctx.contention(label), cOpp = ctx.contention(opp);
+        if (cMine != null && cOpp != null) g.playoff = Math.max(g.playoff, Math.round((cMine + cOpp) / 2));
+        if (ctx.storyline(label) || ctx.storyline(opp)) { g.historic = Math.max(g.historic, 9); if (g.tag === "Regular season") g.tag = "Storyline game"; }
+      }
+
+      games.push(g);
       if (games.length >= 6) break;
     }
 
-    // ESPN enrichment — raises star power / playoff stakes / historic weight
-    // from live data when available; silently no-ops on any failure.
-    let enriched = null;
-    try {
-      const ctx = await getLeagueContext(league);
-      if (ctx) {
-        enriched = ctx._debug;
-        for (const g of games) {
-          const sMine = ctx.star(label);
-          const sOpp = ctx.star(g.opp);
-          if (sMine != null || sOpp != null) {
-            g.hot = Math.max(g.hot, Math.round((sMine || 0) * 0.55 + (sOpp || 0) * 0.45) || g.hot);
-          }
-          const cMine = ctx.contention(label);
-          const cOpp = ctx.contention(g.opp);
-          if (cMine != null && cOpp != null) {
-            g.playoff = Math.max(g.playoff, Math.round((cMine + cOpp) / 2));
-          }
-          if (ctx.storyline(label) || ctx.storyline(g.opp)) {
-            g.historic = Math.max(g.historic, 9);
-            if (g.tag === "Regular season") g.tag = "Storyline game";
-          }
-        }
-      }
-    } catch {}
-
     const body = { games, source: games.length ? "ticketmaster" : "none" };
-    if (debug) body.enrich = enriched || { note: "no espn context (league missing or all calls failed)" };
+    if (debug) body.enrich = ctx?._debug || { note: "no espn context (league missing or all calls failed)" };
     return Response.json(body);
   } catch (e) {
     return Response.json({ games: [], source: "none", reason: "fetch_error" });
