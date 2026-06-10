@@ -313,7 +313,7 @@ export default function GameScoreApp() {
 
   const Nav = () => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-      <span style={{ display: "inline-flex", alignItems: "center", padding: "8px 16px", background: "#F2EFE4", borderRadius: 12, border: "1px solid rgba(22,19,15,0.10)" }}>
+      <span style={{ display: "inline-flex", alignItems: "center", padding: "5px 10px", background: "#F2EFE4", borderRadius: 10, border: "1px solid rgba(22,19,15,0.10)" }}>
         <CourtVisualLogo width={170} className="cv-logo" />
       </span>
       <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
