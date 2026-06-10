@@ -264,7 +264,6 @@ export default function GameScoreApp() {
   }, []);
 
   useEffect(() => { try { setIsTouch(window.matchMedia("(hover: none)").matches); } catch {} }, []);
-  useEffect(() => { setVisible(8); }, [primarySlug, eventQuery]);
 
   // Self-heal stale bundles: after a deploy, a cached shell can reference JS
   // chunks that no longer exist -> "client-side exception". Reload once.
@@ -331,6 +330,7 @@ export default function GameScoreApp() {
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
   const [visible, setVisible] = useState(8);
+  useEffect(() => { setVisible(8); }, [primarySlug, eventQuery]); // reset reveal count on team/search change
   useEffect(() => {
     if (!team) return;
     let cancel = false;
