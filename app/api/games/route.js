@@ -9,6 +9,7 @@
 // rivalry map). Star power is a baseline until a stats feed is wired in.
 
 import { getLeagueContext } from "../../../lib/espn";
+import { rivalryFactor, isTopRivalry } from "../../../lib/rivalries";
 
 export const revalidate = 300;
 
@@ -142,9 +143,12 @@ export async function GET(request) {
         if (sseen.has(keyd)) continue;
         sseen.add(keyd);
         const f = deriveFactors(ev.name || "", opp, "", dt);
+        const rA = parts.length === 2 ? lastWord(parts[0]) : "";
+        const rB = parts.length === 2 ? lastWord(parts[1]) : opp;
         out.push({
           matchup, opp, oppSlug, date, ds, home: false, tag: f.tag,
-          playoff: f.playoff, rivalry: f.rivalry, hot: f.hot, historic: f.historic,
+          playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
+          topRivals: isTopRivalry(rA, rB),
           url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
         });
         if (out.length >= 8) break;
@@ -210,6 +214,8 @@ export async function GET(request) {
         minPrice: typeof minPrice === "number" ? Math.round(minPrice) : null,
         venue: venue?.name || null,
       };
+      g.rivalry = rivalryFactor(name, opp);
+      g.topRivals = isTopRivalry(name, opp);
 
       if (ctx) {
         const sMine = ctx.star(label), sOpp = ctx.star(opp);
@@ -256,9 +262,10 @@ export async function GET(request) {
               const g = {
                 matchup: `${n1} vs ${n2}`, opp: n2, oppSlug: slugify(`${n1}-vs-${n2}`),
                 date, ds, home: false, tag: f.tag,
-                playoff: f.playoff, rivalry: 5, hot: f.hot, historic: f.historic,
+                playoff: f.playoff, rivalry: rivalryFactor(n1, n2), hot: f.hot, historic: f.historic,
                 url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
               };
+              g.topRivals = isTopRivalry(n1, n2);
               if (ctx) {
                 const s1 = ctx.star(n1), s2 = ctx.star(n2);
                 const ss = [s1, s2].filter((x) => x != null);
