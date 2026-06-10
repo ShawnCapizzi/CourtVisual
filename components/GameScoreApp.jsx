@@ -367,6 +367,18 @@ export default function GameScoreApp() {
   };
 
 
+  // ---------- search (jump to team / search any sport, place, or event) ----------
+  const teamMatches = jump.trim() ? TEAMS.filter((t) => t.label.toLowerCase().includes(jump.trim().toLowerCase())).slice(0, 5) : [];
+  const jumpToTeam = (t) => { if (!teamSlugs.includes(t.slug)) setTeamSlugs([...teamSlugs, t.slug]); setPrimarySlug(t.slug); setJump(""); setEventResults(null); setEventQuery(""); };
+  const runEventSearch = async (query) => {
+    const qq = (query || "").trim(); if (!qq) return;
+    setEventLoading(true); setEventQuery(qq); setJump("");
+    try { const r = await fetch(`/api/games?q=${encodeURIComponent(qq)}`); const d = await r.json(); setEventResults(d.games || []); }
+    catch { setEventResults([]); }
+    setEventLoading(false);
+  };
+  const clearSearch = () => { setEventResults(null); setEventQuery(""); setJump(""); };
+
   const Shell = ({ children }) => (
     <div className="g-ui" style={{ background: PAGE, color: INK, width: "100%", minHeight: "100vh" }}>
       <div style={{ maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
@@ -402,7 +414,7 @@ export default function GameScoreApp() {
         <p style={{ fontSize: 13, color: "rgba(22,19,15,0.55)", marginTop: 16 }}>Pick your team to start — the app themes to its colors.</p>
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 14, padding: "13px 16px", marginTop: 22 }}>
           <Search size={18} color="rgba(22,19,15,0.55)" />
-          <input className="g-in" placeholder="Search teams…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+          <input className="g-in" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
         </div>
         {favTeams.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
@@ -415,6 +427,11 @@ export default function GameScoreApp() {
             <button key={t.slug} style={chip(false)} onClick={() => addTeam(t)}>{teamSlugs.includes(t.slug) ? <Check size={13} /> : dots(t)} {t.label}</button>
           ))}
         </div>
+        {q.trim() && (
+          <button onClick={() => { runEventSearch(q); setView("games"); }} style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 600, textAlign: "left" }}>
+            <Search size={15} color="rgba(22,19,15,0.55)" /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
+          </button>
+        )}
         <div style={{ marginTop: 24 }}>
           <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.55)", marginBottom: 10 }}>Choose your view · change anytime</div>
           <div style={{ display: "flex", gap: 10 }}>
@@ -451,18 +468,6 @@ export default function GameScoreApp() {
       </div>
     </div>
   );
-
-  // ---------- search (jump to team / search any sport or event) ----------
-  const teamMatches = jump.trim() ? TEAMS.filter((t) => t.label.toLowerCase().includes(jump.trim().toLowerCase())).slice(0, 5) : [];
-  const jumpToTeam = (t) => { if (!teamSlugs.includes(t.slug)) setTeamSlugs([...teamSlugs, t.slug]); setPrimarySlug(t.slug); setJump(""); setEventResults(null); setEventQuery(""); };
-  const runEventSearch = async (query) => {
-    const qq = (query || "").trim(); if (!qq) return;
-    setEventLoading(true); setEventQuery(qq); setJump("");
-    try { const r = await fetch(`/api/games?q=${encodeURIComponent(qq)}`); const d = await r.json(); setEventResults(d.games || []); }
-    catch { setEventResults([]); }
-    setEventLoading(false);
-  };
-  const clearSearch = () => { setEventResults(null); setEventQuery(""); setJump(""); };
 
   // ---------- GAMES ----------
   const LEAGUE = (team.league || "").toUpperCase();
