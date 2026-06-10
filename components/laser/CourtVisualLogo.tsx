@@ -30,7 +30,7 @@ export default function CourtVisualLogo({
 
   return (
     <svg
-      viewBox="0 0 380 64"
+      viewBox="0 0 372 64"
       width={width}
       className={className}
       role="img"
