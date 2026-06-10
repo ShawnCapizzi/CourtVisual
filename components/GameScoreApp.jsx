@@ -283,9 +283,11 @@ export default function GameScoreApp() {
   };
   const signOut = async () => { await supabase.auth.signOut(); setAuthMsg(""); };
   const onShare = (g, kind) => {
-    if (kind === "buy") { window.open(g.url || `https://www.tickpick.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
-    if (kind === "gift") { window.open(`https://www.tickpick.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
-    const url = `https://courtvisual.com/g/${team.slug}-vs-${g.oppSlug}-${g.ds}`;
+    if (kind === "buy") { window.open(g.url || `https://www.ticketmaster.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
+    if (kind === "gift") { window.open(g.url || `https://www.ticketmaster.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
+    const score = scoreOf(g, weights).toFixed(1);
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://courtvisual.com";
+    const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}?s=${score}`;
     const take = reactions[g.oppSlug] === "love" ? "I love this game — " : reactions[g.oppSlug] === "go" ? "Let's go to this one — " : reactions[g.oppSlug] === "excited" ? "So excited for this — " : "";
     const data = { title: `${team.name} vs ${g.opp}`, text: `${take}${team.name} vs ${g.opp}`, url };
     try { if (navigator.share) { navigator.share(data).catch(() => {}); return; } } catch {}
