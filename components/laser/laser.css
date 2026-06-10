@@ -24,17 +24,18 @@
 
 /* ---- h1 gleam ---- */
 .cv-gleam {
-  color: transparent;
+  color: #E9E3D6; /* light fallback if background-clip:text is unsupported */
   background: linear-gradient(
-    105deg,
-    var(--cv-ink) 0%, var(--cv-ink) 40%,
-    var(--cv-orange-deep) 47%, var(--cv-orange) 50%, var(--cv-orange-deep) 53%,
-    var(--cv-ink) 60%, var(--cv-ink) 100%
+    100deg,
+    #E7E1D4 0%, #BCB5A4 26%,
+    #FBF8F1 46%, #FFFFFF 50%, #FBF8F1 54%,
+    #C6BFAF 74%, #E7E1D4 100%
   );
   background-size: 300% 100%;
   background-position: 115% 0;
   -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   animation: cv-gleam 7s ease-in-out infinite;
 }
 @keyframes cv-gleam {
@@ -119,7 +120,7 @@
 
 /* ---- accessibility ---- */
 @media (prefers-reduced-motion: reduce) {
-  .cv-gleam { animation: none; color: var(--cv-ink); background: none; }
+  .cv-gleam { animation: none; color: #E9E3D6; -webkit-text-fill-color: #E9E3D6; background: none; }
   .cv-logo-laser,
   .cv-logo-laser-v6,
   .cv-frame .laser { animation: none !important; stroke-dasharray: none; opacity: 0.85; }
