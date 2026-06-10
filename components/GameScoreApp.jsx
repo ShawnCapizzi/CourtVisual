@@ -10,6 +10,7 @@ import { supabase } from "../lib/supabaseClient";
 const PAGE = "#E7E3D8", INK = "#16130F";
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
+const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketball" }, { id: "mlb", label: "Baseball" }, { id: "nhl", label: "Hockey" }, { id: "mls", label: "Soccer" }, { id: "wnba", label: "WNBA" }, { id: "boxing", label: "Boxing" }];
 const BTN = "inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -3px 6px rgba(0,0,0,0.22), 2px 3px 6px rgba(18,20,28,0.18), 3px 8px 18px rgba(18,20,28,0.13)";
 const BTN_SOFT = "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -2px 4px rgba(0,0,0,0.20), 1px 2px 4px rgba(18,20,28,0.16)";
@@ -80,12 +81,14 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const dark = style === "dashboard";
   const ink = dark ? "#FFFFFF" : INK;
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(22,19,15,0.58)";
+  const washHex = dark ? mulHex(primary, 0.5) : primary; // darken the tint on dark cards so it can never wash out the copy
   const card = {
     borderRadius: 22, padding: 18, marginBottom: laser ? 0 : 14, position: "relative", overflow: "hidden",
     backgroundColor: dark ? "#161B26" : "#F7F2E6",
-    // neutral-gray jersey weave (soft-light preserves base luminance) + subtle team wash + depth
-    backgroundImage: `linear-gradient(157deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16)), url(/mesh.webp), linear-gradient(160deg, ${hexA(primary, dark ? 0.20 : 0.12)}, ${hexA(primary, 0)} 62%)`,
-    backgroundBlendMode: "soft-light, soft-light, normal",
+    // Mobile-safe jersey texture: transparent dark weave + team wash + depth, all composited with
+    // PLAIN ALPHA (no background-blend-mode — iOS WebKit drops it under border-radius + overflow:hidden,
+    // which let the raw texture paint over the card and washed it white on mobile).
+    backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16)), url(/mesh.webp), linear-gradient(180deg, ${hexA(washHex, dark ? 0.20 : 0.12)}, ${hexA(washHex, dark ? 0.06 : 0.035)})`,
     backgroundSize: "cover, 200px, cover",
     backgroundRepeat: "no-repeat, repeat, no-repeat",
     border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(22,19,15,0.06)",
