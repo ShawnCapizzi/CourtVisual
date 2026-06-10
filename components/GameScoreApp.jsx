@@ -92,7 +92,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: "linear-gradient(135deg,#FFA52B 0%,#FF5A2C 55%,#B3122A 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${game.opp.toUpperCase()}`}</span>
+            <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: primary, color: textOn(primary), fontSize: 10, fontWeight: 700, boxShadow: BTN_SOFT }}>
               <Flame size={10} /> {verdict(score)}
             </span>
@@ -255,6 +255,22 @@ export default function GameScoreApp() {
   }, []);
 
   useEffect(() => { try { setIsTouch(window.matchMedia("(hover: none)").matches); } catch {} }, []);
+
+  // Self-heal stale bundles: after a deploy, a cached shell can reference JS
+  // chunks that no longer exist -> "client-side exception". Reload once.
+  useEffect(() => {
+    const K = "cv-chunk-reloaded";
+    const onErr = (e) => {
+      const msg = `${e?.reason?.message || e?.message || e?.reason || ""}`;
+      if (/ChunkLoadError|Loading chunk|importing a module script failed|dynamically imported module|Failed to fetch dynamically/i.test(msg)) {
+        try { if (!sessionStorage.getItem(K)) { sessionStorage.setItem(K, "1"); window.location.reload(); } } catch {}
+      }
+    };
+    window.addEventListener("error", onErr);
+    window.addEventListener("unhandledrejection", onErr);
+    const t = setTimeout(() => { try { sessionStorage.removeItem(K); } catch {} }, 5000);
+    return () => { window.removeEventListener("error", onErr); window.removeEventListener("unhandledrejection", onErr); clearTimeout(t); };
+  }, []);
 
   // Land at the top of every screen when switching views (don't inherit scroll).
   useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } }, [view]);
