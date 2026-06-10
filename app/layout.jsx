@@ -2,6 +2,8 @@ import "./globals.css";
 import "../components/laser/laser.css";
 
 export const metadata = {
+  metadataBase: new URL("https://courtvisual.com"),
+  openGraph: { images: ["/og.png"] },
   title: "CourtVisual — Game Excitement Index",
   description: "Find the game worth showing up for.",
   manifest: "/manifest.webmanifest",
