@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useId } from "react";
 import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Gift, Mail } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, GAMES, scoreOf, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
@@ -154,6 +154,44 @@ const dots = (t) => (
   </span>
 );
 const tick = { display: "inline-block", width: 16, height: 4, background: "#E8401F", borderRadius: 1, marginRight: 9, verticalAlign: "middle" };
+
+function StyleMini({ variant }) {
+  const uid = useId().replace(/[:]/g, "");
+  const gid = `mini-${uid}`;
+  const dark = variant === "dashboard";
+  const heat = "linear-gradient(135deg,#FFA52B,#FF5A2C 55%,#B3122A)";
+  const C = 2 * Math.PI * 11;
+  return (
+    <div style={{ background: dark ? "#161B26" : "#F7F2E6", borderRadius: 10, padding: 9, height: 104, display: "flex", flexDirection: "column", gap: 7, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {dark ? (
+          <svg width="30" height="30" viewBox="0 0 30 30">
+            <defs><linearGradient id={gid} x1="0" y1="0" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#FFA52B" /><stop offset="55%" stopColor="#FF5A2C" /><stop offset="100%" stopColor="#B3122A" />
+            </linearGradient></defs>
+            <circle cx="15" cy="15" r="11" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="3" />
+            <circle cx="15" cy="15" r="11" fill="none" stroke={`url(#${gid})`} strokeWidth="3.2" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * 0.12} transform="rotate(-90 15 15)" />
+            <text x="15" y="15" textAnchor="middle" dominantBaseline="central" className="g-display" fontSize="9" fill="#FF7A2E">9.2</text>
+          </svg>
+        ) : (
+          <span className="g-display" style={{ fontSize: 26, lineHeight: 0.8, backgroundImage: heat, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>9.2</span>
+        )}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ height: 6, width: "70%", borderRadius: 3, background: dark ? "#fff" : INK, opacity: 0.85 }} />
+          <div style={{ height: 4, width: "45%", borderRadius: 3, background: dark ? "#fff" : INK, opacity: 0.4 }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {[0.8, 0.55, 0.65].map((w, i) => (
+          <div key={i} style={{ height: 4, borderRadius: 3, background: dark ? "rgba(255,255,255,0.12)" : "rgba(22,19,15,0.10)" }}>
+            <div style={{ width: `${w * 100}%`, height: "100%", borderRadius: 3, background: heat }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ height: 14, borderRadius: 6, background: "#1E73E8" }} />
+    </div>
+  );
+}
 
 function LogoPlate() {
   return (
@@ -348,6 +386,23 @@ export default function GameScoreApp() {
             <button key={t.slug} style={chip(false)} onClick={() => addTeam(t)}>{teamSlugs.includes(t.slug) ? <Check size={13} /> : dots(t)} {t.label}</button>
           ))}
         </div>
+        <div style={{ marginTop: 24 }}>
+          <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.55)", marginBottom: 10 }}>Choose your view · change anytime</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
+              const on = cardStyle === k;
+              return (
+                <button key={k} onClick={() => setCardStyle(k)} style={{ flex: 1, padding: 8, borderRadius: 14, cursor: "pointer", background: "#fff", border: `2px solid ${on ? INK : "rgba(22,19,15,0.12)"}`, boxShadow: on ? DEPTH : "none" }}>
+                  <StyleMini variant={k} />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 12.5, color: INK }}>
+                    {on && <Check size={13} />} {l}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button disabled={!teamSlugs.length} onClick={() => setView("games")}
           style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? INK : "rgba(22,19,15,0.2)", color: PAGE, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
           {teamSlugs.length ? `Continue with ${teamSlugs.length} team${teamSlugs.length > 1 ? "s" : ""}` : "Add a team to continue"}
