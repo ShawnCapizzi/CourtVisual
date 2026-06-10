@@ -57,21 +57,21 @@ function deriveFactors(eventName, oppName, teamSlug, startsAt) {
   let historic = 4;
   let tag = "Regular season";
 
-  if (/nba finals|world series|stanley cup|super bowl|championship/.test(n)) {
+  if (/world cup final|nba finals|world series|stanley cup final|super bowl|champions league final|grand final|cup final|\bchampionship\b/.test(n)) {
     playoff = 10; historic = 10; tag = "Championship";
-  } else if (/conference finals|league championship/.test(n)) {
-    playoff = 10; historic = 9; tag = "Conference Finals";
-  } else if (/playoff|postseason|first round|semifinals|wild card/.test(n)) {
+  } else if (/world cup|conference finals|league championship|semifinals?|quarterfinals?|round of 16|knockout/.test(n)) {
+    playoff = 9; historic = 8; tag = "Knockout stage";
+  } else if (/playoff|postseason|first round|wild card|clinch/.test(n)) {
     playoff = 9; historic = 7; tag = "Playoffs";
-  } else if (/opening|home opener/.test(n)) {
-    historic = 8; tag = "Home Opener";
+  } else if (/opening|home opener|season opener/.test(n)) {
+    historic = 8; tag = "Season Opener";
   } else if (startsAt) {
     const day = new Date(startsAt).getUTCDay();
     if (day === 0 || day === 5 || day === 6) tag = "Weekend Game";
   }
 
   const rivals = RIVALS[teamSlug] || [];
-  const rivalry = rivals.some((r) => opp.includes(r)) ? 9 : 5;
+  const rivalry = (rivals.some((r) => opp.includes(r)) || /derby|clasico|rivalry|el clasico/.test(n)) ? 9 : 5;
   const hot = 7; // baseline until a live stats feed is wired
 
   return { playoff, rivalry, hot, historic, tag };
@@ -103,8 +103,58 @@ export async function GET(request) {
   const slug = p.get("slug") || "";
   const league = p.get("league") || "";
   const debug = p.get("debug") === "1";
+  const q = (p.get("q") || "").trim();
 
   const key = process.env.TICKETMASTER_API_KEY;
+
+  // Free-text search: any sport, league, series, or event ("World Cup", "Premier
+  // League", "Yankees", "El Clasico"). Returns matchup cards, factors from the
+  // event name (no team context, so no ESPN star-power enrichment here).
+  if (q) {
+    if (!key) return Response.json({ games: [], source: "none", reason: "no_key", query: q });
+    try {
+      const surl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}` +
+        `&keyword=${encodeURIComponent(q)}&classificationName=Sports&sort=date,asc&size=24`;
+      const sres = await fetch(surl, { next: { revalidate: 300 } });
+      if (!sres.ok) return Response.json({ games: [], source: "none", reason: `tm_${sres.status}`, query: q });
+      const sdata = await sres.json();
+      const sevents = sdata?._embedded?.events || [];
+      const out = [];
+      const sseen = new Set();
+      for (const ev of sevents) {
+        const cleaned = cleanEventName(ev.name || "");
+        const parts = cleaned.split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
+        const dt = ev.dates?.start?.dateTime;
+        const { date, ds } = fmtDate(dt, ev.dates?.start?.localDate);
+        const venue = ev._embedded?.venues?.[0];
+        const minP = ev.priceRanges?.[0]?.min;
+        let matchup, opp, oppSlug;
+        if (parts.length === 2 && parts[0].trim().length <= 28 && parts[1].trim().length <= 28) {
+          matchup = `${parts[0].trim()} vs ${parts[1].trim()}`;
+          opp = parts[1].trim();
+          oppSlug = slugify(matchup).slice(0, 48);
+        } else {
+          matchup = (cleaned || ev.name || "Event").slice(0, 44);
+          opp = matchup;
+          oppSlug = slugify(matchup).slice(0, 48) || `ev-${out.length}`;
+        }
+        const keyd = `${oppSlug}-${ds}`;
+        if (sseen.has(keyd)) continue;
+        sseen.add(keyd);
+        const f = deriveFactors(ev.name || "", opp, "", dt);
+        out.push({
+          matchup, opp, oppSlug, date, ds, home: false, tag: f.tag,
+          playoff: f.playoff, rivalry: f.rivalry, hot: f.hot, historic: f.historic,
+          url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
+        });
+        if (out.length >= 8) break;
+      }
+      return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", query: q });
+    } catch {
+      return Response.json({ games: [], source: "none", reason: "fetch_error", query: q });
+    }
+  }
+
   if (!key) return Response.json({ games: [], source: "none", reason: "no_key" });
   if (!label) return Response.json({ games: [], source: "none", reason: "no_team" });
 
