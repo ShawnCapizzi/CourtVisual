@@ -40,6 +40,11 @@ export default function CourtVisualLogo({
           <stop offset="55%" stopColor="#FF5A2C" />
           <stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
+        {/* Lines need userSpaceOnUse: bounding-box gradients don't render on zero-height elements */}
+        <linearGradient id="cv-speed-heat" x1="346" y1="0" x2="384" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FF5A2C" />
+          <stop offset="100%" stopColor="#B3122A" />
+        </linearGradient>
       </defs>
 
       <g transform="translate(9 0) skewX(-12)">
@@ -47,7 +52,7 @@ export default function CourtVisualLogo({
         <text x="164" y="40" fill="url(#cv-visual-heat)" style={style}>Visual</text>
 
         {/* Speed lines — start after Visual's measured end (340), clear of glyphs */}
-        <g stroke="url(#cv-visual-heat)" strokeLinecap="round">
+        <g stroke="url(#cv-speed-heat)" strokeLinecap="round">
           <line x1="348" y1="14" x2="374" y2="14" strokeWidth="3.5" />
           <line x1="352" y1="25" x2="382" y2="25" strokeWidth="3" />
           <line x1="350" y1="35" x2="372" y2="35" strokeWidth="2.5" />
