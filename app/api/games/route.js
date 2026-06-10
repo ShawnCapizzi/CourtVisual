@@ -34,7 +34,7 @@ const RIVALS = {
   padres: ["dodgers", "giants"],
 };
 
-const LEAGUE_KW = { nba: "NBA", mlb: "MLB", nhl: "NHL", nfl: "NFL" };
+const LEAGUE_KW = { nba: "NBA", mlb: "MLB", nhl: "NHL", nfl: "NFL", wnba: "WNBA", mls: "MLS" };
 
 // Strip playoff/qualifier noise so the opponent parses cleanly.
 function cleanEventName(name) {
@@ -96,6 +96,34 @@ function fmtDate(dt, localDate) {
   return { date: "TBD", ds: "tbd" };
 }
 
+function eventToGame(ev) {
+  const cleaned = cleanEventName(ev.name || "");
+  const parts = cleaned.split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
+  const dt = ev.dates?.start?.dateTime;
+  const { date, ds } = fmtDate(dt, ev.dates?.start?.localDate);
+  const venue = ev._embedded?.venues?.[0];
+  const minP = ev.priceRanges?.[0]?.min;
+  let matchup, opp, oppSlug, rA = "", rB = "";
+  if (parts.length === 2 && parts[0].trim().length <= 28 && parts[1].trim().length <= 28) {
+    matchup = `${parts[0].trim()} vs ${parts[1].trim()}`;
+    opp = parts[1].trim();
+    oppSlug = slugify(matchup).slice(0, 48);
+    rA = lastWord(parts[0]); rB = lastWord(parts[1]);
+  } else {
+    matchup = (cleaned || ev.name || "Event").slice(0, 44);
+    opp = matchup;
+    oppSlug = slugify(matchup).slice(0, 48) || "event";
+    rB = opp;
+  }
+  const f = deriveFactors(ev.name || "", opp, "", dt);
+  return {
+    matchup, opp, oppSlug, date, ds, home: false, tag: f.tag,
+    playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
+    topRivals: isTopRivalry(rA, rB),
+    url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
+  };
+}
+
 export async function GET(request) {
   const p = new URL(request.url).searchParams;
   const label = p.get("label") || "";   // "New York Knicks"
@@ -105,6 +133,10 @@ export async function GET(request) {
   const league = p.get("league") || "";
   const debug = p.get("debug") === "1";
   const q = (p.get("q") || "").trim();
+  const weekend = p.get("weekend") === "1";
+  const hot = p.get("hot") === "1";
+  const lat = p.get("lat");
+  const lng = p.get("lng");
 
   const key = process.env.TICKETMASTER_API_KEY;
 
@@ -123,39 +155,78 @@ export async function GET(request) {
       const out = [];
       const sseen = new Set();
       for (const ev of sevents) {
-        const cleaned = cleanEventName(ev.name || "");
-        const parts = cleaned.split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
-        const dt = ev.dates?.start?.dateTime;
-        const { date, ds } = fmtDate(dt, ev.dates?.start?.localDate);
-        const venue = ev._embedded?.venues?.[0];
-        const minP = ev.priceRanges?.[0]?.min;
-        let matchup, opp, oppSlug;
-        if (parts.length === 2 && parts[0].trim().length <= 28 && parts[1].trim().length <= 28) {
-          matchup = `${parts[0].trim()} vs ${parts[1].trim()}`;
-          opp = parts[1].trim();
-          oppSlug = slugify(matchup).slice(0, 48);
-        } else {
-          matchup = (cleaned || ev.name || "Event").slice(0, 44);
-          opp = matchup;
-          oppSlug = slugify(matchup).slice(0, 48) || `ev-${out.length}`;
-        }
-        const keyd = `${oppSlug}-${ds}`;
+        const g = eventToGame(ev);
+        const keyd = `${g.oppSlug}-${g.ds}`;
         if (sseen.has(keyd)) continue;
         sseen.add(keyd);
-        const f = deriveFactors(ev.name || "", opp, "", dt);
-        const rA = parts.length === 2 ? lastWord(parts[0]) : "";
-        const rB = parts.length === 2 ? lastWord(parts[1]) : opp;
-        out.push({
-          matchup, opp, oppSlug, date, ds, home: false, tag: f.tag,
-          playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
-          topRivals: isTopRivalry(rA, rB),
-          url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
-        });
-        if (out.length >= 8) break;
+        out.push(g);
+        if (out.length >= 16) break;
       }
       return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", query: q });
     } catch {
       return Response.json({ games: [], source: "none", reason: "fetch_error", query: q });
+    }
+  }
+
+  // Games this weekend near the device (geo) — Fri\u2013Sun sports events within range.
+  if (weekend) {
+    if (!key) return Response.json({ games: [], source: "none", reason: "no_key" });
+    try {
+      const now = new Date();
+      const dow = now.getDay();
+      const friOff = dow === 0 ? -2 : (5 - dow);
+      const start = new Date(now); start.setDate(now.getDate() + friOff); start.setHours(0, 0, 0, 0);
+      const end = new Date(now); end.setDate(now.getDate() + friOff + 2); end.setHours(23, 59, 59, 0);
+      const startISO = (start < now ? now : start).toISOString().split(".")[0] + "Z";
+      const endISO = end.toISOString().split(".")[0] + "Z";
+      let wurl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}&classificationName=Sports&sort=date,asc&size=40&startDateTime=${startISO}&endDateTime=${endISO}`;
+      if (lat && lng) wurl += `&latlong=${lat},${lng}&radius=75&unit=miles`;
+      const wres = await fetch(wurl, { next: { revalidate: 600 } });
+      if (!wres.ok) return Response.json({ games: [], source: "none", reason: `tm_${wres.status}` });
+      const wdata = await wres.json();
+      const wevents = wdata?._embedded?.events || [];
+      const out = [];
+      const wseen = new Set();
+      for (const ev of wevents) {
+        const g = eventToGame(ev);
+        const keyd = `${g.oppSlug}-${g.ds}`;
+        if (wseen.has(keyd)) continue;
+        wseen.add(keyd);
+        out.push(g);
+        if (out.length >= 20) break;
+      }
+      return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", mode: "weekend", near: !!(lat && lng) });
+    } catch {
+      return Response.json({ games: [], source: "none", reason: "fetch_error" });
+    }
+  }
+
+  // Hottest games of the season — broad upcoming sports, surfaced by relevance; the
+  // client re-ranks by the fan's excitement weights. Also feeds the rivalry / stakes filters.
+  if (hot) {
+    if (!key) return Response.json({ games: [], source: "none", reason: "no_key" });
+    try {
+      const now = new Date();
+      const startISO = now.toISOString().split(".")[0] + "Z";
+      const endISO = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 120).toISOString().split(".")[0] + "Z";
+      const hurl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}&classificationName=Sports&sort=relevance,desc&size=80&startDateTime=${startISO}&endDateTime=${endISO}`;
+      const hres = await fetch(hurl, { next: { revalidate: 600 } });
+      if (!hres.ok) return Response.json({ games: [], source: "none", reason: `tm_${hres.status}` });
+      const hdata = await hres.json();
+      const hev = hdata?._embedded?.events || [];
+      const out = [];
+      const hseen = new Set();
+      for (const ev of hev) {
+        const g = eventToGame(ev);
+        const keyd = `${g.oppSlug}-${g.ds}`;
+        if (hseen.has(keyd)) continue;
+        hseen.add(keyd);
+        out.push(g);
+        if (out.length >= 40) break;
+      }
+      return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", mode: "hot" });
+    } catch {
+      return Response.json({ games: [], source: "none", reason: "fetch_error" });
     }
   }
 
@@ -164,7 +235,7 @@ export async function GET(request) {
 
   const url =
     `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}` +
-    `&keyword=${encodeURIComponent(label)}&classificationName=Sports&sort=date,asc&size=16`;
+    `&keyword=${encodeURIComponent(label)}&classificationName=Sports&sort=date,asc&size=40`;
 
   try {
     const res = await fetch(url, { next: { revalidate: 300 } });
@@ -226,7 +297,7 @@ export async function GET(request) {
       }
 
       games.push(g);
-      if (games.length >= 6) break;
+      if (games.length >= 20) break;
     }
 
     const teamRecord = ctx?.record(label) || null;
@@ -275,7 +346,7 @@ export async function GET(request) {
                 if (ctx.storyline(n1) || ctx.storyline(n2)) { g.historic = Math.max(g.historic, 9); if (g.tag === "Regular season") g.tag = "Storyline game"; }
               }
               leagueGames.push(g);
-              if (leagueGames.length >= 6) break;
+              if (leagueGames.length >= 14) break;
             }
           }
         }
