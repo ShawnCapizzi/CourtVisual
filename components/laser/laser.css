@@ -11,7 +11,7 @@
 
   --laser-color: var(--cv-orange);
   --laser-base-color: var(--cv-ink);
-  --laser-width: 2;
+  --laser-width: 1.2;
   --laser-dash: 10;   /* dash + gap must equal 100 */
   --laser-gap: 90;
   --laser-speed: 4s;
