@@ -316,6 +316,10 @@ export default function GameScoreApp() {
   const [leagueGames, setLeagueGames] = useState(null);
   const [slateMode, setSlateMode] = useState("team");
   const [teamRecord, setTeamRecord] = useState(null);
+  const [jump, setJump] = useState("");
+  const [eventResults, setEventResults] = useState(null);
+  const [eventQuery, setEventQuery] = useState("");
+  const [eventLoading, setEventLoading] = useState(false);
   useEffect(() => {
     if (!team) return;
     let cancel = false;
@@ -448,6 +452,18 @@ export default function GameScoreApp() {
     </div>
   );
 
+  // ---------- search (jump to team / search any sport or event) ----------
+  const teamMatches = jump.trim() ? TEAMS.filter((t) => t.label.toLowerCase().includes(jump.trim().toLowerCase())).slice(0, 5) : [];
+  const jumpToTeam = (t) => { if (!teamSlugs.includes(t.slug)) setTeamSlugs([...teamSlugs, t.slug]); setPrimarySlug(t.slug); setJump(""); setEventResults(null); setEventQuery(""); };
+  const runEventSearch = async (query) => {
+    const qq = (query || "").trim(); if (!qq) return;
+    setEventLoading(true); setEventQuery(qq); setJump("");
+    try { const r = await fetch(`/api/games?q=${encodeURIComponent(qq)}`); const d = await r.json(); setEventResults(d.games || []); }
+    catch { setEventResults([]); }
+    setEventLoading(false);
+  };
+  const clearSearch = () => { setEventResults(null); setEventQuery(""); setJump(""); };
+
   // ---------- GAMES ----------
   const LEAGUE = (team.league || "").toUpperCase();
   const ContextCard = ({ title, body }) => (
@@ -478,22 +494,57 @@ export default function GameScoreApp() {
     return (
       <Shell>
         <Nav />
-        {favTeams.length > 1 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-            {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name}</span>))}
+        <div style={{ position: "relative", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 12, padding: "11px 14px" }}>
+            <Search size={17} color="rgba(22,19,15,0.5)" />
+            <input className="g-in" placeholder="Jump to a team, sport, or event…" value={jump} onChange={(e) => setJump(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runEventSearch(jump); }} />
+            {(jump || eventResults !== null) && <button onClick={clearSearch} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(22,19,15,0.45)", padding: 0, display: "flex" }}><X size={16} /></button>}
           </div>
+          {jump.trim() && (
+            <div style={{ position: "absolute", zIndex: 30, top: "100%", left: 0, right: 0, marginTop: 6, background: "#fff", borderRadius: 12, boxShadow: DEPTH, border: "1px solid rgba(22,19,15,0.06)", overflow: "hidden" }}>
+              {teamMatches.map((t) => (
+                <button key={t.slug} onClick={() => jumpToTeam(t)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", border: "none", borderBottom: "1px solid rgba(22,19,15,0.05)", background: "none", cursor: "pointer", textAlign: "left" }}>
+                  {dots(t)} <span style={{ fontSize: 14, fontWeight: 600, color: INK }}>{t.label}</span>
+                </button>
+              ))}
+              <button onClick={() => runEventSearch(jump)} style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "11px 14px", border: "none", background: "none", cursor: "pointer", textAlign: "left", color: INK }}>
+                <Search size={14} color="rgba(22,19,15,0.55)" /> <span style={{ fontSize: 13.5 }}>Search all events for &ldquo;{jump.trim()}&rdquo;</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {eventResults !== null ? (
+          <>
+            <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />Search results</div>
+            <h1 className="g-display cv-gleam" style={screenH}>{eventQuery.toUpperCase()}</h1>
+            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
+            <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
+            {[...eventResults].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)).map((g, i) => (
+              <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
+                primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
+            ))}
+          </>
+        ) : (
+          <>
+            {favTeams.length > 1 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name}</span>))}
+              </div>
+            )}
+            <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
+            <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
+            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{gamesView.sub}</p>
+            {gamesView.context}
+            {gamesView.ranked.map((g, i) => (
+              <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
+                primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
+            ))}
+            <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Star size={14} /> Tune your favorites & view
+            </button>
+          </>
         )}
-        <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
-        <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
-        <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{gamesView.sub}</p>
-        {gamesView.context}
-        {gamesView.ranked.map((g, i) => (
-          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
-            primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
-        ))}
-        <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <Star size={14} /> Tune your favorites & view
-        </button>
       </Shell>
     );
   }
