@@ -50,9 +50,9 @@ export default function CourtVisualLogo({
 
       {/* Speed-lines off the final L */}
       <g stroke="url(#cv-visual-heat)" strokeLinecap="round">
-        <line x1="328" y1="32" x2="358" y2="32" strokeWidth="3.5" />
-        <line x1="335" y1="44" x2="368" y2="44" strokeWidth="3" />
-        <line x1="331" y1="55" x2="353" y2="55" strokeWidth="2.5" />
+        <line x1="324" y1="32" x2="352" y2="32" strokeWidth="3.5" />
+<line x1="330" y1="44" x2="360" y2="44" strokeWidth="3" />
+<line x1="326" y1="55" x2="348" y2="55" strokeWidth="2.5" />
       </g>
     </svg>
   );
