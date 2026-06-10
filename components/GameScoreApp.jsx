@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
 import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Gift, Mail } from "lucide-react";
-import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, GAMES, scoreOf, verdict, shade, textOn } from "../lib/data";
+import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import LaserFrame from "./laser/LaserFrame";
 import CourtVisualLogo from "./laser/CourtVisualLogo";
@@ -92,7 +92,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: "linear-gradient(135deg,#FFA52B 0%,#FF5A2C 55%,#B3122A 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span className="g-display" style={{ fontSize: 21, color: ink }}>VS {game.opp.toUpperCase()}</span>
+            <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${game.opp.toUpperCase()}`}</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: primary, color: textOn(primary), fontSize: 10, fontWeight: 700, boxShadow: BTN_SOFT }}>
               <Flame size={10} /> {verdict(score)}
             </span>
@@ -296,13 +296,22 @@ export default function GameScoreApp() {
   // Live schedule via /api/games (Ticketmaster). Falls back to the sample slate
   // when no API key is configured or the team has no upcoming listed events.
   const [liveGames, setLiveGames] = useState(null);
+  const [leagueGames, setLeagueGames] = useState(null);
+  const [slateMode, setSlateMode] = useState("team");
+  const [teamRecord, setTeamRecord] = useState(null);
   useEffect(() => {
     if (!team) return;
     let cancel = false;
     fetch(`/api/games?label=${encodeURIComponent(team.label)}&name=${encodeURIComponent(team.name)}&city=${encodeURIComponent(team.city)}&slug=${team.slug}&league=${team.league || ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => { if (!cancel) setLiveGames(d.games?.length ? d.games : null); })
-      .catch(() => { if (!cancel) setLiveGames(null); });
+      .then((d) => {
+        if (cancel) return;
+        setLiveGames(d.games?.length ? d.games : null);
+        setLeagueGames(d.leagueGames?.length ? d.leagueGames : null);
+        setSlateMode(d.mode || "team");
+        setTeamRecord(d.teamRecord || null);
+      })
+      .catch(() => { if (!cancel) { setLiveGames(null); setLeagueGames(null); setSlateMode("offseason"); } });
     return () => { cancel = true; };
   }, [team?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -336,7 +345,6 @@ export default function GameScoreApp() {
     setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
   };
 
-  const ranked = useMemo(() => [...(liveGames || GAMES)].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)), [weights, liveGames]);
 
   const Shell = ({ children }) => (
     <div className="g-ui" style={{ background: PAGE, color: INK, width: "100%", minHeight: "100vh" }}>
@@ -424,6 +432,31 @@ export default function GameScoreApp() {
   );
 
   // ---------- GAMES ----------
+  const LEAGUE = (team.league || "").toUpperCase();
+  const ContextCard = ({ title, body }) => (
+    <div style={{ background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ ...tick, background: primary, marginRight: 0 }} />
+        <span className="g-display" style={{ fontSize: 16, color: INK }}>{title}</span>
+        {teamRecord && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "rgba(22,19,15,0.55)" }}>{teamRecord.str}</span>}
+      </div>
+      <p style={{ fontSize: 13, color: "rgba(22,19,15,0.6)", marginTop: 8, lineHeight: 1.45 }}>{body}</p>
+    </div>
+  );
+  let gamesView;
+  {
+    let base, sub, context = null;
+    if (liveGames) {
+      base = liveGames; sub = "Live schedule + prices via Ticketmaster.";
+    } else if (slateMode === "league" && leagueGames?.length) {
+      base = leagueGames; sub = `Live in the ${LEAGUE} right now.`;
+      context = <ContextCard title={`The ${team.name} season has ended`} body={`No upcoming ${team.name} games right now${teamRecord ? ` — they finished ${teamRecord.str}` : ""}. Here's what's live in the ${LEAGUE}, ranked by your taste.`} />;
+    } else {
+      base = sampleSlate(team); sub = "Example matchups — the season's not live yet.";
+      context = <ContextCard title={`The ${LEAGUE} is in its off-season`} body={teamRecord ? `The ${team.name} finished ${teamRecord.str}. Here's a taste of the matchups to come.` : `No games scheduled right now. Here's a taste of the matchups to come.`} />;
+    }
+    gamesView = { sub, context, ranked: [...base].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)) };
+  }
   if (view === "games") {
     return (
       <Shell>
@@ -435,9 +468,10 @@ export default function GameScoreApp() {
         )}
         <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
         <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
-        <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{liveGames ? "Live schedule + prices via Ticketmaster." : "Sample slate — add a Ticketmaster API key for live games."}</p>
-        {ranked.map((g, i) => (
-          <GameModule key={g.oppSlug} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
+        <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>{gamesView.sub}</p>
+        {gamesView.context}
+        {gamesView.ranked.map((g, i) => (
+          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
             primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
         ))}
         <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
