@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabaseClient";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
 const ON = "#ECE7DB", ON_MUTED = "rgba(236,231,219,0.60)", ON_FAINT = "rgba(236,231,219,0.40)", HAIR = "rgba(236,231,219,0.14)";
+const FOIL = "linear-gradient(165deg, #F6F2E9 0%, #D2CBBB 32%, #FCFAF4 50%, #C3BBAA 68%, #EBE5D7 100%)";
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
@@ -146,7 +147,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   return laser ? <LaserFrame mode="loop" radius={22} style={{ marginBottom: 14 }}>{body}</LaserFrame> : body;
 }
 
-const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? INK : "rgba(22,19,15,0.16)"}`, background: active ? INK : "#fff", color: active ? PAGE : INK, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
+const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.18)"}`, background: active ? FOIL : "rgba(255,255,255,0.05)", color: active ? INK : ON, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
 const dots = (t) => (
   <span style={{ display: "inline-flex" }}>
     <span style={{ width: 11, height: 11, borderRadius: 999, background: t.primary, border: "1.5px solid #fff" }} />
@@ -195,7 +196,7 @@ function StyleMini({ variant }) {
 
 function Shell({ children }) {
   return (
-    <div className="g-ui" style={{ color: ON, width: "100%", minHeight: "100vh", position: "relative" }}>
+    <div className="g-ui" style={{ color: INK, width: "100%", minHeight: "100vh", position: "relative" }}>
       <div className="cv-stage" aria-hidden="true" />
       <div className="cv-grain" aria-hidden="true" />
       <div style={{ position: "relative", zIndex: 1, maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
@@ -581,7 +582,7 @@ export default function GameScoreApp() {
         </div>
 
         <button disabled={!teamSlugs.length} onClick={() => setView("games")}
-          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? INK : "rgba(255,255,255,0.12)", color: teamSlugs.length ? PAGE : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
+          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? FOIL : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
           {teamSlugs.length ? `Continue with ${teamSlugs.length} team${teamSlugs.length > 1 ? "s" : ""}` : "Add a team to continue"}
         </button>
       </Shell>
@@ -628,7 +629,7 @@ export default function GameScoreApp() {
               </div>
             )}
           </div>
-          <button aria-label="Filter games" onClick={() => setFilterOpen((v) => !v)} style={{ flexShrink: 0, width: 46, display: "flex", alignItems: "center", justifyContent: "center", background: filterOpen ? INK : "#fff", color: filterOpen ? PAGE : INK, border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 12, cursor: "pointer" }}>
+          <button aria-label="Filter games" onClick={() => setFilterOpen((v) => !v)} style={{ flexShrink: 0, width: 46, display: "flex", alignItems: "center", justifyContent: "center", background: filterOpen ? FOIL : "#fff", color: INK, border: "1px solid rgba(22,19,15,0.10)", boxShadow: DEPTH, borderRadius: 12, cursor: "pointer" }}>
             <SlidersHorizontal size={18} />
           </button>
           {filterOpen && <div onClick={() => setFilterOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 35 }} />}
@@ -769,7 +770,7 @@ export default function GameScoreApp() {
           {override && <button onClick={() => setOverride(null)} style={{ ...chip(false), padding: "5px 10px" }}>Reset to team</button>}
         </div>
       </Section>
-      <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: INK, color: PAGE, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>See the ranking</button>
+      <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: FOIL, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>See the ranking</button>
     </Shell>
   );
 }
