@@ -11,6 +11,8 @@ const PAGE = "#E7E3D8", INK = "#16130F";
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
+// Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
+const deepen = (hex, target) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = (n & 255); const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; const k = lum > target ? target / lum : 1; r = Math.round(r * k); g = Math.round(g * k); b = Math.round(b * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketball" }, { id: "mlb", label: "Baseball" }, { id: "nhl", label: "Hockey" }, { id: "mls", label: "Soccer" }, { id: "wnba", label: "WNBA" }, { id: "boxing", label: "Boxing" }];
 const BTN = "inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -3px 6px rgba(0,0,0,0.22), 2px 3px 6px rgba(18,20,28,0.18), 3px 8px 18px rgba(18,20,28,0.13)";
 const BTN_SOFT = "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -2px 4px rgba(0,0,0,0.20), 1px 2px 4px rgba(18,20,28,0.16)";
@@ -72,7 +74,6 @@ function Bars({ g, accent, weights, dark }) {
   );
 }
 
-const REACTS = [["love", "I love this game", Flame], ["go", "Let's go", Ticket], ["excited", "Excited", Calendar]];
 
 function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch }) {
   const score = scoreOf(game, weights);
@@ -81,16 +82,17 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const dark = style === "dashboard";
   const ink = dark ? "#FFFFFF" : INK;
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(22,19,15,0.58)";
-  const washHex = dark ? mulHex(primary, 0.5) : primary; // darken the tint on dark cards so it can never wash out the copy
+  const deepBase = deepen(primary, 0.13); // clean, deep team color for dark cards (replaces murky gray slate)
   const card = {
     borderRadius: 22, padding: 18, marginBottom: laser ? 0 : 14, position: "relative", overflow: "hidden",
-    backgroundColor: dark ? "#161B26" : "#F7F2E6",
-    // Mobile-safe jersey texture: transparent dark weave + team wash + depth, all composited with
-    // PLAIN ALPHA (no background-blend-mode — iOS WebKit drops it under border-radius + overflow:hidden,
-    // which let the raw texture paint over the card and washed it white on mobile).
-    backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16)), url(/mesh.webp), linear-gradient(180deg, ${hexA(washHex, dark ? 0.20 : 0.12)}, ${hexA(washHex, dark ? 0.06 : 0.035)})`,
-    backgroundSize: "cover, 200px, cover",
-    backgroundRepeat: "no-repeat, repeat, no-repeat",
+    backgroundColor: dark ? deepBase : "#F7F2E6",
+    // Mobile-safe jersey texture (plain alpha, no background-blend-mode — iOS WebKit drops blend
+    // under border-radius + overflow:hidden). Dark: rich team base + weave + depth. Light: cream + faint wash.
+    backgroundImage: dark
+      ? `linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20)), url(/mesh.webp)`
+      : `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.14)), url(/mesh.webp), linear-gradient(180deg, ${hexA(primary, 0.12)}, ${hexA(primary, 0.035)})`,
+    backgroundSize: dark ? "cover, 200px" : "cover, 200px, cover",
+    backgroundRepeat: dark ? "no-repeat, repeat" : "no-repeat, repeat, no-repeat",
     border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(22,19,15,0.06)",
     boxShadow: `${DEPTH}, ${dark ? "inset 0 1px 0 rgba(255,255,255,0.07)" : "inset 0 1px 0 rgba(255,255,255,0.9)"}`,
   };
@@ -138,23 +140,6 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
       {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}><Bars g={game} accent={primary} weights={weights} dark={dark} /></div>}
 
-      {open && (
-      <div style={{ marginTop: 12, paddingTop: 12, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {REACTS.map(([id, label, Icon]) => {
-            const on = reaction === id;
-            return (
-              <button key={id} onClick={() => onReact(game.oppSlug, on ? null : id)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 13px", borderRadius: 999, cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600,
-                  border: `1px solid ${on ? primary : (dark ? "rgba(255,255,255,0.18)" : "rgba(22,19,15,0.18)")}`,
-                  background: on ? primary : "transparent", color: on ? textOn(primary) : (dark ? "rgba(255,255,255,0.8)" : "rgba(22,19,15,0.8)"), boxShadow: on ? BTN_SOFT : "none" }}>
-                <Icon size={12} /> {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      )}
     </div>
   );
   return laser ? <LaserFrame mode="loop" radius={22} style={{ marginBottom: 14 }}>{body}</LaserFrame> : body;
@@ -431,8 +416,7 @@ export default function GameScoreApp() {
     const score = scoreOf(g, weights).toFixed(1);
     const origin = typeof window !== "undefined" ? window.location.origin : "https://courtvisual.com";
     const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}?s=${score}`;
-    const take = reactions[g.oppSlug] === "love" ? "I love this game — " : reactions[g.oppSlug] === "go" ? "Let's go to this one — " : reactions[g.oppSlug] === "excited" ? "So excited for this — " : "";
-    const data = { title: `${team.name} vs ${g.opp}`, text: `${take}${team.name} vs ${g.opp}`, url };
+    const data = { title: `${team.name} vs ${g.opp}`, text: `${team.name} vs ${g.opp}`, url };
     try { if (navigator.share) { navigator.share(data).catch(() => {}); return; } } catch {}
     try { navigator.clipboard?.writeText(url); } catch {}
     setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
@@ -466,7 +450,7 @@ export default function GameScoreApp() {
         )}
         {shown.map((g, i) => (
           <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
-            primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
+            primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
         ))}
         {remaining > 0 && (
           <button onClick={() => setVisible((v) => v + STEP)} style={{ width: "100%", marginTop: 4, marginBottom: 4, padding: "13px", borderRadius: 12, cursor: "pointer", background: "#fff", border: "1px solid rgba(22,19,15,0.1)", boxShadow: DEPTH, color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
