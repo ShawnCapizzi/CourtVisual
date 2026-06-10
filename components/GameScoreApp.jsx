@@ -1,0 +1,434 @@
+"use client";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Gift, Mail } from "lucide-react";
+import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, GAMES, scoreOf, verdict, shade, textOn } from "../lib/data";
+import { store, loadRemote, saveRemote } from "../lib/storage";
+import LaserFrame from "./laser/LaserFrame";
+import CourtVisualLogo from "./laser/CourtVisualLogo";
+import { supabase } from "../lib/supabaseClient";
+
+const PAGE = "#E7E3D8", INK = "#16130F";
+const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
+const BTN = "inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -3px 6px rgba(0,0,0,0.22), 2px 3px 6px rgba(18,20,28,0.18), 3px 8px 18px rgba(18,20,28,0.13)";
+const BTN_SOFT = "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -2px 4px rgba(0,0,0,0.20), 1px 2px 4px rgba(18,20,28,0.16)";
+
+function useCountUp(target, dep) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setV(target); return; }
+    let raf, start;
+    const tick = (t) => {
+      if (start === undefined) start = t;
+      const p = Math.min((t - start) / 1000, 1);
+      setV(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    setV(0); raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, dep]);
+  return v;
+}
+
+function Ring({ value }) {
+  const R = 27, C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, value / 10));
+  return (
+    <svg width="66" height="66" viewBox="0 0 66 66">
+      <defs>
+        <linearGradient id="ringGrad" x1="0" y1="0" x2="66" y2="66" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFA52B" /><stop offset="55%" stopColor="#FF5A2C" /><stop offset="100%" stopColor="#B3122A" />
+        </linearGradient>
+      </defs>
+      <circle cx="33" cy="33" r={R} fill="none" strokeWidth="5" stroke="rgba(255,255,255,0.13)" />
+      <circle cx="33" cy="33" r={R} fill="none" strokeWidth="5.5" stroke="url(#ringGrad)" strokeLinecap="round"
+        strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 33 33)" />
+      <text x="33" y="33" textAnchor="middle" dominantBaseline="central" className="g-display" fontSize="17" fill="#FF7A2E">{value.toFixed(1)}</text>
+    </svg>
+  );
+}
+
+function Bars({ g, accent, weights, dark }) {
+  const sum = (weights.playoff + weights.rivalry + weights.hot + weights.historic) || 1;
+  const track = dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.10)";
+  const txt = dark ? "rgba(255,255,255,0.55)" : "rgba(22,19,15,0.55)";
+  const lab = dark ? "rgba(255,255,255,0.85)" : "rgba(22,19,15,0.85)";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+      {FACTORS.map((f) => {
+        const pct = Math.round((weights[f.key] / sum) * 100);
+        return (
+          <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 12, color: lab, width: 92, flexShrink: 0 }}>{f.label}</span>
+            <div style={{ flex: 1, height: 6, borderRadius: 4, background: track }}>
+              <div style={{ width: `${g[f.key] * 10}%`, height: "100%", borderRadius: 4, background: `linear-gradient(90deg, ${accent}, ${shade(accent, 0.28)})` }} />
+            </div>
+            <span style={{ fontSize: 11, color: txt, width: 64, textAlign: "right", flexShrink: 0 }}>{g[f.key]} · {pct}%</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const REACTS = [["love", "I love this game", Flame], ["go", "Let's go", Ticket], ["excited", "Excited", Calendar]];
+
+function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch }) {
+  const score = scoreOf(game, weights);
+  const anim = useCountUp(score, style);
+  const [open, setOpen] = useState(true); // first accordion open by default
+  const dark = style === "dashboard";
+  const ink = dark ? "#FFFFFF" : INK;
+  const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(22,19,15,0.58)";
+  const card = {
+    borderRadius: 22, padding: 18, marginBottom: laser ? 0 : 14, position: "relative", overflow: "hidden",
+    background: dark ? "#161B26" : "#F7F2E6",
+    border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(22,19,15,0.06)",
+    boxShadow: `${DEPTH}, ${dark ? "inset 0 1px 0 rgba(255,255,255,0.07)" : "inset 0 1px 0 rgba(255,255,255,0.9)"}`,
+  };
+  const body = (
+    <div style={card}>
+      <div className="g-display" aria-hidden="true" style={{ position: "absolute", top: -8, right: 4, fontSize: 80, color: dark ? "rgba(255,255,255,0.05)" : "rgba(22,19,15,0.05)", pointerEvents: "none" }}>{rank}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
+        {dark ? <Ring value={anim} />
+          : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: "linear-gradient(135deg,#FFA52B 0%,#FF5A2C 55%,#B3122A 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span className="g-display" style={{ fontSize: 21, color: ink }}>VS {game.opp.toUpperCase()}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: primary, color: textOn(primary), fontSize: 10, fontWeight: 700, boxShadow: BTN_SOFT }}>
+              <Flame size={10} /> {verdict(score)}
+            </span>
+          </div>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: muted, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{game.tag}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
+        </div>
+      </div>
+
+      <LaserFrame mode={isTouch ? "once" : "hover"} radius={12} style={{ marginTop: 14 }}>
+      <button onClick={() => onShare(game, "buy")}
+        style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", cursor: "pointer", background: secondary, color: textOn(secondary), fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: BTN }}>
+        <Ticket size={15} /> Get tickets <ArrowUpRight size={13} />
+      </button>
+      </LaserFrame>
+
+      <div style={{ marginTop: 14, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)" }}>
+        <button onClick={() => setOpen(!open)} aria-expanded={open}
+          style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "none", border: "none", padding: "11px 0", cursor: "pointer", color: ink }}>
+          <span className="g-eyebrow" style={{ fontSize: 9.5 }}>Why this game scores {score.toFixed(1)}</span>
+          <ChevronDown size={15} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s", color: muted }} />
+        </button>
+        {open && <div style={{ paddingBottom: 6 }}><Bars g={game} accent={primary} weights={weights} dark={dark} /></div>}
+      </div>
+
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {REACTS.map(([id, label, Icon]) => {
+            const on = reaction === id;
+            return (
+              <button key={id} onClick={() => onReact(game.oppSlug, on ? null : id)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 13px", borderRadius: 999, cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600,
+                  border: `1px solid ${on ? primary : (dark ? "rgba(255,255,255,0.18)" : "rgba(22,19,15,0.18)")}`,
+                  background: on ? primary : "transparent", color: on ? textOn(primary) : (dark ? "rgba(255,255,255,0.8)" : "rgba(22,19,15,0.8)"), boxShadow: on ? BTN_SOFT : "none" }}>
+                <Icon size={12} /> {label}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 18, marginTop: 12 }}>
+          <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            {shared ? <><Check size={13} /> Copied</> : <><Share2 size={13} /> Share with friends</>}
+          </button>
+          <button onClick={() => onShare(game, "gift")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <Gift size={13} /> Gift this game
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+  return laser ? <LaserFrame mode="loop" radius={22} style={{ marginBottom: 14 }}>{body}</LaserFrame> : body;
+}
+
+const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? INK : "rgba(22,19,15,0.16)"}`, background: active ? INK : "#fff", color: active ? PAGE : INK, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
+const dots = (t) => (
+  <span style={{ display: "inline-flex" }}>
+    <span style={{ width: 11, height: 11, borderRadius: 999, background: t.primary, border: "1.5px solid #fff" }} />
+    <span style={{ width: 11, height: 11, borderRadius: 999, background: t.secondary, border: "1.5px solid #fff", marginLeft: -5 }} />
+  </span>
+);
+const tick = { display: "inline-block", width: 16, height: 4, background: "#E8401F", borderRadius: 1, marginRight: 9, verticalAlign: "middle" };
+
+export default function GameScoreApp() {
+  const [view, setView] = useState("onboarding");
+  const [teamSlugs, setTeamSlugs] = useState([]);
+  const [primarySlug, setPrimarySlug] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [playerInput, setPlayerInput] = useState("");
+  const [location, setLocation] = useState("");
+  const [weights, setWeights] = useState(DEFAULT_WEIGHTS);
+  const [preset, setPreset] = useState("balanced");
+  const [cardStyle, setCardStyle] = useState("dashboard");
+  const [override, setOverride] = useState(null);
+  const [q, setQ] = useState("");
+  const [reactions, setReactions] = useState({});
+  const [shared, setShared] = useState(null);
+  const [session, setSession] = useState(null);
+  const [isTouch, setIsTouch] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authMsg, setAuthMsg] = useState("");
+
+  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions };
+  const snapRef = useRef(snapshot);
+  snapRef.current = snapshot;
+  const applyState = (st) => {
+    if (st.teams) setTeamSlugs(st.teams);
+    if (st.primary !== undefined) setPrimarySlug(st.primary);
+    if (st.players) setPlayers(st.players);
+    if (st.location !== undefined) setLocation(st.location);
+    if (st.weights) setWeights(st.weights);
+    if (st.preset !== undefined) setPreset(st.preset);
+    if (st.cardStyle) setCardStyle(st.cardStyle);
+    if (st.override !== undefined) setOverride(st.override);
+    if (st.reactions) setReactions(st.reactions);
+  };
+
+  // hydrate from on-device storage (swap for Supabase later)
+  useEffect(() => {
+    const s = store.load();
+    if (s.teams?.length) {
+      setTeamSlugs(s.teams);
+      setPrimarySlug(s.primary || s.teams[0]);
+      setView("games");
+    }
+    if (s.players) setPlayers(s.players);
+    if (s.location) setLocation(s.location);
+    if (s.weights) setWeights(s.weights);
+    if (s.preset !== undefined) setPreset(s.preset);
+    if (s.cardStyle) setCardStyle(s.cardStyle);
+    if (s.override !== undefined) setOverride(s.override);
+    if (s.reactions) setReactions(s.reactions);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
+
+  useEffect(() => { try { setIsTouch(window.matchMedia("(hover: none)").matches); } catch {} }, []);
+
+  // track auth session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((_e, sess) => setSession(sess));
+    return () => data.subscription?.unsubscribe();
+  }, []);
+
+  // on sign-in: pull cloud state, or push the on-device state up if cloud is empty
+  useEffect(() => {
+    if (!session?.user) return;
+    let cancel = false;
+    (async () => {
+      const remote = await loadRemote(session.user.id);
+      if (cancel) return;
+      if (remote && Object.keys(remote).length) {
+        applyState(remote);
+        if (remote.teams?.length) setView((v) => (v === "onboarding" ? "games" : v));
+      } else {
+        await saveRemote(session.user.id, snapRef.current);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [session?.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // persist on change: on-device always; cloud (debounced) when signed in
+  useEffect(() => {
+    store.save(snapshot);
+    if (session?.user) { const t = setTimeout(() => saveRemote(session.user.id, snapshot), 600); return () => clearTimeout(t); }
+  }, [teamSlugs, primarySlug, players, location, weights, preset, cardStyle, override, reactions, session]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const favTeams = teamSlugs.map(teamBySlug).filter(Boolean);
+  const team = teamBySlug(primarySlug) || favTeams[0] || TEAMS[0];
+  const primary = override || team.primary;
+  const secondary = team.secondary;
+
+  const results = useMemo(() => {
+    if (!q.trim()) return TEAMS.slice(0, 6);
+    const s = q.toLowerCase();
+    return TEAMS.filter((t) => t.label.toLowerCase().includes(s)).slice(0, 8);
+  }, [q]);
+
+  const addTeam = (t) => { if (!teamSlugs.includes(t.slug)) { setTeamSlugs([...teamSlugs, t.slug]); if (!primarySlug) setPrimarySlug(t.slug); } setQ(""); };
+  const removeTeam = (t) => { const next = teamSlugs.filter((s) => s !== t.slug); setTeamSlugs(next); if (primarySlug === t.slug) setPrimarySlug(next[0] || null); };
+  const applyPreset = (p) => { setPreset(p.id); setWeights(p.w); };
+  const onReact = (slug, id) => setReactions((r) => ({ ...r, [slug]: id }));
+  const sendLink = async () => {
+    if (!authEmail.trim()) return;
+    setAuthMsg("Sending\u2026");
+    const { error } = await supabase.auth.signInWithOtp({ email: authEmail.trim(), options: { emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined } });
+    setAuthMsg(error ? error.message : "Check your email for a sign-in link.");
+  };
+  const signOut = async () => { await supabase.auth.signOut(); setAuthMsg(""); };
+  const onShare = (g, kind) => {
+    if (kind === "buy") { window.open(`https://www.tickpick.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
+    if (kind === "gift") { window.open(`https://www.tickpick.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
+    const url = `https://courtvisual.com/g/${team.slug}-vs-${g.oppSlug}-${g.ds}`;
+    const take = reactions[g.oppSlug] === "love" ? "I love this game — " : reactions[g.oppSlug] === "go" ? "Let's go to this one — " : reactions[g.oppSlug] === "excited" ? "So excited for this — " : "";
+    const data = { title: `${team.name} vs ${g.opp}`, text: `${take}${team.name} vs ${g.opp}`, url };
+    try { if (navigator.share) { navigator.share(data).catch(() => {}); return; } } catch {}
+    try { navigator.clipboard?.writeText(url); } catch {}
+    setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
+  };
+
+  const ranked = useMemo(() => [...GAMES].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)), [weights]);
+
+  const Shell = ({ children }) => (
+    <div className="g-ui" style={{ background: PAGE, color: INK, width: "100%", minHeight: "100vh" }}>
+      <div style={{ maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
+    </div>
+  );
+  const screenH = { fontSize: 40, margin: "10px 0 6px" };
+
+  // ---------- ONBOARDING ----------
+  if (view === "onboarding") {
+    return (
+      <Shell>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={tick} />CourtVisual · Setup</div>
+        <h1 className="g-display cv-gleam" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
+        <p style={{ fontSize: 14, color: "rgba(22,19,15,0.58)", marginTop: 12 }}>Pick your team — the app themes to its colors. Add more anytime.</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 14, padding: "13px 16px", marginTop: 22 }}>
+          <Search size={18} color="rgba(22,19,15,0.55)" />
+          <input className="g-in" placeholder="Search teams…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+        </div>
+        {favTeams.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+            {favTeams.map((t) => (<span key={t.slug} style={chip(true)} onClick={() => removeTeam(t)}>{dots(t)} {t.name} <X size={13} /></span>))}
+          </div>
+        )}
+        <div className="g-eyebrow" style={{ fontSize: 9, color: "rgba(22,19,15,0.55)", margin: "22px 0 10px" }}>{q.trim() ? "Results" : "Popular"}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {results.map((t) => (
+            <button key={t.slug} style={chip(false)} onClick={() => addTeam(t)}>{teamSlugs.includes(t.slug) ? <Check size={13} /> : dots(t)} {t.label}</button>
+          ))}
+        </div>
+        <button disabled={!teamSlugs.length} onClick={() => setView("games")}
+          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? INK : "rgba(22,19,15,0.2)", color: PAGE, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
+          {teamSlugs.length ? `Continue with ${teamSlugs.length} team${teamSlugs.length > 1 ? "s" : ""}` : "Add a team to continue"}
+        </button>
+      </Shell>
+    );
+  }
+
+  const Nav = () => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", padding: "8px 16px", background: "#F2EFE4", borderRadius: 12, border: "1px solid rgba(22,19,15,0.10)" }}>
+        <CourtVisualLogo width={200} className="cv-logo" />
+      </span>
+      <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
+        {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
+          const on = view === k;
+          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : "rgba(22,19,15,0.55)", boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(22,19,15,0.16)" : "none" }}>{l}</button>);
+        })}
+      </div>
+    </div>
+  );
+
+  // ---------- GAMES ----------
+  if (view === "games") {
+    return (
+      <Shell>
+        <Nav />
+        {favTeams.length > 1 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+            {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name}</span>))}
+          </div>
+        )}
+        <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={{ ...tick, background: primary }} />{team.label} · Upcoming</div>
+        <h1 className="g-display cv-gleam" style={screenH}>THE RANKING</h1>
+        <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.4)", marginBottom: 16 }}>Sample slate — live schedule loads per team via the API.</p>
+        {ranked.map((g, i) => (
+          <GameModule key={g.oppSlug} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
+            primary={primary} secondary={secondary} reaction={reactions[g.oppSlug]} onReact={onReact} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
+        ))}
+        <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Star size={14} /> Tune your favorites & view
+        </button>
+      </Shell>
+    );
+  }
+
+  // ---------- FAVORITES ----------
+  const Section = ({ label, children }) => (
+    <div style={{ borderTop: "1px solid rgba(22,19,15,0.12)", padding: "20px 0" }}>
+      <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)", marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
+      {children}
+    </div>
+  );
+  const field = { display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", borderRadius: 12, padding: "11px 14px" };
+
+  return (
+    <Shell>
+      <Nav />
+      <h1 className="g-display cv-gleam" style={screenH}>FAVORITES</h1>
+      <Section label="Account">
+        {session?.user ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, color: "rgba(22,19,15,0.7)" }}>Signed in as <b style={{ color: INK }}>{session.user.email}</b> — favorites sync to your account.</span>
+            <button onClick={signOut} style={chip(false)}>Sign out</button>
+          </div>
+        ) : (
+          <div>
+            <div style={field}><Mail size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+              <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
+              {authMsg && <span style={{ fontSize: 12, color: "rgba(22,19,15,0.6)" }}>{authMsg}</span>}
+            </div>
+            <p style={{ fontSize: 11.5, color: "rgba(22,19,15,0.45)", marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
+          </div>
+        )}
+      </Section>
+      <Section label="Teams">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
+          <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
+        </div>
+      </Section>
+      <Section label="Players you follow">
+        <div style={field}>
+          <User size={16} color="rgba(22,19,15,0.55)" />
+          <input className="g-in" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
+        </div>
+        {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
+      </Section>
+      <Section label="Home market">
+        <div style={field}><MapPin size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+      </Section>
+      <Section label="Type of excitement you want">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
+          {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
+        </div>
+        <div style={{ background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 16, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 32px" }}>
+          {FACTORS.map((f) => (
+            <div key={f.key}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600 }}>{f.label}</span>
+                <span className="g-display" style={{ fontSize: 17, backgroundImage: "linear-gradient(180deg,#34A934 0%,#0B3E13 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#0F4A18" }}>{weights[f.key]}</span>
+              </div>
+              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
+            </div>
+          ))}
+        </div>
+      </Section>
+      <Section label="Module style">
+        <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
+          {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
+            const on = cardStyle === k;
+            return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? "#fff" : "transparent", color: on ? INK : "rgba(22,19,15,0.55)", boxShadow: on ? "inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(22,19,15,0.16)" : "none" }}>{l}</button>);
+          })}
+        </div>
+      </Section>
+      <Section label="Override accent (optional)">
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {["#E8401F", "#1E73E8", "#2FA02F", "#7A5AF8", "#E8407F", "#14B8A6"].map((c) => (
+            <button key={c} onClick={() => setOverride(c)} aria-label={`accent ${c}`} style={{ width: 26, height: 26, borderRadius: 999, background: c, cursor: "pointer", border: override === c ? "2px solid #16130F" : "2px solid transparent", outline: override === c ? "2px solid #fff" : "none", outlineOffset: -4 }} />
+          ))}
+          {override && <button onClick={() => setOverride(null)} style={{ ...chip(false), padding: "5px 10px" }}>Reset to team</button>}
+        </div>
+      </Section>
+      <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: INK, color: PAGE, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>See the ranking</button>
+    </Shell>
+  );
+}

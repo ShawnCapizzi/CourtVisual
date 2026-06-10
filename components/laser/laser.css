@@ -1,0 +1,126 @@
+/* CourtVisual laser system
+   One animation, one token set, every placement.
+   Import once in app/layout.tsx: import "@/components/laser/laser.css" */
+
+:root {
+  --cv-ink: #0E0B02;
+  --cv-cream: #E7E3D8;
+  --cv-orange: #E1641F;
+  --cv-orange-deep: #C2410C;
+  --cv-orange-soft: #E6CAB3; /* 20% orange flattened on cream */
+
+  --laser-color: var(--cv-orange);
+  --laser-base-color: var(--cv-ink);
+  --laser-width: 2;
+  --laser-dash: 10;   /* dash + gap must equal 100 */
+  --laser-gap: 90;
+  --laser-speed: 4s;
+}
+
+/* ---- shared keyframe: pathLength is normalized to 100 everywhere ---- */
+@keyframes cv-perim {
+  to { stroke-dashoffset: -100; }
+}
+
+/* ---- h1 gleam ---- */
+.cv-gleam {
+  color: transparent;
+  background: linear-gradient(
+    105deg,
+    var(--cv-ink) 0%, var(--cv-ink) 40%,
+    var(--cv-orange-deep) 47%, var(--cv-orange) 50%, var(--cv-orange-deep) 53%,
+    var(--cv-ink) 60%, var(--cv-ink) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 115% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: cv-gleam 7s ease-in-out infinite;
+}
+@keyframes cv-gleam {
+  0%, 46%   { background-position: 115% 0; }
+  74%, 100% { background-position: -15% 0; }
+}
+
+/* ---- logo laser (SVG text layers in CourtVisualLogo.tsx) ----
+   Dash sized against measured glyph perimeters at 46px (84–189 units):
+   16-unit dash = a zip, not a slab. Pattern length 260, offset loops to -260. */
+.cv-logo-laser {
+  stroke-dasharray: 16 244;
+  animation: cv-logo-trace 3.2s linear infinite;
+}
+@keyframes cv-logo-trace {
+  to { stroke-dashoffset: -260; }
+}
+
+
+.cv-logo-laser-v6 {
+  stroke-dasharray: 60 220;
+  animation: cv-logo-trace-v6 6s linear infinite;
+}
+@keyframes cv-logo-trace-v6 {
+  to { stroke-dashoffset: -280; }
+}
+
+/* ---- LaserFrame ---- */
+.cv-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.cv-frame .base {
+  fill: none;
+  stroke: var(--laser-base-color);
+  stroke-width: 1;
+  opacity: 0.25;
+}
+.cv-frame .laser {
+  fill: none;
+  stroke: var(--laser-color);
+  stroke-width: var(--laser-width);
+  stroke-linecap: round;
+  stroke-dasharray: var(--laser-dash) var(--laser-gap);
+}
+
+/* mode: loop — always tracing (the no. 1 card, live badge) */
+.cv-laser-loop .cv-frame .laser {
+  animation: cv-perim var(--laser-speed) linear infinite;
+}
+
+/* mode: hover — traces while hovered (CTA buttons) */
+.cv-laser-hover .cv-frame .laser {
+  stroke-dasharray: 0 100;
+}
+.cv-laser-hover:hover .cv-frame .laser,
+.cv-laser-hover:focus-visible .cv-frame .laser {
+  stroke-dasharray: var(--laser-dash) var(--laser-gap);
+  animation: cv-perim calc(var(--laser-speed) * 0.4) linear infinite;
+}
+
+/* mode: once — single pass when .is-inview lands (mobile CTA, score reveal) */
+.cv-laser-once .cv-frame .laser {
+  stroke-dasharray: 0 100;
+}
+.cv-laser-once.is-inview .cv-frame .laser {
+  stroke-dasharray: var(--laser-dash) var(--laser-gap);
+  animation: cv-perim calc(var(--laser-speed) * 0.5) ease-out 1 forwards;
+}
+
+/* presets */
+.cv-laser-live {
+  --laser-speed: 2.4s;
+  --laser-dash: 14;
+  --laser-gap: 86;
+  --laser-width: 1.6;
+}
+
+/* ---- accessibility ---- */
+@media (prefers-reduced-motion: reduce) {
+  .cv-gleam { animation: none; color: var(--cv-ink); background: none; }
+  .cv-logo-laser,
+  .cv-logo-laser-v6,
+  .cv-frame .laser { animation: none !important; stroke-dasharray: none; opacity: 0.85; }
+}
