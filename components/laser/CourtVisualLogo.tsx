@@ -13,6 +13,8 @@
  * viewBox 0 0 390 46 hugs the content: glyphs end ~348, speed lines end ~386.
  */
 
+import { useId } from "react";
+
 interface CourtVisualLogoProps {
   width?: number;
   className?: string;
@@ -25,6 +27,11 @@ export default function CourtVisualLogo({
   fontFamily = "'Archivo Black', sans-serif",
 }: CourtVisualLogoProps) {
   const style = { fontFamily, fontSize: 52, letterSpacing: "0" } as const;
+  // Unique per mount: Safari can resolve url(#id) against a removed twin when
+  // the nav remounts on view switch, painting the fallback ("muted") color.
+  const uid = useId().replace(/[:]/g, "");
+  const heatId = `cv-heat-${uid}`;
+  const speedId = `cv-speed-${uid}`;
 
   return (
     <svg
@@ -35,13 +42,13 @@ export default function CourtVisualLogo({
       aria-label="CourtVisual"
     >
       <defs>
-        <linearGradient id="cv-visual-heat" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={heatId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#FFA52B" />
           <stop offset="55%" stopColor="#FF5A2C" />
           <stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
         {/* Lines need userSpaceOnUse: bounding-box gradients don't render on zero-height elements */}
-        <linearGradient id="cv-speed-heat" x1="346" y1="0" x2="384" y2="0" gradientUnits="userSpaceOnUse">
+        <linearGradient id={speedId} x1="346" y1="0" x2="384" y2="0" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#FF5A2C" />
           <stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
@@ -49,10 +56,10 @@ export default function CourtVisualLogo({
 
       <g transform="translate(9 0) skewX(-12)">
         <text x="0" y="40" fill="var(--cv-ink)" style={style}>Court</text>
-        <text x="164" y="40" fill="url(#cv-visual-heat)" style={style}>Visual</text>
+        <text x="164" y="40" fill={`url(#${heatId})`} style={style}>Visual</text>
 
         {/* Speed lines — start after Visual's measured end (340), clear of glyphs */}
-        <g stroke="url(#cv-speed-heat)" strokeLinecap="round">
+        <g stroke={`url(#${speedId})`} strokeLinecap="round">
           <line x1="348" y1="14" x2="374" y2="14" strokeWidth="3.5" />
           <line x1="352" y1="25" x2="382" y2="25" strokeWidth="3" />
           <line x1="350" y1="35" x2="372" y2="35" strokeWidth="2.5" />
