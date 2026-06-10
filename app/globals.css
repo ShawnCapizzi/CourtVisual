@@ -35,4 +35,4 @@ button:active { transform: scale(0.985); }
 }
 
 /* Logo: fixed presence on desktop, clamps on narrow screens so nav never crowds */
-.cv-logo { width: min(200px, 50vw); height: auto; display: block; }
+.cv-logo { width: clamp(120px, 38vw, 170px); height: auto; display: block; }
