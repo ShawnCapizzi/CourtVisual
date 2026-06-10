@@ -1,11 +1,12 @@
-// Minimal SW: installable, but never serves stale content.
-// On activate it purges any caches a prior version created, then claims clients,
-// so a new deploy can't be served an old shell. Fetch is pass-through (no cache).
+// Kill switch. The app no longer uses a service worker — on a rapidly-redeployed
+// PWA it caused stale-bundle "client-side exception" white screens. This SW
+// unregisters itself and clears all caches so every client fetches fresh.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) =>
   e.waitUntil((async () => {
-    try { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); } catch {}
-    await self.clients.claim();
+    try { const ks = await caches.keys(); await Promise.all(ks.map((k) => caches.delete(k))); } catch {}
+    try { await self.registration.unregister(); } catch {}
+    try { const cs = await self.clients.matchAll(); cs.forEach((c) => c.navigate(c.url)); } catch {}
   })())
 );
 self.addEventListener("fetch", () => {});
