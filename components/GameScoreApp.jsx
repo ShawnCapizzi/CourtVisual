@@ -116,14 +116,22 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </button>
       </LaserFrame>
 
-      <div style={{ marginTop: 14, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)" }}>
+      <div style={{ marginTop: 14, paddingTop: 11, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+          <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            {shared ? <><Check size={13} /> Copied</> : <><Share2 size={13} /> Share</>}
+          </button>
+          <button onClick={() => onShare(game, "gift")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <Gift size={13} /> Gift
+          </button>
+        </div>
         <button onClick={() => setOpen(!open)} aria-expanded={open}
-          style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "none", border: "none", padding: "11px 0", cursor: "pointer", color: ink }}>
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <span className="g-eyebrow" style={{ fontSize: 9.5 }}>Why this game scores {score.toFixed(1)}</span>
           <ChevronDown size={15} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s", color: muted }} />
         </button>
-        {open && <div style={{ paddingBottom: 6 }}><Bars g={game} accent={primary} weights={weights} dark={dark} /></div>}
       </div>
+      {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}><Bars g={game} accent={primary} weights={weights} dark={dark} /></div>}
 
       {open && (
       <div style={{ marginTop: 12, paddingTop: 12, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)" }}>
@@ -139,14 +147,6 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
               </button>
             );
           })}
-        </div>
-        <div style={{ display: "flex", gap: 18, marginTop: 12 }}>
-          <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            {shared ? <><Check size={13} /> Copied</> : <><Share2 size={13} /> Share with friends</>}
-          </button>
-          <button onClick={() => onShare(game, "gift")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <Gift size={13} /> Gift this game
-          </button>
         </div>
       </div>
       )}
@@ -233,6 +233,15 @@ function ContextCard({ title, body, primary, teamRecord }) {
         {teamRecord && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "rgba(22,19,15,0.55)" }}>{teamRecord.str}</span>}
       </div>
       <p style={{ fontSize: 13, color: "rgba(22,19,15,0.6)", marginTop: 8, lineHeight: 1.45 }}>{body}</p>
+    </div>
+  );
+}
+
+function Section({ label, children, primary }) {
+  return (
+    <div style={{ borderTop: "1px solid rgba(22,19,15,0.12)", padding: "20px 0" }}>
+      <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)", marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
+      {children}
     </div>
   );
 }
@@ -606,25 +615,19 @@ export default function GameScoreApp() {
   }
 
   // ---------- FAVORITES ----------
-  const Section = ({ label, children }) => (
-    <div style={{ borderTop: "1px solid rgba(22,19,15,0.12)", padding: "20px 0" }}>
-      <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)", marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
-      {children}
-    </div>
-  );
   const field = { display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", borderRadius: 12, padding: "11px 14px" };
 
   return (
     <Shell>
       <Nav view={view} setView={setView} />
       <h1 className="g-display cv-gleam" style={screenH}>FAVORITES</h1>
-            <Section label="Teams">
+            <Section primary={primary} label="Teams">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
           <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
         </div>
       </Section>
-      <Section label="Type of excitement you want">
+      <Section primary={primary} label="Type of excitement you want">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
           {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
         </div>
@@ -640,7 +643,7 @@ export default function GameScoreApp() {
           ))}
         </div>
       </Section>
-      <Section label="Account">
+      <Section primary={primary} label="Account">
         {session?.user ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontSize: 13, color: "rgba(22,19,15,0.7)" }}>Signed in as <b style={{ color: INK }}>{session.user.email}</b> — favorites sync to your account.</span>
@@ -660,7 +663,7 @@ export default function GameScoreApp() {
           </div>
         )}
       </Section>
-      <Section label="Players you follow">
+      <Section primary={primary} label="Players you follow">
         <div style={field}>
           <User size={16} color="rgba(22,19,15,0.55)" />
           <input className="g-in" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
@@ -668,10 +671,10 @@ export default function GameScoreApp() {
         </div>
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
       </Section>
-      <Section label="Home market">
+      <Section primary={primary} label="Home market">
         <div style={field}><MapPin size={16} color="rgba(22,19,15,0.55)" /><input className="g-in" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
       </Section>
-            <Section label="Module style">
+            <Section primary={primary} label="Module style">
         <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(22,19,15,0.07)", borderRadius: 12 }}>
           {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
             const on = cardStyle === k;
@@ -679,7 +682,7 @@ export default function GameScoreApp() {
           })}
         </div>
       </Section>
-      <Section label="Override accent (optional)">
+      <Section primary={primary} label="Override accent (optional)">
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {["#E8401F", "#1E73E8", "#2FA02F", "#7A5AF8", "#E8407F", "#14B8A6"].map((c) => (
             <button key={c} onClick={() => setOverride(c)} aria-label={`accent ${c}`} style={{ width: 26, height: 26, borderRadius: 999, background: c, cursor: "pointer", border: override === c ? "2px solid #16130F" : "2px solid transparent", outline: override === c ? "2px solid #fff" : "none", outlineOffset: -4 }} />
