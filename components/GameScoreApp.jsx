@@ -93,9 +93,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: primary, color: textOn(primary), fontSize: 10, fontWeight: 700, boxShadow: BTN_SOFT }}>
-              <Flame size={10} /> {verdict(score)}
-            </span>
+            {game.topRivals ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: "linear-gradient(135deg,#FF5A2C,#B3122A)", color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.02em", boxShadow: BTN_SOFT }}>
+                Top Rivals 🔥
+              </span>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: primary, color: textOn(primary), fontSize: 10, fontWeight: 700, boxShadow: BTN_SOFT }}>
+                <Flame size={10} /> {verdict(score)}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 10.5, fontWeight: 600, color: muted, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{game.tag}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
