@@ -42,7 +42,10 @@ export default function CourtVisualLogo({
       aria-label="CourtVisual"
     >
       <defs>
-        <linearGradient id={heatId} x1="0" y1="0" x2="1" y2="1">
+        {/* userSpaceOnUse + explicit coords: a bounding-box gradient on skewed
+            text resolves inconsistently across browsers/views (flat/muted).
+            Spanning the measured Visual glyph box makes it deterministic. */}
+        <linearGradient id={heatId} x1="164" y1="2" x2="340" y2="44" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#FFA52B" />
           <stop offset="55%" stopColor="#FF5A2C" />
           <stop offset="100%" stopColor="#B3122A" />
