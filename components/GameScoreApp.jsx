@@ -287,7 +287,22 @@ export default function GameScoreApp() {
       <Shell>
         <div className="g-eyebrow" style={{ fontSize: 10, color: "rgba(22,19,15,0.55)" }}><span style={tick} />CourtVisual · Setup</div>
         <h1 className="g-display cv-gleam" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
-        <p style={{ fontSize: 14, color: "rgba(22,19,15,0.58)", marginTop: 12 }}>Pick your team — the app themes to its colors. Add more anytime.</p>
+        <p style={{ fontSize: 15, fontWeight: 700, color: INK, marginTop: 14, lineHeight: 1.4 }}>
+          The only ticket app that scores every game by what excites <em>you</em>.
+        </p>
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+          {[
+            ["Dial it in", "Weight four factors — playoff stakes, rivalry, star power, historic weight."],
+            ["Get the ranking", "Every upcoming game scored 0\u201310, ranked for you."],
+            ["Share the heat", "Send must-sees to friends and plan the night."],
+          ].map(([t, d]) => (
+            <div key={t} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+              <span style={{ ...tick, flexShrink: 0, marginRight: 0 }} />
+              <span style={{ fontSize: 13.5, color: "rgba(22,19,15,0.7)", lineHeight: 1.45 }}><b style={{ color: INK }}>{t}.</b> {d}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 13, color: "rgba(22,19,15,0.55)", marginTop: 16 }}>Pick your team to start — the app themes to its colors.</p>
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 14, padding: "13px 16px", marginTop: 22 }}>
           <Search size={18} color="rgba(22,19,15,0.55)" />
           <input className="g-in" placeholder="Search teams…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
