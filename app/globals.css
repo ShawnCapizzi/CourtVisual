@@ -13,9 +13,9 @@ html, body {
 .g-ui { font-family: 'Archivo', sans-serif; font-variant-numeric: tabular-nums; }
 .g-eyebrow { font-family: 'Archivo', sans-serif; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
 
-.g-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; background: rgba(22,19,15,0.2); outline: none; accent-color: #16130F; cursor: pointer; }
-.g-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #16130F; cursor: pointer; box-shadow: 0 1px 3px rgba(22,19,15,0.25); }
-.g-slider::-moz-range-thumb { width: 16px; height: 16px; border: none; border-radius: 50%; background: #16130F; cursor: pointer; }
+.g-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 3px; border-radius: 3px; background: rgba(236,231,219,0.16); outline: none; accent-color: #B9B5AC; cursor: pointer; }
+.g-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FBFAF7 0%, #D2CFC7 40%, #8E8B83 100%); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.45), inset 0 -1px 2px rgba(0,0,0,0.28), inset 0 1px 1px rgba(255,255,255,0.65); }
+.g-slider::-moz-range-thumb { width: 18px; height: 18px; border: none; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FBFAF7 0%, #D2CFC7 40%, #8E8B83 100%); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.45), inset 0 -1px 2px rgba(0,0,0,0.28), inset 0 1px 1px rgba(255,255,255,0.65); }
 
 .g-in { font-family: 'Archivo', sans-serif; font-size: 16px; color: #16130F; background: transparent; border: none; outline: none; width: 100%; }
 .g-in::placeholder { color: rgba(22,19,15,0.4); }
