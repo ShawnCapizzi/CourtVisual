@@ -217,6 +217,9 @@ export default function GameScoreApp() {
 
   useEffect(() => { try { setIsTouch(window.matchMedia("(hover: none)").matches); } catch {} }, []);
 
+  // Land at the top of every screen when switching views (don't inherit scroll).
+  useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } }, [view]);
+
   // track auth session
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
