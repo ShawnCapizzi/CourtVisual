@@ -279,7 +279,7 @@ function Shell({ children }) {
         {children}
         <footer style={{ marginTop: 36, paddingTop: 16, borderTop: "1px solid rgba(236,231,219,0.08)", textAlign: "center" }}>
           <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ fontSize: 11, color: "rgba(236,231,219,0.38)", textDecoration: "none", fontFamily: "'Archivo',sans-serif" }}>
-            Designed &amp; built by <span style={{ color: "rgba(236,231,219,0.6)", fontWeight: 600 }}>Shawn M. Capizzi</span> — shawncapizzi.com
+            Designed &amp; built by <span style={{ textDecoration: "underline", textUnderlineOffset: 2 }}>Shawn M. Capizzi</span> — shawncapizzi.com
           </a>
         </footer>
       </div>
@@ -640,7 +640,7 @@ export default function GameScoreApp() {
   if (view === "onboarding") {
     return (
       <Shell>
-        <div style={{ marginBottom: 20 }}><LogoPlate /></div>
+        <Nav view={view} setView={setView} />
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
@@ -663,9 +663,9 @@ export default function GameScoreApp() {
           ))}
         </div>
         <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Pick your team to start — the app themes to its colors.</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 14, padding: "13px 16px", marginTop: 22 }}>
-          <Search size={18} color="rgba(22,19,15,0.55)" />
-          <input className="g-in" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+        <div style={{ ...field, marginTop: 22 }}>
+          <Search size={18} color="rgba(236,231,219,0.5)" />
+          <input className="g-in-dark" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {favTeams.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
@@ -771,7 +771,8 @@ export default function GameScoreApp() {
             ))}
           </div>
           <p style={{ fontSize: 12, color: ON_FAINT, marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
-            Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your sliders in Favorites. Championship-size games carry a floor &mdash; games that big can&rsquo;t score low.
+            Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your sliders in Favorites. Championship-size games carry a floor &mdash; games that big can&rsquo;t score low.{" "}
+            <a href="/about" style={{ color: ON, textDecoration: "underline", textUnderlineOffset: 2 }}>Read the full FAQ</a>.
           </p>
         </Section>
         <Section primary={primary} label="Home market">
