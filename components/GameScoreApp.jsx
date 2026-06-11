@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
-import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap } from "lucide-react";
+import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { supabase } from "../lib/supabaseClient";
@@ -75,7 +75,7 @@ function Bars({ g, accent, weights, dark }) {
 }
 
 
-function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch }) {
+function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames }) {
   const parts = scoreParts(game, weights);
   const score = parts.score;
   const anim = useCountUp(score, style);
@@ -110,7 +110,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
             <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
             {game.topRivals ? (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
-                <Flame size={10} /> Top Rivals
+                <Flame size={10} /> {(rivalryNames !== false && game.rivalryName) || "Top Rivals"}
               </span>
             ) : (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: dark ? "rgba(255,255,255,0.10)" : hexA(primary, 0.10), color: dark ? "rgba(255,255,255,0.85)" : INK, fontSize: 10, fontWeight: 700 }}>
@@ -219,11 +219,16 @@ function Nav({ view, setView }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
       <LogoPlate />
-      <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-        {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
-          const on = view === k;
-          return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
-        })}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+          {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
+            const on = view === k;
+            return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
+          })}
+        </div>
+        <button aria-label="Settings" onClick={() => setView("settings")} style={{ width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: view === "settings" ? CREAM : "rgba(255,255,255,0.07)", color: view === "settings" ? INK : ON_MUTED, border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" }}>
+          <Settings size={17} />
+        </button>
       </div>
     </div>
   );
@@ -269,6 +274,7 @@ export default function GameScoreApp() {
   const [weights, setWeights] = useState(DEFAULT_WEIGHTS);
   const [preset, setPreset] = useState("balanced");
   const [cardStyle, setCardStyle] = useState("dashboard");
+  const [rivalryNames, setRivalryNames] = useState(true); // show "El Tráfico" / "Subway Series" on pills (Settings)
   const [override, setOverride] = useState(null);
   const [q, setQ] = useState("");
   const [reactions, setReactions] = useState({});
@@ -278,7 +284,7 @@ export default function GameScoreApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authMsg, setAuthMsg] = useState("");
 
-  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions };
+  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames };
   const snapRef = useRef(snapshot);
   snapRef.current = snapshot;
   const applyState = (st) => {
@@ -291,6 +297,7 @@ export default function GameScoreApp() {
     if (st.cardStyle) setCardStyle(st.cardStyle);
     if (st.override !== undefined) setOverride(st.override);
     if (st.reactions) setReactions(st.reactions);
+    if (st.rivalryNames !== undefined) setRivalryNames(st.rivalryNames);
   };
 
   // hydrate from on-device storage (swap for Supabase later)
@@ -308,6 +315,7 @@ export default function GameScoreApp() {
     if (s.cardStyle) setCardStyle(s.cardStyle);
     if (s.override !== undefined) setOverride(s.override);
     if (s.reactions) setReactions(s.reactions);
+    if (s.rivalryNames !== undefined) setRivalryNames(s.rivalryNames);
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }, []);
@@ -464,7 +472,7 @@ export default function GameScoreApp() {
           </div>
         )}
         {shown.map((g, i) => (
-          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle}
+          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames}
             primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
         ))}
         {remaining > 0 && (
@@ -536,6 +544,7 @@ export default function GameScoreApp() {
   };
 
   const screenH = { fontSize: 40, margin: "10px 0 6px", color: ON };
+  const field = { display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, padding: "12px 14px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" };
 
   // ---------- ONBOARDING ----------
   if (view === "onboarding") {
@@ -604,6 +613,68 @@ export default function GameScoreApp() {
           style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? CREAM : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
           {teamSlugs.length ? `Continue with ${teamSlugs.length} team${teamSlugs.length > 1 ? "s" : ""}` : "Add a team to continue"}
         </button>
+      </Shell>
+    );
+  }
+
+  // ---------- SETTINGS ----------
+  if (view === "settings") {
+    return (
+      <Shell>
+        <Nav view={view} setView={setView} />
+        <h1 className="g-display" style={screenH}>SETTINGS</h1>
+        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>How the app looks and behaves. Your teams and excitement live in Favorites.</p>
+        <Section primary={primary} label="Display">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Rivalry names on cards</div>
+              <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 3, lineHeight: 1.4 }}>Show the real name — &ldquo;El Tr&aacute;fico&rdquo;, &ldquo;Subway Series&rdquo;, &ldquo;Hell Is Real&rdquo; — instead of &ldquo;Top Rivals&rdquo;.</div>
+            </div>
+            <button onClick={() => setRivalryNames(!rivalryNames)} style={chip(rivalryNames)}>{rivalryNames ? <Check size={13} /> : <X size={13} />} {rivalryNames ? "On" : "Off"}</button>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 8 }}>Module style</div>
+            <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+              {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
+                const on = cardStyle === k;
+                return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
+              })}
+            </div>
+          </div>
+        </Section>
+        <Section primary={primary} label="Home market">
+          <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; — and soon, where to watch in your market.</p>
+          <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+        </Section>
+        <Section primary={primary} label="Override accent (optional)">
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {["#E8401F", "#1E73E8", "#2FA02F", "#7A5AF8", "#E8407F", "#14B8A6"].map((c) => (
+              <button key={c} onClick={() => setOverride(c)} aria-label={`accent ${c}`} style={{ width: 26, height: 26, borderRadius: 999, background: c, cursor: "pointer", border: override === c ? "2px solid #16130F" : "2px solid transparent", outline: override === c ? "2px solid #fff" : "none", outlineOffset: -4 }} />
+            ))}
+            {override && <button onClick={() => setOverride(null)} style={{ ...chip(false), padding: "5px 10px" }}>Reset to team</button>}
+          </div>
+        </Section>
+        <Section primary={primary} label="Account">
+          {session?.user ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b> — favorites sync to your account.</span>
+              <button onClick={signOut} style={chip(false)}>Sign out</button>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: 13.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.45 }}>
+                Fast and free — just your email, no password. Your teams and excitement settings stay saved on every device.
+              </p>
+              <div style={field}><Mail size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+                <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
+                {authMsg && <span style={{ fontSize: 12, color: ON_MUTED }}>{authMsg}</span>}
+              </div>
+              <p style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
+            </div>
+          )}
+        </Section>
+        <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>Back to the ranking</button>
       </Shell>
     );
   }
@@ -697,8 +768,6 @@ export default function GameScoreApp() {
   }
 
   // ---------- FAVORITES ----------
-  const field = { display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, padding: "12px 14px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" };
-
   return (
     <Shell>
       <Nav view={view} setView={setView} />
@@ -725,26 +794,6 @@ export default function GameScoreApp() {
           ))}
         </div>
       </Section>
-      <Section primary={primary} label="Account">
-        {session?.user ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b> — favorites sync to your account.</span>
-            <button onClick={signOut} style={chip(false)}>Sign out</button>
-          </div>
-        ) : (
-          <div>
-            <p style={{ fontSize: 13.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.45 }}>
-              Fast and free — just your email, no password. Your teams and excitement settings stay saved on every device.
-            </p>
-            <div style={field}><Mail size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
-              <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
-              {authMsg && <span style={{ fontSize: 12, color: ON_MUTED }}>{authMsg}</span>}
-            </div>
-            <p style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
-          </div>
-        )}
-      </Section>
       <Section primary={primary} label="Sport focus">
         <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.4 }}>Pick a sport to pull up its teams — tap to follow. Come back anytime to add more.</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: sportFocus ? 14 : 0 }}>
@@ -769,25 +818,6 @@ export default function GameScoreApp() {
             onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
         </div>
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
-      </Section>
-      <Section primary={primary} label="Home market">
-        <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
-      </Section>
-            <Section primary={primary} label="Module style">
-        <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-          {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
-            const on = cardStyle === k;
-            return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
-          })}
-        </div>
-      </Section>
-      <Section primary={primary} label="Override accent (optional)">
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {["#E8401F", "#1E73E8", "#2FA02F", "#7A5AF8", "#E8407F", "#14B8A6"].map((c) => (
-            <button key={c} onClick={() => setOverride(c)} aria-label={`accent ${c}`} style={{ width: 26, height: 26, borderRadius: 999, background: c, cursor: "pointer", border: override === c ? "2px solid #16130F" : "2px solid transparent", outline: override === c ? "2px solid #fff" : "none", outlineOffset: -4 }} />
-          ))}
-          {override && <button onClick={() => setOverride(null)} style={{ ...chip(false), padding: "5px 10px" }}>Reset to team</button>}
-        </div>
       </Section>
       <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>See the ranking</button>
     </Shell>
