@@ -627,7 +627,7 @@ export default function GameScoreApp() {
   };
 
   const screenH = { fontSize: 40, margin: "10px 0 6px", color: ON };
-  const field = { display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, padding: "12px 14px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" };
+  const field = { display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.075)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.18)", borderRadius: 12, padding: "12px 14px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07)" };
 
   // ---------- ONBOARDING ----------
   if (view === "onboarding") {
@@ -728,10 +728,17 @@ export default function GameScoreApp() {
           </div>
           <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 8 }}>Module style</div>
-            <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", gap: 10 }}>
               {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
                 const on = cardStyle === k;
-                return (<button key={k} onClick={() => setCardStyle(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 18px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
+                return (
+                  <button key={k} onClick={() => setCardStyle(k)} style={{ flex: 1, padding: 8, borderRadius: 14, cursor: "pointer", background: "rgba(255,255,255,0.05)", backgroundImage: FABRIC, border: `2px solid ${on ? CREAM : "rgba(236,231,219,0.14)"}`, boxShadow: on ? "0 4px 14px rgba(0,0,0,0.35)" : "none" }}>
+                    <StyleMini variant={k} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 12.5, color: on ? ON : ON_MUTED }}>
+                      {on && <Check size={13} />} {l}
+                    </div>
+                  </button>
+                );
               })}
             </div>
           </div>
@@ -741,6 +748,24 @@ export default function GameScoreApp() {
             <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup — how scoring, watch, and tickets work.</span>
             <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
           </div>
+        </Section>
+        <Section primary={primary} label="How scoring works">
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {[
+              ["Playoff stakes", "Championships, knockout rounds, and playoff races — games with something on the line."],
+              ["Rivalry", "161 named rivalries, from the Subway Series to El Tr\u00e1fico. History between the teams runs hot."],
+              ["Star power", "Marquee players and hot teams, refreshed from live league data."],
+              ["Historic weight", "The heritage of the stage and the matchup."],
+            ].map(([t, d]) => (
+              <div key={t} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+                <span style={{ width: 14, height: 4, borderRadius: 2, background: "#E8401F", flexShrink: 0, position: "relative", top: -2 }} />
+                <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.45 }}><b style={{ color: ON }}>{t}.</b> {d}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: ON_FAINT, marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
+            Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your sliders in Favorites. Championship-size games carry a floor &mdash; games that big can&rsquo;t score low.
+          </p>
         </Section>
         <Section primary={primary} label="Home market">
           <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; — and soon, where to watch in your market.</p>
