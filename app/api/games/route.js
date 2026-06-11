@@ -194,7 +194,6 @@ export async function GET(request) {
         if (wseen.has(keyd)) continue;
         wseen.add(keyd);
         out.push(g);
-        if (out.length >= 20) break;
       }
       return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", mode: "weekend", near: !!(lat && lng) });
     } catch {
@@ -210,7 +209,7 @@ export async function GET(request) {
       const now = new Date();
       const startISO = now.toISOString().split(".")[0] + "Z";
       const endISO = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 120).toISOString().split(".")[0] + "Z";
-      const hurl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}&classificationName=Sports&sort=relevance,desc&size=80&startDateTime=${startISO}&endDateTime=${endISO}`;
+      const hurl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}&classificationName=Sports&sort=relevance,desc&size=199&startDateTime=${startISO}&endDateTime=${endISO}`;
       const hres = await fetch(hurl, { next: { revalidate: 600 } });
       if (!hres.ok) return Response.json({ games: [], source: "none", reason: `tm_${hres.status}` });
       const hdata = await hres.json();
@@ -223,7 +222,6 @@ export async function GET(request) {
         if (hseen.has(keyd)) continue;
         hseen.add(keyd);
         out.push(g);
-        if (out.length >= 40) break;
       }
       return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", mode: "hot" });
     } catch {
@@ -236,7 +234,7 @@ export async function GET(request) {
 
   const url =
     `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}` +
-    `&keyword=${encodeURIComponent(label)}&classificationName=Sports&sort=date,asc&size=40`;
+    `&keyword=${encodeURIComponent(label)}&classificationName=Sports&sort=date,asc&size=199`; // TM max page ~200 — covers a full season in one fetch
 
   try {
     const res = await fetch(url, { next: { revalidate: 300 } });
@@ -299,7 +297,6 @@ export async function GET(request) {
       }
 
       games.push(g);
-      if (games.length >= 20) break;
     }
 
     const teamRecord = ctx?.record(label) || null;
