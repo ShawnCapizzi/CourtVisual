@@ -10,6 +10,7 @@
 
 import { getLeagueContext } from "../../../lib/espn";
 import { rivalryFactor, isTopRivalry, rivalryInfo } from "../../../lib/rivalries";
+import { fetchBroadcastMap, networksFor } from "../../../lib/broadcasts";
 
 export const revalidate = 300;
 
@@ -298,6 +299,14 @@ export async function GET(request) {
 
       games.push(g);
     }
+
+    // Exact national networks for imminent games (ESPN's scoreboard window covers
+    // the current day/week). Misses are silent — the client falls back to the
+    // league watch guide, never a guessed network.
+    try {
+      const bmap = await fetchBroadcastMap(league);
+      if (bmap.size) for (const g of games) { const n = networksFor(bmap, g.opp, g.ds); if (n) g.networks = n; }
+    } catch {}
 
     const teamRecord = ctx?.record(label) || null;
     let leagueGames = [];
