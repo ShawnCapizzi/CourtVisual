@@ -109,7 +109,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
             {game.topRivals ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: dark ? "#fff" : INK, fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
                 <Flame size={10} /> {(rivalryNames !== false && game.rivalryName) || "Top Rivals"}
               </span>
             ) : (
