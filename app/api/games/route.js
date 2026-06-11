@@ -54,6 +54,15 @@ const lastWord = (s) => { const w = (s || "").trim().split(/\s+/); return w[w.le
 // Non-game inventory must never enter the game ranking. A bar's "World Cup Watch
 // Party" is real Ticketmaster inventory, but it isn't a match — and its name would
 // otherwise steal a stakes floor from the keyword classifier below.
+const DOW = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const dowOf = (dt, localDate) => {
+  try {
+    if (dt) return DOW[new Date(dt).toLocaleDateString("en-US", { weekday: "short", timeZone: "America/New_York" })] ?? null;
+    if (localDate) return DOW[new Date(localDate + "T17:00:00Z").toLocaleDateString("en-US", { weekday: "short", timeZone: "America/New_York" })] ?? null;
+  } catch {}
+  return null;
+};
+
 const NON_GAME = /watch ?part(?:y|ies)|viewing part(?:y|ies)|fan ?fest|tailgate|happy hour|trivia|bingo|brunch|bar crawl|pub crawl|tribute|hospitality|vip (?:package|experience)|gameday experience|pregame part|postgame part|parking/i;
 const isNonGameEvent = (name) => NON_GAME.test(name || "");
 
@@ -128,7 +137,7 @@ function eventToGame(ev) {
   const f = deriveFactors(ev.name || "", opp, "", dt);
   const genre = ev.classifications?.[0]?.genre?.name || null;
   return {
-    matchup, opp, oppSlug, date, ds, home: false, tag: f.tag,
+    matchup, opp, oppSlug, date, ds, home: false, tag: f.tag, dow: dowOf(dt, ev.dates?.start?.localDate),
     sport: genre ? genre.toLowerCase() : null,
     playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
     topRivals: isTopRivalry(rA, rB),
@@ -292,7 +301,7 @@ export async function GET(request) {
       const minPrice = ev.priceRanges?.[0]?.min;
 
       const g = {
-        opp, oppSlug, date, ds, home,
+        opp, oppSlug, date, ds, home, dow: dowOf(dt, ev.dates?.start?.localDate),
         tag: f.tag,
         playoff: f.playoff, rivalry: f.rivalry, hot: f.hot, historic: f.historic,
         url: ev.url || null,
