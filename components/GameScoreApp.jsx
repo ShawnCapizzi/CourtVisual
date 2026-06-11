@@ -275,7 +275,14 @@ function Shell({ children }) {
     <div className="g-ui" style={{ color: INK, width: "100%", minHeight: "100vh", position: "relative" }}>
       <div className="cv-stage" aria-hidden="true" />
       <div className="cv-grain" aria-hidden="true" />
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>{children}</div>
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>
+        {children}
+        <footer style={{ marginTop: 36, paddingTop: 16, borderTop: "1px solid rgba(236,231,219,0.08)", textAlign: "center" }}>
+          <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ fontSize: 11, color: "rgba(236,231,219,0.38)", textDecoration: "none", fontFamily: "'Archivo',sans-serif" }}>
+            Designed &amp; built by <span style={{ color: "rgba(236,231,219,0.6)", fontWeight: 600 }}>Shawn M. Capizzi</span> — shawncapizzi.com
+          </a>
+        </footer>
+      </div>
     </div>
   );
 }
@@ -745,7 +752,7 @@ export default function GameScoreApp() {
         </Section>
         <Section primary={primary} label="Onboarding">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup — how scoring, watch, and tickets work.</span>
+            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup — how scoring, watch, and tickets work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
             <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
           </div>
         </Section>
