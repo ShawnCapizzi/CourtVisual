@@ -5,6 +5,7 @@ import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scor
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { watchOptions } from "../lib/watch";
 import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
+import { track } from "../lib/track";
 import { supabase } from "../lib/supabaseClient";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
@@ -143,13 +144,13 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
               </>
             )}
             {w.streamer && (
-              <button onClick={() => window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener")}
+              <button onClick={() => { track("stream_click", { key: w.streamer.key }); window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener"); }}
                 style={{ width: "100%", marginTop: 9, padding: "11px 14px", borderRadius: 12, cursor: "pointer", background: dark ? "rgba(255,255,255,0.07)" : "rgba(22,19,15,0.05)", border: dark ? "1px solid rgba(255,255,255,0.14)" : "1px solid rgba(22,19,15,0.12)", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                 <Tv size={14} /> {w.streamer.label} <span style={{ fontWeight: 500, color: muted }}>· {w.streamer.note}</span> <ArrowUpRight size={12} />
               </button>
             )}
             {liveTvOffer() && (
-              <button onClick={() => window.open(liveTvOffer().url, "_blank", "noopener")}
+              <button onClick={() => { track("livetv_click", {}); window.open(liveTvOffer().url, "_blank", "noopener"); }}
                 style={{ width: "100%", marginTop: 7, padding: "9px 14px", borderRadius: 12, cursor: "pointer", background: "none", border: dark ? "1px dashed rgba(255,255,255,0.18)" : "1px dashed rgba(22,19,15,0.18)", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 Don&rsquo;t have these channels? {liveTvOffer().label} <ArrowUpRight size={11} />
               </button>
@@ -176,7 +177,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         {game.minPrice ? <span style={{ fontWeight: 800 }}>From ${game.minPrice}</span> : null}
       </button>
       {tickpickCompareUrl(game.matchup || `${teamName} vs ${game.opp}`) && (
-        <button onClick={() => window.open(tickpickCompareUrl(game.matchup || `${teamName} vs ${game.opp}`), "_blank", "noopener")}
+        <button onClick={() => { track("tickpick_click", { opp: game.opp }); window.open(tickpickCompareUrl(game.matchup || `${teamName} vs ${game.opp}`), "_blank", "noopener"); }}
           style={{ width: "100%", marginTop: 7, padding: 0, background: "none", border: "none", cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
           Compare prices on TickPick <ArrowUpRight size={11} />
         </button>
@@ -502,6 +503,7 @@ export default function GameScoreApp() {
   const signOut = async () => { await supabase.auth.signOut(); setAuthMsg(""); };
   const onShare = (g, kind) => {
     if (kind === "buy" || kind === "gift") {
+      track("ticket_click", { opp: g.opp, ds: g.ds, kind, hasUrl: !!g.url });
       window.open(ticketUrl(g.url || `https://www.ticketmaster.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`), "_blank", "noopener,noreferrer");
       return;
     }
@@ -511,6 +513,7 @@ export default function GameScoreApp() {
     const data = { title: `${team.name} vs ${g.opp}`, text: `${team.name} vs ${g.opp}`, url };
     try { if (navigator.share) { navigator.share(data).catch(() => {}); return; } } catch {}
     try { navigator.clipboard?.writeText(url); } catch {}
+    track("share_game", { opp: g.opp, ds: g.ds, score });
     setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
   };
 
@@ -602,6 +605,7 @@ export default function GameScoreApp() {
     { id: "stakes", label: "Championship & playoff games", icon: Trophy, color: "#0F4A18" },
   ];
   const runFilter = async (kind) => {
+    track("filter", { kind });
     if (kind === "weekend") { weekendNearMe(); return; }
     const label = (FILTERS.find((f) => f.id === kind) || {}).label || "Hot games";
     beginSearch(label);
@@ -635,16 +639,17 @@ export default function GameScoreApp() {
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
-          Welcome to CourtVisual — the ticket app customized for you, by you.
+          Welcome to CourtVisual — every game, scored for excitement. Watch it, share it, or be there.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          You set what makes a game exciting. We score and rank every game to match.
+          You set what makes a game exciting. We score and rank every upcoming game — then show you how to catch it.
         </p>
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
           {[
-            ["Dial it in", "Weight four factors — playoff stakes, rivalry, star power, historic weight."],
-            ["Get the ranking", "Every upcoming game scored 0\u201310, ranked for you."],
-            ["Share the heat", "Send must-sees to friends and plan the night."],
+            ["Dial it in", <>Weight four factors — playoff stakes, rivalry, star power, historic weight.</>],
+            ["Get the ranking", <>Every upcoming game scored 0&ndash;10, ranked for you.</>],
+            ["Watch or go", <>Flip any game between where to watch <Tv size={12} style={{ verticalAlign: "-2px", margin: "0 1px" }} /> — TV and streaming — and tickets <Ticket size={12} style={{ verticalAlign: "-2px", margin: "0 1px" }} /> to be there live.</>],
+            ["Share the heat", <>Send must-sees to friends and plan the night.</>],
           ].map(([t, d]) => (
             <div key={t} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
               <span style={{ ...tick, flexShrink: 0, marginRight: 0 }} />
@@ -714,6 +719,16 @@ export default function GameScoreApp() {
             <button onClick={() => setRivalryNames(!rivalryNames)} style={chip(rivalryNames)}>{rivalryNames ? <Check size={13} /> : <X size={13} />} {rivalryNames ? "On" : "Off"}</button>
           </div>
           <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 3 }}>Card actions</div>
+            <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 8, lineHeight: 1.4 }}>Every game flips between <b style={{ color: ON }}>where to watch</b> (TV &amp; streaming) and <b style={{ color: ON }}>tickets</b> to be there live — the <Ticket size={11} style={{ verticalAlign: "-1px" }} /> / <Tv size={11} style={{ verticalAlign: "-1px" }} /> toggle next to your team name.</div>
+            <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+              {[["tickets", Ticket, "Tickets"], ["watch", Tv, "Where to watch"]].map(([k, Icon, l]) => {
+                const on = viewMode === k;
+                return (<button key={k} onClick={() => { track("view_mode", { mode: k, from: "settings" }); setViewMode(k); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 14px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}><Icon size={13} /> {l}</button>);
+              })}
+            </div>
+          </div>
+          <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 8 }}>Module style</div>
             <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
               {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
@@ -754,6 +769,12 @@ export default function GameScoreApp() {
               <p style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
             </div>
           )}
+        </Section>
+        <Section primary={primary} label="About">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>CourtVisual — every game, scored. New here or showing a friend?</span>
+            <button onClick={() => setView("onboarding")} style={chip(false)}>Replay the intro</button>
+          </div>
         </Section>
         <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>Back to the ranking</button>
       </Shell>
@@ -840,7 +861,7 @@ export default function GameScoreApp() {
                 {[["tickets", Ticket, "Ticket view"], ["watch", Tv, "Watch view"]].map(([k, Icon, aria]) => {
                   const on = viewMode === k;
                   return (
-                    <button key={k} aria-label={aria} onClick={() => setViewMode(k)} style={{ width: 38, height: 34, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
+                    <button key={k} aria-label={aria} onClick={() => { track("view_mode", { mode: k }); setViewMode(k); }} style={{ width: 38, height: 34, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
                       <Icon size={16} />
                     </button>
                   );
