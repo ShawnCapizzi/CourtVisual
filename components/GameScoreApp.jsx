@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
-import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings } from "lucide-react";
+import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
+import { watchOptions } from "../lib/watch";
 import { supabase } from "../lib/supabaseClient";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
@@ -75,7 +76,7 @@ function Bars({ g, accent, weights, dark }) {
 }
 
 
-function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames }) {
+function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames, mode, league }) {
   const parts = scoreParts(game, weights);
   const score = parts.score;
   const anim = useCountUp(score, style);
@@ -123,6 +124,40 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         </div>
       </div>
 
+      {mode === "watch" ? (() => {
+        const w = watchOptions(league, game);
+        const chipS = { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.07)", color: ink, border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(22,19,15,0.10)" };
+        return (
+          <div style={{ marginTop: 14 }}>
+            {w.networks ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, borderRadius: 13, padding: "13px 16px", background: secondary, backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), linear-gradient(180deg, ${secondary} 0%, ${shade(secondary, 0.12)} 100%)`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.34), 0 6px 15px rgba(0,0,0,0.30)", color: textOn(secondary), fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 14 }}>
+                <Tv size={15} /> On {w.networks.join(" · ")}
+              </div>
+            ) : (
+              <>
+                <div className="g-eyebrow" style={{ fontSize: 9, color: muted, marginBottom: 8 }}>Where to watch</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {w.national.map((n) => (<span key={n} style={chipS}>{n}</span>))}
+                </div>
+              </>
+            )}
+            {w.streamer && (
+              <button onClick={() => window.open(w.streamer.url, "_blank", "noopener")}
+                style={{ width: "100%", marginTop: 9, padding: "11px 14px", borderRadius: 12, cursor: "pointer", background: dark ? "rgba(255,255,255,0.07)" : "rgba(22,19,15,0.05)", border: dark ? "1px solid rgba(255,255,255,0.14)" : "1px solid rgba(22,19,15,0.12)", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                <Tv size={14} /> {w.streamer.label} <span style={{ fontWeight: 500, color: muted }}>· {w.streamer.note}</span> <ArrowUpRight size={12} />
+              </button>
+            )}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
+              <span style={{ fontSize: 10.5, color: muted, lineHeight: 1.4 }}>{w.localNote}</span>
+              {game.url && (
+                <button onClick={() => onShare(game, "buy")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Ticket size={12} /> {game.minPrice ? `Tickets from $${game.minPrice}` : "Get tickets"} <ArrowUpRight size={11} />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })() : (
       <button onClick={() => onShare(game, "buy")}
         style={{ width: "100%", marginTop: 14, padding: "13px 16px", borderRadius: 13, border: "none", cursor: "pointer",
           color: textOn(secondary), backgroundColor: secondary,
@@ -132,6 +167,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Ticket size={15} /> Get tickets <ArrowUpRight size={13} /></span>
         {game.minPrice ? <span style={{ fontWeight: 800 }}>From ${game.minPrice}</span> : null}
       </button>
+      )}
 
       <div style={{ marginTop: 14, paddingTop: 11, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -275,6 +311,7 @@ export default function GameScoreApp() {
   const [preset, setPreset] = useState("balanced");
   const [cardStyle, setCardStyle] = useState("dashboard");
   const [rivalryNames, setRivalryNames] = useState(true); // show "El Tráfico" / "Subway Series" on pills (Settings)
+  const [viewMode, setViewMode] = useState("tickets"); // "tickets" | "watch" — the card's action layer
   const [override, setOverride] = useState(null);
   const [q, setQ] = useState("");
   const [reactions, setReactions] = useState({});
@@ -284,7 +321,7 @@ export default function GameScoreApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authMsg, setAuthMsg] = useState("");
 
-  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames };
+  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode };
   const snapRef = useRef(snapshot);
   snapRef.current = snapshot;
   const applyState = (st) => {
@@ -298,6 +335,7 @@ export default function GameScoreApp() {
     if (st.override !== undefined) setOverride(st.override);
     if (st.reactions) setReactions(st.reactions);
     if (st.rivalryNames !== undefined) setRivalryNames(st.rivalryNames);
+    if (st.viewMode) setViewMode(st.viewMode);
   };
 
   // hydrate from on-device storage (swap for Supabase later)
@@ -316,6 +354,7 @@ export default function GameScoreApp() {
     if (s.override !== undefined) setOverride(s.override);
     if (s.reactions) setReactions(s.reactions);
     if (s.rivalryNames !== undefined) setRivalryNames(s.rivalryNames);
+    if (s.viewMode) setViewMode(s.viewMode);
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }, []);
@@ -454,7 +493,7 @@ export default function GameScoreApp() {
   const wTotal = (weights.playoff + weights.rivalry + weights.hot + weights.historic) || 1;
   const rivalryOnly = weights.rivalry / wTotal >= RIVALRY_FOCUS;
 
-  const renderGames = (list) => {
+  const renderGames = (list, leagueHint = null) => {
     let full = list;
     let note = null;
     if (rivalryOnly) {
@@ -472,7 +511,7 @@ export default function GameScoreApp() {
           </div>
         )}
         {shown.map((g, i) => (
-          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames}
+          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint}
             primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
         ))}
         {remaining > 0 && (
@@ -763,11 +802,23 @@ export default function GameScoreApp() {
                 {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name}</span>))}
               </div>
             )}
-            <h1 className="g-display" style={screenH}>{team.label.toUpperCase()}</h1>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <h1 className="g-display" style={{ ...screenH, minWidth: 0 }}>{team.label.toUpperCase()}</h1>
+              <div style={{ display: "inline-flex", gap: 4, padding: 4, marginTop: 14, flexShrink: 0, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+                {[["tickets", Ticket, "Ticket view"], ["watch", Tv, "Watch view"]].map(([k, Icon, aria]) => {
+                  const on = viewMode === k;
+                  return (
+                    <button key={k} aria-label={aria} onClick={() => setViewMode(k)} style={{ width: 38, height: 34, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
+                      <Icon size={16} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{gamesView.sub}</p>
             {gamesView.context}
-            {renderGames(gamesView.ranked)}
+            {renderGames(gamesView.ranked, team.league)}
             <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Star size={14} /> Tune your favorites & view
             </button>
