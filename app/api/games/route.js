@@ -9,7 +9,7 @@
 // rivalry map). Star power is a baseline until a stats feed is wired in.
 
 import { getLeagueContext } from "../../../lib/espn";
-import { rivalryFactor, isTopRivalry } from "../../../lib/rivalries";
+import { rivalryFactor, isTopRivalry, rivalryInfo } from "../../../lib/rivalries";
 
 export const revalidate = 300;
 
@@ -120,6 +120,7 @@ function eventToGame(ev) {
     matchup, opp, oppSlug, date, ds, home: false, tag: f.tag,
     playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
     topRivals: isTopRivalry(rA, rB),
+    rivalryName: (rivalryInfo(rA, rB) || {}).name || null,
     url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
   };
 }
@@ -287,6 +288,7 @@ export async function GET(request) {
       };
       g.rivalry = rivalryFactor(name, opp);
       g.topRivals = isTopRivalry(name, opp);
+      g.rivalryName = (rivalryInfo(name, opp) || {}).name || null;
 
       if (ctx) {
         const sMine = ctx.star(label), sOpp = ctx.star(opp);
@@ -337,6 +339,7 @@ export async function GET(request) {
                 url: ev.url || null, minPrice: typeof minP === "number" ? Math.round(minP) : null, venue: venue?.name || null,
               };
               g.topRivals = isTopRivalry(n1, n2);
+              g.rivalryName = (rivalryInfo(n1, n2) || {}).name || null;
               if (ctx) {
                 const s1 = ctx.star(n1), s2 = ctx.star(n2);
                 const ss = [s1, s2].filter((x) => x != null);
