@@ -4,6 +4,7 @@ import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { watchOptions } from "../lib/watch";
+import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
 import { supabase } from "../lib/supabaseClient";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
@@ -142,9 +143,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
               </>
             )}
             {w.streamer && (
-              <button onClick={() => window.open(w.streamer.url, "_blank", "noopener")}
+              <button onClick={() => window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener")}
                 style={{ width: "100%", marginTop: 9, padding: "11px 14px", borderRadius: 12, cursor: "pointer", background: dark ? "rgba(255,255,255,0.07)" : "rgba(22,19,15,0.05)", border: dark ? "1px solid rgba(255,255,255,0.14)" : "1px solid rgba(22,19,15,0.12)", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                 <Tv size={14} /> {w.streamer.label} <span style={{ fontWeight: 500, color: muted }}>· {w.streamer.note}</span> <ArrowUpRight size={12} />
+              </button>
+            )}
+            {liveTvOffer() && (
+              <button onClick={() => window.open(liveTvOffer().url, "_blank", "noopener")}
+                style={{ width: "100%", marginTop: 7, padding: "9px 14px", borderRadius: 12, cursor: "pointer", background: "none", border: dark ? "1px dashed rgba(255,255,255,0.18)" : "1px dashed rgba(22,19,15,0.18)", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                Don&rsquo;t have these channels? {liveTvOffer().label} <ArrowUpRight size={11} />
               </button>
             )}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
@@ -158,6 +165,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           </div>
         );
       })() : (
+      <>
       <button onClick={() => onShare(game, "buy")}
         style={{ width: "100%", marginTop: 14, padding: "13px 16px", borderRadius: 13, border: "none", cursor: "pointer",
           color: textOn(secondary), backgroundColor: secondary,
@@ -167,6 +175,13 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Ticket size={15} /> Get tickets <ArrowUpRight size={13} /></span>
         {game.minPrice ? <span style={{ fontWeight: 800 }}>From ${game.minPrice}</span> : null}
       </button>
+      {tickpickCompareUrl(game.matchup || `${teamName} vs ${game.opp}`) && (
+        <button onClick={() => window.open(tickpickCompareUrl(game.matchup || `${teamName} vs ${game.opp}`), "_blank", "noopener")}
+          style={{ width: "100%", marginTop: 7, padding: 0, background: "none", border: "none", cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+          Compare prices on TickPick <ArrowUpRight size={11} />
+        </button>
+      )}
+      </>
       )}
 
       <div style={{ marginTop: 14, paddingTop: 11, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -486,8 +501,10 @@ export default function GameScoreApp() {
   };
   const signOut = async () => { await supabase.auth.signOut(); setAuthMsg(""); };
   const onShare = (g, kind) => {
-    if (kind === "buy") { window.open(g.url || `https://www.ticketmaster.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
-    if (kind === "gift") { window.open(g.url || `https://www.ticketmaster.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`, "_blank", "noopener,noreferrer"); return; }
+    if (kind === "buy" || kind === "gift") {
+      window.open(ticketUrl(g.url || `https://www.ticketmaster.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`), "_blank", "noopener,noreferrer");
+      return;
+    }
     const score = scoreOf(g, weights).toFixed(1);
     const origin = typeof window !== "undefined" ? window.location.origin : "https://courtvisual.com";
     const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}?s=${score}`;
