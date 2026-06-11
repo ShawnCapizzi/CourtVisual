@@ -125,7 +125,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
 
       {mode === "watch" ? (() => {
-        const w = watchOptions(league, game);
+        const w = watchOptions(league || game.sport, game);
         const chipS = { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.07)", color: ink, border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(22,19,15,0.10)" };
         return (
           <div style={{ marginTop: 14 }}>
@@ -195,6 +195,19 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
 }
 
 const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? "transparent" : "rgba(236,231,219,0.20)"}`, background: active ? CREAM : "transparent", color: active ? INK : ON, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
+
+// "Hot games for you" — ranking boost from the fan's profile. Pure and additive:
+// the displayed score stays the honest scoreOf; the boost only reorders the list.
+const LEAGUE_GENRE = { nba: "basketball", wnba: "basketball", mlb: "baseball", nfl: "football", nhl: "hockey", mls: "soccer" };
+export function interestBoost(g, favTeams, players) {
+  const hay = `${g.matchup || ""} ${g.opp || ""}`;
+  let boost = 0;
+  if ((favTeams || []).some((t) => t?.name && new RegExp(`\\b${t.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay))) boost += 1.2;
+  const favGenres = new Set((favTeams || []).map((t) => LEAGUE_GENRE[t?.league]).filter(Boolean));
+  if (g.sport && favGenres.has(g.sport)) boost += 0.5;
+  if ((players || []).some((p) => p && hay.toLowerCase().includes(p.toLowerCase()))) boost += 0.6;
+  return boost;
+}
 const dots = (t) => (
   <span style={{ display: "inline-flex" }}>
     <span style={{ width: 11, height: 11, borderRadius: 999, background: t.primary, border: "1.5px solid #fff" }} />
@@ -565,6 +578,7 @@ export default function GameScoreApp() {
     } else { fetchWeekend(null, null); }
   };
   const FILTERS = [
+    { id: "foryou", label: "Hot games for you", icon: Star, color: "#E1641F" },
     { id: "weekend", label: "Games this weekend near you", icon: MapPin, color: "#FF5A2C" },
     { id: "hot", label: "Hottest games of the season", icon: Flame, color: "#B3122A" },
     { id: "rivalry", label: "Rivalry showdowns", icon: Zap, color: "#E8401F" },
@@ -587,6 +601,7 @@ export default function GameScoreApp() {
       }
       if (kind === "rivalry") g = g.filter((x) => x.topRivals || x.rivalry >= 7);
       if (kind === "stakes") g = g.filter((x) => x.playoff >= 7 || ["Championship", "Knockout stage", "Playoffs"].includes(x.tag));
+      if (kind === "foryou") g = g.map((x) => ({ ...x, _boost: interestBoost(x, favTeams, players) }));
       setEventResults(g);
     } catch { setEventResults([]); }
     setEventLoading(false);
@@ -793,7 +808,7 @@ export default function GameScoreApp() {
             <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
             <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
-            {renderGames([...eventResults].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)))}
+            {renderGames([...eventResults].sort((a, b) => (scoreOf(b, weights) + (b._boost || 0)) - (scoreOf(a, weights) + (a._boost || 0))))}
           </>
         ) : (
           <>
