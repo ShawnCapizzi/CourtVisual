@@ -22,7 +22,7 @@ html, body {
 
 /* Dark-field variant — used on the games search bar over the stadium backdrop */
 .g-in-dark { font-family: 'Archivo', sans-serif; font-size: 16px; color: #ECE7DB; background: transparent; border: none; outline: none; width: 100%; }
-.g-in-dark::placeholder { color: rgba(236,231,219,0.42); }
+.g-in-dark::placeholder { color: rgba(236,231,219,0.55); }
 
 /* Mechanical press feedback on every control — felt, not seen */
 button { transition: transform .14s ease, box-shadow .14s ease, opacity .14s ease; }
