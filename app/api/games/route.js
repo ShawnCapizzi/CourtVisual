@@ -51,6 +51,12 @@ function cleanEventName(name) {
 const slugify = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const lastWord = (s) => { const w = (s || "").trim().split(/\s+/); return w[w.length - 1] || s; };
 
+// Non-game inventory must never enter the game ranking. A bar's "World Cup Watch
+// Party" is real Ticketmaster inventory, but it isn't a match — and its name would
+// otherwise steal a stakes floor from the keyword classifier below.
+const NON_GAME = /watch ?part(?:y|ies)|viewing part(?:y|ies)|fan ?fest|tailgate|happy hour|trivia|bingo|brunch|bar crawl|pub crawl|tribute|hospitality|vip (?:package|experience)|gameday experience|pregame part|postgame part|parking/i;
+const isNonGameEvent = (name) => NON_GAME.test(name || "");
+
 function deriveFactors(eventName, oppName, teamSlug, startsAt) {
   const n = eventName.toLowerCase();
   const opp = oppName.toLowerCase();
@@ -59,7 +65,10 @@ function deriveFactors(eventName, oppName, teamSlug, startsAt) {
   let historic = 4;
   let tag = "Regular season";
 
-  if (/world cup final|nba finals|world series|stanley cup final|super bowl|champions league final|grand final|cup final|\bchampionship\b/.test(n)) {
+  if (/\bgroup (?:stage|[a-h])\b/.test(n)) {
+    // Tournament group matches are big, but they're not knockout games — no stakes floor.
+    playoff = 7; historic = 6; tag = "Group stage";
+  } else if (/world cup final|nba finals|world series|stanley cup final|super bowl|champions league final|grand final|cup final|\bchampionship\b/.test(n)) {
     playoff = 10; historic = 10; tag = "Championship";
   } else if (/world cup|conference finals|league championship|semifinals?|quarterfinals?|round of 16|knockout/.test(n)) {
     playoff = 9; historic = 8; tag = "Knockout stage";
@@ -117,8 +126,10 @@ function eventToGame(ev) {
     rB = opp;
   }
   const f = deriveFactors(ev.name || "", opp, "", dt);
+  const genre = ev.classifications?.[0]?.genre?.name || null;
   return {
     matchup, opp, oppSlug, date, ds, home: false, tag: f.tag,
+    sport: genre ? genre.toLowerCase() : null,
     playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
     topRivals: isTopRivalry(rA, rB),
     rivalryName: (rivalryInfo(rA, rB) || {}).name || null,
@@ -149,7 +160,7 @@ export async function GET(request) {
     if (!key) return Response.json({ games: [], source: "none", reason: "no_key", query: q });
     try {
       const surl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}` +
-        `&keyword=${encodeURIComponent(q)}&classificationName=Sports&sort=date,asc&size=24`;
+        `&keyword=${encodeURIComponent(q)}&classificationName=Sports&sort=date,asc&size=199`;
       const sres = await fetch(surl, { next: { revalidate: 300 } });
       if (!sres.ok) return Response.json({ games: [], source: "none", reason: `tm_${sres.status}`, query: q });
       const sdata = await sres.json();
@@ -157,12 +168,12 @@ export async function GET(request) {
       const out = [];
       const sseen = new Set();
       for (const ev of sevents) {
+        if (isNonGameEvent(ev.name)) continue;
         const g = eventToGame(ev);
         const keyd = `${g.oppSlug}-${g.ds}`;
         if (sseen.has(keyd)) continue;
         sseen.add(keyd);
         out.push(g);
-        if (out.length >= 16) break;
       }
       return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", query: q });
     } catch {
@@ -190,6 +201,7 @@ export async function GET(request) {
       const out = [];
       const wseen = new Set();
       for (const ev of wevents) {
+        if (isNonGameEvent(ev.name)) continue;
         const g = eventToGame(ev);
         const keyd = `${g.oppSlug}-${g.ds}`;
         if (wseen.has(keyd)) continue;
@@ -218,6 +230,7 @@ export async function GET(request) {
       const out = [];
       const hseen = new Set();
       for (const ev of hev) {
+        if (isNonGameEvent(ev.name)) continue;
         const g = eventToGame(ev);
         const keyd = `${g.oppSlug}-${g.ds}`;
         if (hseen.has(keyd)) continue;
@@ -251,6 +264,7 @@ export async function GET(request) {
 
     for (const ev of events) {
       const evName = ev.name || "";
+      if (isNonGameEvent(evName)) continue;
       const parts = cleanEventName(evName).split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
       if (parts.length !== 2) continue;
 
@@ -325,6 +339,7 @@ export async function GET(request) {
             const levents = ldata?._embedded?.events || [];
             const lseen = new Set();
             for (const ev of levents) {
+              if (isNonGameEvent(ev.name)) continue;
               const parts = cleanEventName(ev.name || "").split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
               if (parts.length !== 2) continue;
               const r1 = ctx?.resolveTeam(parts[0]); const n1 = r1?.nick || lastWord(parts[0]);
