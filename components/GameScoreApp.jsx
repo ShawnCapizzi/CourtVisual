@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
 import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap } from "lucide-react";
-import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, verdict, shade, textOn } from "../lib/data";
+import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { supabase } from "../lib/supabaseClient";
 
@@ -76,7 +76,8 @@ function Bars({ g, accent, weights, dark }) {
 
 
 function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch }) {
-  const score = scoreOf(game, weights);
+  const parts = scoreParts(game, weights);
+  const score = parts.score;
   const anim = useCountUp(score, style);
   const [open, setOpen] = useState(rank === 1); // only the top-ranked game opens by default; rest collapsed for density
   const dark = style === "dashboard";
@@ -142,7 +143,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           <ChevronDown size={15} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s", color: muted }} />
         </button>
       </div>
-      {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}><Bars g={game} accent={primary} weights={weights} dark={dark} /></div>}
+      {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}>
+        <Bars g={game} accent={primary} weights={weights} dark={dark} />
+        {parts.floored && (
+          <div style={{ marginTop: 10, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
+            <Trophy size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
+            {game.tag} floor {parts.floor.toFixed(1)} — games this big can&rsquo;t score low. Your weights rank everything above it.
+          </div>
+        )}
+      </div>}
 
     </div>
   );
@@ -511,8 +520,16 @@ export default function GameScoreApp() {
     try {
       const r = await fetch("/api/games?hot=1"); const d = await r.json();
       let g = d.games || [];
+      // The national relevance feed can be flooded by one mega-event (e.g. a World Cup
+      // summer), crowding the fan's own big games out of the candidate pool entirely.
+      // Merge their followed teams' games in so a Finals run always competes.
+      const seen = new Set(g.map((x) => `${x.oppSlug}-${x.ds}`));
+      for (const x of (liveGames || [])) {
+        const k = `${x.oppSlug}-${x.ds}`;
+        if (!seen.has(k)) { seen.add(k); g.push(x); }
+      }
       if (kind === "rivalry") g = g.filter((x) => x.topRivals || x.rivalry >= 7);
-      if (kind === "stakes") g = g.filter((x) => x.playoff >= 7 || x.historic >= 8);
+      if (kind === "stakes") g = g.filter((x) => x.playoff >= 7 || ["Championship", "Knockout stage", "Playoffs"].includes(x.tag));
       setEventResults(g);
     } catch { setEventResults([]); }
     setEventLoading(false);
