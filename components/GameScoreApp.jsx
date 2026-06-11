@@ -340,7 +340,7 @@ export default function GameScoreApp() {
   const [preset, setPreset] = useState("balanced");
   const [cardStyle, setCardStyle] = useState("dashboard");
   const [rivalryNames, setRivalryNames] = useState(true); // show "El Tráfico" / "Subway Series" on pills (Settings)
-  const [viewMode, setViewMode] = useState("tickets"); // "tickets" | "watch" — the card's action layer
+  const [viewMode, setViewMode] = useState("watch"); // "watch" | "tickets" — the card's action layer (watch is the everyday default)
   const [override, setOverride] = useState(null);
   const [q, setQ] = useState("");
   const [reactions, setReactions] = useState({});
@@ -361,7 +361,6 @@ export default function GameScoreApp() {
     if (st.weights) setWeights(st.weights);
     if (st.preset !== undefined) setPreset(st.preset);
     if (st.cardStyle) setCardStyle(st.cardStyle);
-    if (st.override !== undefined) setOverride(st.override);
     if (st.reactions) setReactions(st.reactions);
     if (st.rivalryNames !== undefined) setRivalryNames(st.rivalryNames);
     if (st.viewMode) setViewMode(st.viewMode);
@@ -380,7 +379,6 @@ export default function GameScoreApp() {
     if (s.weights) setWeights(s.weights);
     if (s.preset !== undefined) setPreset(s.preset);
     if (s.cardStyle) setCardStyle(s.cardStyle);
-    if (s.override !== undefined) setOverride(s.override);
     if (s.reactions) setReactions(s.reactions);
     if (s.rivalryNames !== undefined) setRivalryNames(s.rivalryNames);
     if (s.viewMode) setViewMode(s.viewMode);
@@ -722,7 +720,7 @@ export default function GameScoreApp() {
             <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 3 }}>Card actions</div>
             <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 8, lineHeight: 1.4 }}>Every game flips between <b style={{ color: ON }}>where to watch</b> (TV &amp; streaming) and <b style={{ color: ON }}>tickets</b> to be there live — the <Ticket size={11} style={{ verticalAlign: "-1px" }} /> / <Tv size={11} style={{ verticalAlign: "-1px" }} /> toggle next to your team name.</div>
             <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-              {[["tickets", Ticket, "Tickets"], ["watch", Tv, "Where to watch"]].map(([k, Icon, l]) => {
+              {[["watch", Tv, "Watch"], ["tickets", Ticket, "Tickets"]].map(([k, Icon, l]) => {
                 const on = viewMode === k;
                 return (<button key={k} onClick={() => { track("view_mode", { mode: k, from: "settings" }); setViewMode(k); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 14px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}><Icon size={13} /> {l}</button>);
               })}
@@ -738,17 +736,15 @@ export default function GameScoreApp() {
             </div>
           </div>
         </Section>
+        <Section primary={primary} label="Onboarding">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup — how scoring, watch, and tickets work.</span>
+            <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
+          </div>
+        </Section>
         <Section primary={primary} label="Home market">
           <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; — and soon, where to watch in your market.</p>
           <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
-        </Section>
-        <Section primary={primary} label="Override accent (optional)">
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            {["#E8401F", "#1E73E8", "#2FA02F", "#7A5AF8", "#E8407F", "#14B8A6"].map((c) => (
-              <button key={c} onClick={() => setOverride(c)} aria-label={`accent ${c}`} style={{ width: 26, height: 26, borderRadius: 999, background: c, cursor: "pointer", border: override === c ? "2px solid #16130F" : "2px solid transparent", outline: override === c ? "2px solid #fff" : "none", outlineOffset: -4 }} />
-            ))}
-            {override && <button onClick={() => setOverride(null)} style={{ ...chip(false), padding: "5px 10px" }}>Reset to team</button>}
-          </div>
         </Section>
         <Section primary={primary} label="Account">
           {session?.user ? (
@@ -769,12 +765,6 @@ export default function GameScoreApp() {
               <p style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
             </div>
           )}
-        </Section>
-        <Section primary={primary} label="About">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>CourtVisual — every game, scored. New here or showing a friend?</span>
-            <button onClick={() => setView("onboarding")} style={chip(false)}>Replay the intro</button>
-          </div>
         </Section>
         <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>Back to the ranking</button>
       </Shell>
@@ -858,11 +848,11 @@ export default function GameScoreApp() {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <h1 className="g-display" style={{ ...screenH, minWidth: 0 }}>{team.label.toUpperCase()}</h1>
               <div style={{ display: "inline-flex", gap: 4, padding: 4, marginTop: 14, flexShrink: 0, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-                {[["tickets", Ticket, "Ticket view"], ["watch", Tv, "Watch view"]].map(([k, Icon, aria]) => {
+                {[["watch", Tv, "Watch"], ["tickets", Ticket, "Tickets"]].map(([k, Icon, label]) => {
                   const on = viewMode === k;
                   return (
-                    <button key={k} aria-label={aria} onClick={() => { track("view_mode", { mode: k }); setViewMode(k); }} style={{ width: 38, height: 34, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
-                      <Icon size={16} />
+                    <button key={k} aria-label={label} onClick={() => { track("view_mode", { mode: k }); setViewMode(k); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 34, padding: "0 11px", border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
+                      <Icon size={14} /> {label}
                     </button>
                   );
                 })}
