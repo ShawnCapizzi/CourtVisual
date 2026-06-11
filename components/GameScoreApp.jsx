@@ -476,9 +476,19 @@ export default function GameScoreApp() {
             primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
         ))}
         {remaining > 0 && (
-          <button onClick={() => setVisible((v) => v + STEP)} style={{ width: "100%", marginTop: 4, marginBottom: 4, padding: "13px", borderRadius: 12, cursor: "pointer", background: "#fff", border: "1px solid rgba(22,19,15,0.1)", boxShadow: DEPTH, color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-            Show {Math.min(STEP, remaining)} more {remaining === 1 ? "game" : "games"} <ChevronDown size={15} />
-          </button>
+          <>
+            <button onClick={() => setVisible((v) => v + STEP)} style={{ width: "100%", marginTop: 4, padding: "13px", borderRadius: 12, cursor: "pointer", background: "rgba(236,231,219,0.07)", border: "1px solid rgba(236,231,219,0.14)", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+              Show {Math.min(STEP, remaining)} more {remaining === 1 ? "game" : "games"} <ChevronDown size={15} />
+            </button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 11.5, color: ON_FAINT }}>Showing {shown.length} of {full.length}</span>
+              {remaining > STEP && (
+                <button onClick={() => setVisible(full.length)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700 }}>
+                  Show all {full.length}
+                </button>
+              )}
+            </div>
+          </>
         )}
       </>
     );
