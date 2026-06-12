@@ -19,6 +19,19 @@ const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Mat
 // Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
 const deepen = (hex, target) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = (n & 255); const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; const k = lum > target ? target / lum : 1; r = Math.round(r * k); g = Math.round(g * k); b = Math.round(b * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketball" }, { id: "mlb", label: "Baseball" }, { id: "nhl", label: "Hockey" }, { id: "mls", label: "Soccer" }, { id: "wnba", label: "WNBA" }, { id: "boxing", label: "Boxing" }];
+// Sports a user can follow in the bottom bar — each taps into a ranked league/sport feed.
+// `q` is the Ticketmaster classification name the feed queries.
+const FOLLOW_SPORTS = [
+  { id: "nba", label: "NBA", q: "NBA" },
+  { id: "wnba", label: "WNBA", q: "WNBA" },
+  { id: "mlb", label: "MLB", q: "MLB" },
+  { id: "nfl", label: "NFL", q: "NFL" },
+  { id: "nhl", label: "NHL", q: "NHL" },
+  { id: "mls", label: "MLS", q: "MLS" },
+  { id: "tennis", label: "Tennis", q: "Tennis" },
+  { id: "boxing", label: "Boxing", q: "Boxing" },
+  { id: "golf", label: "Golf", q: "Golf" },
+];
 
 function useCountUp(target, dep) {
   const [v, setV] = useState(0);
@@ -348,6 +361,7 @@ export default function GameScoreApp() {
   const [cardStyle, setCardStyle] = useState("dashboard");
   const [rivalryNames, setRivalryNames] = useState(true); // show "El Tráfico" / "Subway Series" on pills (Settings)
   const [viewMode, setViewMode] = useState("watch"); // "watch" | "tickets" — the card's action layer (watch is the everyday default)
+  const [followedSports, setFollowedSports] = useState(null); // null = auto from team leagues
   const [override, setOverride] = useState(null);
   const [q, setQ] = useState("");
   const [reactions, setReactions] = useState({});
@@ -357,7 +371,7 @@ export default function GameScoreApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authMsg, setAuthMsg] = useState("");
 
-  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode };
+  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode, followedSports };
   const snapRef = useRef(snapshot);
   snapRef.current = snapshot;
   const applyState = (st) => {
@@ -371,6 +385,7 @@ export default function GameScoreApp() {
     if (st.reactions) setReactions(st.reactions);
     if (st.rivalryNames !== undefined) setRivalryNames(st.rivalryNames);
     if (st.viewMode) setViewMode(st.viewMode);
+    if (st.followedSports !== undefined) setFollowedSports(st.followedSports);
   };
 
   // hydrate from on-device storage (swap for Supabase later)
@@ -389,6 +404,7 @@ export default function GameScoreApp() {
     if (s.reactions) setReactions(s.reactions);
     if (s.rivalryNames !== undefined) setRivalryNames(s.rivalryNames);
     if (s.viewMode) setViewMode(s.viewMode);
+    if (s.followedSports !== undefined) setFollowedSports(s.followedSports);
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }, []);
@@ -585,6 +601,17 @@ export default function GameScoreApp() {
     setEventLoading(false);
   };
   const clearSearch = () => { setEventResults(null); setEventQuery(""); setJump(""); };
+  const runSportFeed = async (sp) => {
+    track("sport_feed", { id: sp.id });
+    beginSearch(sp.label);
+    try { const r = await fetch(`/api/games?sportfeed=${encodeURIComponent(sp.q)}`); const d = await r.json(); setEventResults(d.games || []); }
+    catch { setEventResults([]); }
+    setEventLoading(false);
+  };
+  // Bar sports: explicit follows once the user edits in Settings; otherwise auto from team leagues.
+  const barSports = followedSports !== null
+    ? FOLLOW_SPORTS.filter((sp) => followedSports.includes(sp.id))
+    : FOLLOW_SPORTS.filter((sp) => favTeams.some((t) => t.league === sp.id));
   const fetchWeekend = async (lat, lng) => {
     try {
       const u = (lat != null && lng != null) ? `/api/games?weekend=1&lat=${lat}&lng=${lng}` : "/api/games?weekend=1";
@@ -756,6 +783,16 @@ export default function GameScoreApp() {
             <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
           </div>
         </Section>
+        <Section primary={primary} label="Sports you follow">
+          <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>These appear in the bottom bar next to your teams — tap one for that sport&rsquo;s ranked slate.</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {FOLLOW_SPORTS.map((sp) => {
+              const cur = followedSports !== null ? followedSports : FOLLOW_SPORTS.filter((x) => favTeams.some((t) => t.league === x.id)).map((x) => x.id);
+              const on = cur.includes(sp.id);
+              return (<button key={sp.id} style={chip(on)} onClick={() => { const next = on ? cur.filter((i) => i !== sp.id) : [...cur, sp.id]; setFollowedSports(next); track("follow_sport", { id: sp.id, on: !on }); }}>{sp.label}</button>);
+            })}
+          </div>
+        </Section>
         <Section primary={primary} label="How scoring works">
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
             {[
@@ -873,11 +910,6 @@ export default function GameScoreApp() {
           </>
         ) : (
           <>
-            {favTeams.length > 1 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-                {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name}</span>))}
-              </div>
-            )}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <h1 className="g-display" style={{ ...screenH, minWidth: 0 }}>{team.label.toUpperCase()}</h1>
               <div style={{ display: "inline-flex", gap: 4, padding: 4, marginTop: 14, flexShrink: 0, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -900,6 +932,36 @@ export default function GameScoreApp() {
             </button>
           </>
         )}
+        {/* Switcher bar — teams and sports as equal follows, always one thumb away */}
+        <div style={{ height: 76 }} aria-hidden="true" />
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 40, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+          <div style={{ pointerEvents: "auto", width: "100%", maxWidth: 540, background: "rgba(10,13,18,0.86)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderTop: "1px solid rgba(236,231,219,0.10)", padding: "10px 12px calc(10px + env(safe-area-inset-bottom))" }}>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+              {favTeams.map((t) => {
+                const on = !eventQuery && primarySlug === t.slug;
+                return (
+                  <button key={t.slug} onClick={() => { track("bar_switch", { kind: "team", id: t.slug }); setEventResults(null); setEventQuery(""); setPrimarySlug(t.slug); }}
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1px solid ${on ? "transparent" : "rgba(236,231,219,0.18)"}`, background: on ? CREAM : "rgba(255,255,255,0.05)", color: on ? INK : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                    {dots(t)} {t.name}
+                  </button>
+                );
+              })}
+              {barSports.map((sp) => {
+                const on = eventQuery === sp.label;
+                return (
+                  <button key={sp.id} onClick={() => runSportFeed(sp)}
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1px solid ${on ? "transparent" : "rgba(236,231,219,0.18)"}`, background: on ? CREAM : "rgba(255,255,255,0.05)", color: on ? INK : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                    {sp.label}
+                  </button>
+                );
+              })}
+              <button onClick={() => setView("onboarding")} aria-label="Add teams or sports"
+                style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 35, borderRadius: 999, border: "1px dashed rgba(236,231,219,0.25)", background: "none", color: ON_MUTED, cursor: "pointer" }}>
+                <Plus size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
       </Shell>
     );
   }

@@ -155,6 +155,7 @@ export async function GET(request) {
   const league = p.get("league") || "";
   const debug = p.get("debug") === "1";
   const q = (p.get("q") || "").trim();
+  const sportFeed = (p.get("sportfeed") || "").trim(); // TM classification name, e.g. "Golf", "Boxing", "NBA"
   const weekend = p.get("weekend") === "1";
   const hot = p.get("hot") === "1";
   const lat = p.get("lat");
@@ -165,6 +166,32 @@ export async function GET(request) {
   // Free-text search: any sport, league, series, or event ("World Cup", "Premier
   // League", "Yankees", "El Clasico"). Returns matchup cards, factors from the
   // event name (no team context, so no ESPN star-power enrichment here).
+  if (sportFeed) {
+    try {
+      // Classification feed: every upcoming event in a sport/league, no keyword needed.
+      // classificationName matches TM segment/genre/subGenre names ("Golf", "Boxing", "NBA").
+      const furl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}` +
+        `&classificationName=${encodeURIComponent(sportFeed)}&sort=date,asc&size=199`;
+      const fres = await fetch(furl, { next: { revalidate: 300 } });
+      if (!fres.ok) return Response.json({ games: [], source: "none", reason: `tm_${fres.status}`, mode: "sportfeed" });
+      const fdata = await fres.json();
+      const fevents = fdata?._embedded?.events || [];
+      const out = [];
+      const fseen = new Set();
+      for (const ev of fevents) {
+        if (isNonGameEvent(ev.name)) continue;
+        const g = eventToGame(ev);
+        const keyd = `${g.oppSlug}-${g.ds}`;
+        if (fseen.has(keyd)) continue;
+        fseen.add(keyd);
+        out.push(g);
+      }
+      return Response.json({ games: out, source: out.length ? "ticketmaster" : "none", mode: "sportfeed", sport: sportFeed });
+    } catch {
+      return Response.json({ games: [], source: "none", reason: "sportfeed_error", mode: "sportfeed" });
+    }
+  }
+
   if (q) {
     if (!key) return Response.json({ games: [], source: "none", reason: "no_key", query: q });
     try {
