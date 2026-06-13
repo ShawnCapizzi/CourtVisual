@@ -12,7 +12,7 @@ const PAGE = "#E7E3D8", INK = "#16130F";
 const ON = "#ECE7DB", ON_MUTED = "rgba(236,231,219,0.60)", ON_FAINT = "rgba(236,231,219,0.40)", HAIR = "rgba(236,231,219,0.14)";
 const CREAM = "#ECE7DB"; /* solid cream replaces the old foil gradient on CTAs and active chips */
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
-// Very-light jersey weave for the dialed-back card magic on the Favorites surfaces (lighter + coarser than the game card's)
+// Very-light jersey weave for the dialed-back card magic on the Settings surfaces (lighter + coarser than the game card's)
 const FABRIC = "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px)";
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
@@ -28,9 +28,13 @@ const FOLLOW_SPORTS = [
   { id: "nfl", label: "NFL", q: "NFL" },
   { id: "nhl", label: "NHL", q: "NHL" },
   { id: "mls", label: "MLS", q: "MLS" },
+  { id: "soccer", label: "Soccer", q: "Soccer" },
+  { id: "cfb", label: "College Football", q: "NCAA Football" },
+  { id: "cbb", label: "College Basketball", q: "NCAA Basketball" },
   { id: "tennis", label: "Tennis", q: "Tennis" },
   { id: "boxing", label: "Boxing", q: "Boxing" },
   { id: "golf", label: "Golf", q: "Golf" },
+  { id: "olympics", label: "Olympics", q: "Olympics" },
 ];
 
 function useCountUp(target, dep) {
@@ -909,7 +913,7 @@ export default function GameScoreApp() {
           </p>
         </Section>
         <Section primary={primary} label="Home market">
-          <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; — and soon, where to watch in your market.</p>
+          <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; and your local market.</p>
           <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
         </Section>
         <Section primary={primary} label="Account">
