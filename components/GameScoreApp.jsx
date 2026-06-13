@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
 import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv } from "lucide-react";
-import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn } from "../lib/data";
+import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf } from "../lib/data";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { watchOptions } from "../lib/watch";
 import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
@@ -95,9 +95,10 @@ function Bars({ g, accent, weights, dark }) {
 }
 
 
-function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames, mode, league }) {
+function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames, mode, league, fanCtx }) {
   const parts = scoreParts(game, weights);
-  const score = parts.score;
+  const fb = fanCtx ? fanBump(game, fanCtx) : { bump: 0, reasons: [] };
+  const score = fb.bump > 0 ? Math.round(Math.min(10, parts.score + fb.bump) * 10) / 10 : parts.score;
   const anim = useCountUp(score, style);
   const [open, setOpen] = useState(rank === 1); // only the top-ranked game opens by default; rest collapsed for density
   const dark = style === "dashboard";
@@ -218,6 +219,12 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
             <Zap size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
             Matchup: {game.matchupWhy}.
+          </div>
+        )}
+        {fb.bump > 0 && (
+          <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.6)" : "rgba(22,19,15,0.6)" }}>
+            <Flame size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} color={primary} />
+            Fan lens: {fb.reasons.join(" · ")}.
           </div>
         )}
         {parts.floored && (
@@ -376,16 +383,19 @@ export default function GameScoreApp() {
   const [rivalryNames, setRivalryNames] = useState(true); // show "El Tráfico" / "Subway Series" on pills (Settings)
   const [viewMode, setViewMode] = useState("watch"); // "watch" | "tickets" — the card's action layer (watch is the everyday default)
   const [followedSports, setFollowedSports] = useState(null); // null = auto from team leagues
+  const [intensities, setIntensities] = useState({}); // { slug: "follow" | "diehard" } — fan-lens per-team
+  const [lens, setLens] = useState("neutral"); // "neutral" | "fan" — global, flippable, disclosed
   const [override, setOverride] = useState(null);
   const [q, setQ] = useState("");
   const [reactions, setReactions] = useState({});
   const [shared, setShared] = useState(null);
+  const [shareGame, setShareGame] = useState(null); // game pending an intent-picker choice
   const [session, setSession] = useState(null);
   const [isTouch, setIsTouch] = useState(false);
   const [authEmail, setAuthEmail] = useState("");
   const [authMsg, setAuthMsg] = useState("");
 
-  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode, followedSports };
+  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode, followedSports, intensities, lens };
   const snapRef = useRef(snapshot);
   snapRef.current = snapshot;
   const applyState = (st) => {
@@ -400,6 +410,8 @@ export default function GameScoreApp() {
     if (st.rivalryNames !== undefined) setRivalryNames(st.rivalryNames);
     if (st.viewMode) setViewMode(st.viewMode);
     if (st.followedSports !== undefined) setFollowedSports(st.followedSports);
+    if (st.intensities) setIntensities(st.intensities);
+    if (st.lens) setLens(st.lens);
   };
 
   // hydrate from on-device storage (swap for Supabase later)
@@ -419,6 +431,8 @@ export default function GameScoreApp() {
     if (s.rivalryNames !== undefined) setRivalryNames(s.rivalryNames);
     if (s.viewMode) setViewMode(s.viewMode);
     if (s.followedSports !== undefined) setFollowedSports(s.followedSports);
+    if (s.intensities) setIntensities(s.intensities);
+    if (s.lens) setLens(s.lens);
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }, []);
@@ -561,13 +575,25 @@ export default function GameScoreApp() {
       window.open(ticketUrl(g.url || `https://www.ticketmaster.com/search?q=${encodeURIComponent(team.name + " vs " + g.opp)}`), "_blank", "noopener,noreferrer");
       return;
     }
-    const score = scoreOf(g, weights).toFixed(1);
+    setShareGame(g); // open the intent picker
+  };
+  // Fire the native share (or clipboard) with a chosen, score-accurate caption.
+  const shareWith = (g, intent) => {
+    const score = +scoreOf(g, weights).toFixed(1);
+    const v = verdict(score);
+    const matchup = `${team.name} vs ${g.opp}`;
     const origin = typeof window !== "undefined" ? window.location.origin : "https://courtvisual.com";
     const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}?s=${score}`;
-    const data = { title: `${team.name} vs ${g.opp}`, text: `${team.name} vs ${g.opp}`, url };
-    try { if (navigator.share) { navigator.share(data).catch(() => {}); return; } } catch {}
-    try { navigator.clipboard?.writeText(url); } catch {}
-    track("share_game", { opp: g.opp, ds: g.ds, score });
+    // Captions stay honest: hype scales with the real verdict, never overpromises a low score.
+    const hot = score >= 8.5;
+    let text;
+    if (intent === "watch") text = `${matchup} — scored ${score} on CourtVisual${hot ? ` (${v})` : ""}. Let's watch this one.`;
+    else if (intent === "go") text = `${matchup} — a ${score} on CourtVisual${hot ? `, ${v}` : ""}. Let's grab seats. You in?`;
+    else text = hot ? `Gotta-see game: ${matchup}, a ${score} on CourtVisual (${v}). Don't miss this one.` : `${matchup} — scored ${score} on CourtVisual. Here's the rundown.`;
+    const data = { title: matchup, text, url };
+    try { if (navigator.share) { navigator.share(data).catch(() => {}); } else { navigator.clipboard?.writeText(`${text} ${url}`); } } catch { try { navigator.clipboard?.writeText(`${text} ${url}`); } catch {} }
+    track("share_game", { opp: g.opp, ds: g.ds, score, intent });
+    setShareGame(null);
     setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
   };
 
@@ -579,6 +605,12 @@ export default function GameScoreApp() {
   const RIVALRY_FOCUS = 0.9;
   const wTotal = (weights.playoff + weights.rivalry + weights.hot + weights.historic) || 1;
   const rivalryOnly = weights.rivalry / wTotal >= RIVALRY_FOCUS;
+
+  // Fan-lens context for a game in the current team view. The viewing team is, by
+  // definition, one the user follows — so intensity comes from their setting (default follow).
+  const fanCtxFor = (g) => (lens !== "fan" ? null : { intensity: intensities[team.slug] || "follow", isRival: !!g.topRivals, contention: g.teamContention });
+  // Score under the active lens: neutral baseline, or fan-adjusted when the lens is on.
+  const activeScore = (g) => (lens === "fan" ? fanScoreOf(g, weights, fanCtxFor(g)) : scoreOf(g, weights));
 
   const renderGames = (list, leagueHint = null) => {
     let full = list;
@@ -598,7 +630,7 @@ export default function GameScoreApp() {
           </div>
         )}
         {shown.map((g, i) => (
-          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint}
+          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={fanCtxFor(g)}
             primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
         ))}
         {remaining > 0 && (
@@ -799,6 +831,35 @@ export default function GameScoreApp() {
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
           <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
         </div>
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(236,231,219,0.08)" }}>
+          <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>How hard do you go for each team? Die-hards see their games &mdash; and their rivals &mdash; run hotter.</div>
+          {favTeams.map((t) => {
+            const di = (intensities[t.slug] || "follow") === "diehard";
+            return (
+              <div key={t.slug} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: ON, display: "inline-flex", alignItems: "center", gap: 6 }}>{dots(t)} {t.name}</span>
+                <div style={{ display: "inline-flex", gap: 4, background: "rgba(255,255,255,0.05)", borderRadius: 9, padding: 3 }}>
+                  {[["follow", "Follow"], ["diehard", "Die-hard"]].map(([k, l]) => {
+                    const on = (k === "diehard") === di;
+                    return (<button key={k} onClick={() => { const next = { ...intensities, [t.slug]: k }; setIntensities(next); if (k === "diehard" && lens === "neutral") setLens("fan"); track("fan_intensity", { team: t.slug, intensity: k }); }}
+                      style={{ padding: "5px 11px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED }}>{l}</button>);
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(236,231,219,0.08)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: ON }}>Scored as</span>
+            <div style={{ display: "inline-flex", gap: 4, background: "rgba(255,255,255,0.05)", borderRadius: 9, padding: 3 }}>
+              {[["neutral", "Neutral"], ["fan", "Fan view"]].map(([k, l]) => {
+                const on = lens === k;
+                return (<button key={k} onClick={() => { setLens(k); track("lens_flip", { lens: k }); }}
+                  style={{ padding: "5px 11px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED }}>{l}</button>);
+              })}
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: ON_FAINT, marginTop: 8, lineHeight: 1.4 }}>Fan view lifts your teams&rsquo; games with disclosed bumps, shown on every card. Neutral is the honest baseline &mdash; flip back anytime.</div>
+        </div>
       </Section>
         <div id="settings-excitement"><Section primary={primary} label="Your excitement">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
@@ -938,7 +999,7 @@ export default function GameScoreApp() {
       base = sampleSlate(team); sub = "Example matchups — the season's not live yet.";
       context = <ContextCard primary={primary} teamRecord={teamRecord} title={`The ${LEAGUE} is in its off-season`} body={teamRecord ? `The ${team.name} finished ${teamRecord.str}. Here's a taste of the matchups to come.` : `No games scheduled right now. Here's a taste of the matchups to come.`} />;
     }
-    gamesView = { sub, context, ranked: [...base].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)) };
+    gamesView = { sub, context, ranked: [...base].sort((a, b) => activeScore(b) - activeScore(a)) };
   }
   if (view === "games") {
     return (
@@ -1022,6 +1083,27 @@ export default function GameScoreApp() {
               <SlidersHorizontal size={14} /> Set your teams & excitement
             </button>
                     </>
+        )}
+        {/* Share-intent picker — three score-aware captions in the app's voice */}
+        {shareGame && (
+          <div onClick={() => setShareGame(null)} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,7,10,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, background: "#14181F", borderTopLeftRadius: 22, borderTopRightRadius: 22, border: "1px solid rgba(236,231,219,0.12)", borderBottom: "none", padding: "20px 18px calc(20px + env(safe-area-inset-bottom))", boxShadow: "0 -20px 60px rgba(0,0,0,0.5)" }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(236,231,219,0.2)", margin: "0 auto 16px" }} />
+              <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, textAlign: "center", marginBottom: 4 }}>Share this game</div>
+              <div style={{ textAlign: "center", fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, color: ON, marginBottom: 16 }}>{team.name} vs {shareGame.opp}</div>
+              {[
+                ["watch", <Tv size={16} />, "Let's watch this one"],
+                ["go", <Ticket size={16} />, "Let's go to this"],
+                ["hype", <Flame size={16} />, "Gotta-see game"],
+              ].map(([intent, icon, label]) => (
+                <button key={intent} onClick={() => shareWith(shareGame, intent)}
+                  style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "14px 16px", marginBottom: 9, borderRadius: 13, border: "1px solid rgba(236,231,219,0.14)", background: "rgba(255,255,255,0.04)", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ color: primary, display: "inline-flex" }}>{icon}</span> {label}
+                </button>
+              ))}
+              <button onClick={() => setShareGame(null)} style={{ width: "100%", padding: "12px", marginTop: 4, background: "none", border: "none", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
         )}
         {/* Switcher bar — teams and sports as equal follows, always one thumb away */}
         <div style={{ height: 76 }} aria-hidden="true" />

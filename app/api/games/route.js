@@ -346,6 +346,7 @@ export async function GET(request) {
         if (sMine != null || sOpp != null) g.hot = Math.max(g.hot, Math.round((sMine || 0) * 0.55 + (sOpp || 0) * 0.45) || g.hot);
         const cMine = ctx.contention(label), cOpp = ctx.contention(opp);
         if (cMine != null && cOpp != null) g.playoff = Math.max(g.playoff, Math.round((cMine + cOpp) / 2));
+        if (cMine != null) g.teamContention = cMine; // viewing team's contention — for the fan-lens "in the race" bump
         // Matchup from records: win-pct of both sides if the league context exposes it.
         const pMine = ctx.winPct ? ctx.winPct(label) : null, pOpp = ctx.winPct ? ctx.winPct(opp) : null;
         const mr = matchupFromRecords(pMine, pOpp);
