@@ -362,6 +362,8 @@ function LogoPlate() {
 export default function GameScoreApp() {
   const [view, setView] = useState("onboarding");
   const [settingsJump, setSettingsJump] = useState(null); // deep-link target inside Settings (e.g. "excitement")
+  const [showTopper, setShowTopper] = useState(false); // first-run "ranked for your taste" banner (session-only, never persisted)
+  const [topperGone, setTopperGone] = useState(false);
   const [obStep, setObStep] = useState(1); // onboarding: 1 = teams, 2 = your kind of exciting
   const [teamSlugs, setTeamSlugs] = useState([]);
   const [primarySlug, setPrimarySlug] = useState(null);
@@ -441,6 +443,12 @@ export default function GameScoreApp() {
 
   // Land at the top of every screen when switching views (don't inherit scroll).
   useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } if (view === "onboarding") setObStep(1); }, [view]);
+  useEffect(() => {
+    if (!showTopper) return;
+    const a = setTimeout(() => setTopperGone(true), 5200);
+    const b = setTimeout(() => { setShowTopper(false); setTopperGone(false); }, 5900);
+    return () => { clearTimeout(a); clearTimeout(b); };
+  }, [showTopper]);
   useEffect(() => {
     if (view === "settings" && settingsJump) {
       const id = `settings-${settingsJump}`;
@@ -695,28 +703,15 @@ export default function GameScoreApp() {
         <Nav view={view} setView={setView} />
         {obStep === 1 ? (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
-        <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
+        <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
-          Welcome to CourtVisual — every game, scored for excitement. Watch it, share it, or be there.
+          No boring feeds. Just the games you&rsquo;d love — recommended like a fellow fan who gets it.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          You set what makes a game exciting. We score and rank every upcoming game — then show you how to catch it.
+          Pick your #1 team and what makes a game worth it. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
         </p>
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          {[
-            ["Dial it in", <>Weight four factors — playoff stakes, rivalry, star power, historic weight.</>],
-            ["Get the ranking", <>Every upcoming game scored 0&ndash;10, ranked for you.</>],
-            ["Watch or go", <>Flip any game between where to watch <Tv size={12} style={{ verticalAlign: "-2px", margin: "0 1px" }} /> — TV and streaming — and tickets <Ticket size={12} style={{ verticalAlign: "-2px", margin: "0 1px" }} /> to be there live.</>],
-            ["Share the heat", <>Send must-sees to friends and plan the night.</>],
-          ].map(([t, d]) => (
-            <div key={t} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
-              <span style={{ ...tick, flexShrink: 0, marginRight: 0 }} />
-              <span style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.45 }}><b style={{ color: ON }}>{t}.</b> {d}</span>
-            </div>
-          ))}
-        </div>
-        <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Pick your team to start — the app themes to its colors.</p>
-        <div style={{ ...field, marginTop: 22 }}>
+        <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Start with your team — the app suits up in its colors.</p>
+        <div style={{ ...field, marginTop: 20 }}>
           <Search size={18} color="rgba(236,231,219,0.5)" />
           <input className="g-in-dark" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
@@ -725,7 +720,7 @@ export default function GameScoreApp() {
             {favTeams.map((t) => (<span key={t.slug} style={chip(true)} onClick={() => removeTeam(t)}>{dots(t)} {t.name} <X size={13} /></span>))}
           </div>
         )}
-        <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "22px 0 10px" }}>{q.trim() ? "Results" : "Popular"}</div>
+        <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "22px 0 10px" }}>{q.trim() ? "Results" : favTeams.length ? "Add another team" : "Popular"}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {results.map((t) => (
             <button key={t.slug} style={chip(false)} onClick={() => addTeam(t)}>{teamSlugs.includes(t.slug) ? <Check size={13} /> : dots(t)} {t.label}</button>
@@ -736,32 +731,20 @@ export default function GameScoreApp() {
             <Search size={15} color={ON_MUTED} /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
           </button>
         )}
-        <div style={{ marginTop: 24 }}>
-          <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, marginBottom: 10 }}>Choose your view · change anytime</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
-              const on = cardStyle === k;
-              return (
-                <button key={k} onClick={() => setCardStyle(k)} style={{ flex: 1, padding: 8, borderRadius: 14, cursor: "pointer", background: "rgba(255,255,255,0.05)", backgroundImage: FABRIC, border: `2px solid ${on ? CREAM : "rgba(236,231,219,0.14)"}`, boxShadow: on ? "0 4px 14px rgba(0,0,0,0.35)" : "none" }}>
-                  <StyleMini variant={k} />
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 12.5, color: on ? ON : ON_MUTED }}>
-                    {on && <Check size={13} />} {l}
-                  </div>
-                </button>
-              );
-            })}
+        {favTeams.length > 0 && (
+          <div style={{ fontSize: 11.5, color: ON_MUTED, lineHeight: 1.45, marginTop: 20, border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, padding: "10px 12px" }}>
+            <i style={{ display: "none" }} />Every game&rsquo;s scored for a neutral fan, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. You can fine-tune what counts anytime in Settings.
           </div>
-        </div>
-
+        )}
         <button disabled={!teamSlugs.length} onClick={() => setObStep(2)}
-          style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? CREAM : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
-          {teamSlugs.length ? "Next: your kind of exciting \u2192" : "Add a team to continue"}
+          style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? CREAM : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
+          {teamSlugs.length ? "Next: your kind of exciting \u2192" : "Add your #1 team to continue"}
         </button>
         </>) : (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Step 2 of 2 \u00b7 Your taste</div>
-        <h1 className="g-display" style={screenH}>WHAT MAKES A GAME WORTH IT?</h1>
+        <h1 className="g-display" style={screenH}>WHAT MAKES A GAME WORTH IT, TO YOU?</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
-          This is the part nobody else asks.
+          This is the part no other app asks.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
           Pick a starting point \u2014 every game gets scored and re-ranked around it. Fine-tune the exact mix anytime with the <SlidersHorizontal size={12} style={{ verticalAlign: "-2px" }} /> sliders.
@@ -792,7 +775,7 @@ export default function GameScoreApp() {
             );
           })}
         </div>
-        <button onClick={() => { track("onboarding_complete", { preset, teams: teamSlugs.length }); setView("games"); }}
+        <button onClick={() => { track("onboarding_complete", { preset, teams: teamSlugs.length }); setShowTopper(true); setView("games"); }}
           style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>
           Show my games
         </button>
@@ -1013,6 +996,11 @@ export default function GameScoreApp() {
           </>
         ) : (
           <>
+            {showTopper && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, padding: "10px 13px", borderRadius: 12, background: "rgba(236,231,219,0.08)", border: "1px solid rgba(236,231,219,0.14)", opacity: topperGone ? 0 : 1, transition: "opacity 0.6s ease", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700 }}>
+                <Zap size={14} color={primary} /> Ranked for your taste — your top games right now
+              </div>
+            )}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <h1 className="g-display" style={{ ...screenH, minWidth: 0 }}>{team.label.toUpperCase()}</h1>
               <div style={{ display: "inline-flex", gap: 4, padding: 4, marginTop: 14, flexShrink: 0, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
