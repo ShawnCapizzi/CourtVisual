@@ -22,35 +22,39 @@ export const metadata = {
 const FAQ = [
   {
     q: "How does CourtVisual score a game?",
-    a: "Every upcoming game gets a 0–10 score built from four factors: playoff stakes, rivalry, star power, and historic weight. You set how much each one matters using the sliders in Favorites, and we re-rank in real time. The same engine works for the NBA, MLB, NFL, NHL, MLS, WNBA, the World Cup, tennis, and boxing.",
+    a: "You tell us what makes a game worth it to you — and we score every upcoming game 0\u201310 to match. Four things go into it: stakes, rivalry, stars, and matchup. You set how much each one counts, and your whole slate re-ranks in real time. Same engine for the NBA, MLB, NFL, NHL, MLS, WNBA, college, the World Cup, tennis, golf, and boxing.",
   },
   {
     q: "What are the four factors?",
-    a: "Playoff stakes: how much is on the line — division races, knockout rounds, championships. Rivalry: a 0–10 strength drawn from a catalog of 161 named matchups, from the Subway Series to El Tráfico. Star power: marquee players and hot teams, refreshed from live league data. Historic weight: heritage of the stage and the matchup.",
+    a: "Stakes \u2014 how much is on the line: division races, knockout rounds, championships. Rivalry \u2014 the heat between two teams, drawn from a catalog of 161 named matchups, from the Subway Series to El Tr\u00e1fico. Stars \u2014 marquee players and the hottest teams, pulled from live league data. Matchup \u2014 how good the game itself should be, priced off the betting line so a projected nail-biter outranks a blowout.",
   },
   {
     q: "Why do championship and playoff games carry a floor?",
-    a: "A pure weighted average can let a NBA Finals game score in the 7s if your sliders happen to favor regular-season factors. That isn't honest — a Game 7 is a Game 7. CourtVisual adds a stakes floor for championship-size moments (Finals, World Series, knockout rounds), so games that big can't score low. Your sliders still rank everything above the floor.",
+    a: "Because a Game 7 is a Game 7. If your sliders lean toward regular-season stuff, a plain average could let an NBA Finals game land in the 7s \u2014 and that\u2019s just not honest. So championship-size moments (Finals, World Series, knockout rounds) carry a floor: games that big can\u2019t score low. Your taste still ranks everything above it.",
   },
   {
     q: "What does \"On ABC\" mean on a game card?",
-    a: "When a game's exact national broadcast is published, the watch panel shows it as a banner. When the exact assignment isn't out yet, the panel shows the league's national windows filtered to that game's day of the week — so a Friday MLB game shows Apple TV+ (Friday's window) rather than every window on the schedule.",
+    a: "It\u2019s telling you exactly where to watch. When the national broadcast is locked in, you get it as a banner. When it isn\u2019t out yet, you see the league\u2019s national windows for that game\u2019s day \u2014 so a Friday MLB game shows you the Friday window, not the whole week\u2019s worth of channels you don\u2019t need.",
   },
   {
     q: "Where does the data come from?",
-    a: "Schedules and tickets come from Ticketmaster's Discovery API. National broadcast assignments come from ESPN's public scoreboard feed. League windows, streamers, and rights data are maintained by hand and verified each season. Rivalry intensity and named matchups are CourtVisual's own catalog.",
+    a: "Schedules and tickets come from Ticketmaster. Broadcast info comes from ESPN\u2019s public feeds, and betting lines from The Odds API. The watch guides are kept current by hand and checked each season. The rivalry catalog and the scoring itself are ours \u2014 that\u2019s the part you won\u2019t find anywhere else.",
   },
   {
-    q: "Is CourtVisual affiliated with the leagues, teams, or broadcasters?",
-    a: "No. CourtVisual is an independent product. Team names, logos, and league names are used to identify their respective games and broadcasts. Outbound links to ticketing and streaming partners may be affiliate links, which support the product at no extra cost to you.",
+    q: "Is CourtVisual official, or tied to the leagues?",
+    a: "Neither \u2014 it\u2019s independent. Team and league names are just how we point you at the right games and broadcasts. Some outbound ticket and streaming links are affiliate links, which help keep the lights on at no extra cost to you.",
   },
   {
-    q: "Can I share a game?",
-    a: "Yes — every game card has a Share with friends button. Shared links open a landing page with the score, the matchup, and the watch and ticket actions, so the person on the other end can decide to tune in or come along.",
+    q: "Can I share a game with friends?",
+    a: "Yeah \u2014 every card has a share button. What you send opens with the score, the matchup, and the watch-or-go actions, so whoever\u2019s on the other end can decide to tune in or come along.",
   },
   {
-    q: "How do I switch between watch and tickets?",
-    a: "Each team page has a toggle next to the team name: Watch (TV and streaming) or Tickets (going to the game). You can change the default in Settings. Get tickets stays one tap away in either view.",
+    q: "How do I switch between watching and going?",
+    a: "There\u2019s a toggle right next to your team\u2019s name: Watch for TV and streaming, Tickets for being there live. Pick whichever you want as your default in Settings \u2014 and either way, getting tickets is always one tap away.",
+  },
+  {
+    q: "Can I change what counts as exciting later?",
+    a: "Anytime. Your excitement mix lives in Settings, and you can re-tune the sliders whenever your mood changes \u2014 chasing rivalries this week, close games the next. Your ranking shifts the second you do.",
   },
 ];
 
@@ -84,13 +88,13 @@ export default function AboutPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_LD) }} />
       <div style={wrap}>
         <div style={eyebrow}>About</div>
-        <h1 style={h1}>EVERY GAME, SCORED FOR EXCITEMENT.</h1>
+        <h1 style={h1}>EVERY GAME, SCORED FOR YOU.</h1>
         <p style={lede}>
-          CourtVisual ranks every upcoming game 0&ndash;10 so you can find the ones worth showing up for &mdash; or worth staying in to watch.
-          You set what excitement means. We score and rank to match, across the NBA, MLB, NFL, NHL, MLS, WNBA, the World Cup, tennis and boxing.
+          No boring feeds. CourtVisual scores every upcoming game 0&ndash;10 around what <em>you</em> find exciting &mdash; so you can find the ones worth showing up for, or worth staying in to watch.
+          You set what counts. We score and rank to match, across the NBA, MLB, NFL, NHL, MLS, WNBA, college, the World Cup, tennis, golf, and boxing.
         </p>
         <p style={sub}>
-          Independent product. Schedule and ticket data via Ticketmaster. Broadcast data via ESPN. Rivalry catalog and scoring engine by CourtVisual.
+          Independent product. Schedules and tickets via Ticketmaster, broadcasts via ESPN, betting lines via The Odds API. The rivalry catalog and scoring engine are CourtVisual&rsquo;s own.
         </p>
 
         <h2 style={h2}>Frequently asked</h2>
