@@ -210,6 +210,12 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
       {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}>
         <Bars g={game} accent={primary} weights={weights} dark={dark} />
+        {game.matchupWhy && (
+          <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
+            <Zap size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
+            Matchup: {game.matchupWhy}.
+          </div>
+        )}
         {parts.floored && (
           <div style={{ marginTop: 10, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
             <Trophy size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
@@ -351,6 +357,7 @@ function LogoPlate() {
 
 export default function GameScoreApp() {
   const [view, setView] = useState("onboarding");
+  const [obStep, setObStep] = useState(1); // onboarding: 1 = teams, 2 = your kind of exciting
   const [teamSlugs, setTeamSlugs] = useState([]);
   const [primarySlug, setPrimarySlug] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -428,7 +435,7 @@ export default function GameScoreApp() {
   }, []);
 
   // Land at the top of every screen when switching views (don't inherit scroll).
-  useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } }, [view]);
+  useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } if (view === "onboarding") setObStep(1); }, [view]);
 
   // track auth session
   useEffect(() => {
@@ -514,6 +521,13 @@ export default function GameScoreApp() {
   const addTeam = (t) => { if (!teamSlugs.includes(t.slug)) { setTeamSlugs([...teamSlugs, t.slug]); if (!primarySlug) setPrimarySlug(t.slug); } setQ(""); };
   const removeTeam = (t) => { const next = teamSlugs.filter((s) => s !== t.slug); setTeamSlugs(next); if (primarySlug === t.slug) setPrimarySlug(next[0] || null); };
   const applyPreset = (p) => { setPreset(p.id); setWeights(p.w); };
+  const PRESET_DESC = {
+    balanced: "A little of everything — the all-around great game.",
+    stakes: "Championships, knockout rounds, playoff races. Something on the line.",
+    rivalry: "Subway Series, El Tr\u00e1fico, Yankees\u2013Sox. History between the teams.",
+    stars: "Marquee players and the hottest teams right now.",
+    matchup: "Two strong teams, projected close \u2014 the games that go down to the wire.",
+  };
   const onReact = (slug, id) => setReactions((r) => ({ ...r, [slug]: id }));
   const sendLink = async () => {
     if (!authEmail.trim()) return;
@@ -668,6 +682,7 @@ export default function GameScoreApp() {
     return (
       <Shell>
         <Nav view={view} setView={setView} />
+        {obStep === 1 ? (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>FIND YOUR<br />TEAM</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
@@ -716,9 +731,9 @@ export default function GameScoreApp() {
             {[["dashboard", "Dashboard"], ["editorial", "Editorial"]].map(([k, l]) => {
               const on = cardStyle === k;
               return (
-                <button key={k} onClick={() => setCardStyle(k)} style={{ flex: 1, padding: 8, borderRadius: 14, cursor: "pointer", background: "#fff", border: `2px solid ${on ? INK : "rgba(22,19,15,0.12)"}`, boxShadow: on ? DEPTH : "none" }}>
+                <button key={k} onClick={() => setCardStyle(k)} style={{ flex: 1, padding: 8, borderRadius: 14, cursor: "pointer", background: "rgba(255,255,255,0.05)", backgroundImage: FABRIC, border: `2px solid ${on ? CREAM : "rgba(236,231,219,0.14)"}`, boxShadow: on ? "0 4px 14px rgba(0,0,0,0.35)" : "none" }}>
                   <StyleMini variant={k} />
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 12.5, color: INK }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 12.5, color: on ? ON : ON_MUTED }}>
                     {on && <Check size={13} />} {l}
                   </div>
                 </button>
@@ -727,10 +742,53 @@ export default function GameScoreApp() {
           </div>
         </div>
 
-        <button disabled={!teamSlugs.length} onClick={() => setView("games")}
+        <button disabled={!teamSlugs.length} onClick={() => setObStep(2)}
           style={{ marginTop: 30, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? CREAM : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
-          {teamSlugs.length ? `Continue with ${teamSlugs.length} team${teamSlugs.length > 1 ? "s" : ""}` : "Add a team to continue"}
+          {teamSlugs.length ? "Next: your kind of exciting \u2192" : "Add a team to continue"}
         </button>
+        </>) : (<>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Step 2 of 2 \u00b7 Your taste</div>
+        <h1 className="g-display" style={screenH}>WHAT MAKES A GAME WORTH IT?</h1>
+        <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
+          This is the part nobody else asks.
+        </p>
+        <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
+          Pick a starting point \u2014 every game gets scored and re-ranked around it. Fine-tune the exact mix anytime with the <SlidersHorizontal size={12} style={{ verticalAlign: "-2px" }} /> sliders.
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "16px 0 12px" }}>
+          {FACTORS.map((f, fi) => (
+            <span key={f.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, color: ON_MUTED }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} /> {f.label}
+            </span>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {PRESETS.map((p) => {
+            const on = preset === p.id;
+            return (
+              <button key={p.id} onClick={() => { applyPreset(p); track("onboarding_preset", { id: p.id }); }}
+                style={{ textAlign: "left", padding: "14px 16px", borderRadius: 14, cursor: "pointer", background: "rgba(255,255,255,0.05)", backgroundImage: FABRIC, border: `2px solid ${on ? CREAM : "rgba(236,231,219,0.14)"}`, boxShadow: on ? "0 4px 14px rgba(0,0,0,0.35)" : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, color: on ? ON : "rgba(236,231,219,0.85)" }}>
+                  {on && <Check size={14} />} {p.label}
+                </div>
+                <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 4, lineHeight: 1.4 }}>{PRESET_DESC[p.id]}</div>
+                <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginTop: 10, opacity: on ? 1 : 0.55 }}>
+                  {FACTORS.map((f, fi) => (
+                    <span key={f.key} style={{ flex: p.w[f.key], background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} />
+                  ))}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <button onClick={() => { track("onboarding_complete", { preset, teams: teamSlugs.length }); setView("games"); }}
+          style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>
+          Show my games
+        </button>
+        <button onClick={() => setObStep(1)} style={{ marginTop: 12, width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600 }}>
+          \u2190 Back to teams
+        </button>
+        </>)}
       </Shell>
     );
   }

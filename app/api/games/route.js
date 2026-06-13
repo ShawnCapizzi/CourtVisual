@@ -11,6 +11,8 @@
 import { getLeagueContext } from "../../../lib/espn";
 import { rivalryFactor, isTopRivalry, rivalryInfo } from "../../../lib/rivalries";
 import { fetchBroadcastMap, networksFor } from "../../../lib/broadcasts";
+import { fetchSpreadMap, spreadFor } from "../../../lib/odds";
+import { matchupFromSpread, matchupFromRecords } from "../../../lib/data";
 
 export const revalidate = 300;
 
@@ -71,7 +73,7 @@ function deriveFactors(eventName, oppName, teamSlug, startsAt) {
   const opp = oppName.toLowerCase();
 
   let playoff = 5;
-  let historic = 4;
+  let historic = 5; // Matchup: neutral until priced by spread or records
   let tag = "Regular season";
 
   if (/\bgroup (?:stage|[a-h])\b/.test(n)) {
@@ -344,11 +346,26 @@ export async function GET(request) {
         if (sMine != null || sOpp != null) g.hot = Math.max(g.hot, Math.round((sMine || 0) * 0.55 + (sOpp || 0) * 0.45) || g.hot);
         const cMine = ctx.contention(label), cOpp = ctx.contention(opp);
         if (cMine != null && cOpp != null) g.playoff = Math.max(g.playoff, Math.round((cMine + cOpp) / 2));
-        if (ctx.storyline(label) || ctx.storyline(opp)) { g.historic = Math.max(g.historic, 9); if (g.tag === "Regular season") g.tag = "Storyline game"; }
+        // Matchup from records: win-pct of both sides if the league context exposes it.
+        const pMine = ctx.winPct ? ctx.winPct(label) : null, pOpp = ctx.winPct ? ctx.winPct(opp) : null;
+        const mr = matchupFromRecords(pMine, pOpp);
+        if (mr) { g.historic = mr.value; g.matchupWhy = mr.why; }
+        // Storyline is a STARS signal (marquee/heat), not a matchup signal.
+        if (ctx.storyline(label) || ctx.storyline(opp)) { g.hot = Math.max(g.hot, 9); if (g.tag === "Regular season") g.tag = "Storyline game"; }
       }
 
       games.push(g);
     }
+
+    // Matchup, best signal: betting spread overrides records when available.
+    try {
+      const smap = await fetchSpreadMap(league);
+      if (smap.size) for (const g of games) {
+        const sp = spreadFor(smap, g.opp, g.ds);
+        const ms = matchupFromSpread(sp);
+        if (ms) { g.historic = ms.value; g.matchupWhy = ms.why; }
+      }
+    } catch {}
 
     // Exact national networks for imminent games (ESPN's scoreboard window covers
     // the current day/week). Misses are silent — the client falls back to the
