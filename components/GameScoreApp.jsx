@@ -312,7 +312,7 @@ function Nav({ view, setView }) {
       <LogoPlate />
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-          {[["games", "Games"], ["favorites", "Favorites"]].map(([k, l]) => {
+          {[["games", "My Games"]].map(([k, l]) => {
             const on = view === k;
             return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
           })}
@@ -357,6 +357,7 @@ function LogoPlate() {
 
 export default function GameScoreApp() {
   const [view, setView] = useState("onboarding");
+  const [settingsJump, setSettingsJump] = useState(null); // deep-link target inside Settings (e.g. "excitement")
   const [obStep, setObStep] = useState(1); // onboarding: 1 = teams, 2 = your kind of exciting
   const [teamSlugs, setTeamSlugs] = useState([]);
   const [primarySlug, setPrimarySlug] = useState(null);
@@ -436,6 +437,12 @@ export default function GameScoreApp() {
 
   // Land at the top of every screen when switching views (don't inherit scroll).
   useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } if (view === "onboarding") setObStep(1); }, [view]);
+  useEffect(() => {
+    if (view === "settings" && settingsJump) {
+      const id = `settings-${settingsJump}`;
+      requestAnimationFrame(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); setSettingsJump(null); });
+    }
+  }, [view, settingsJump]);
 
   // track auth session
   useEffect(() => {
@@ -799,7 +806,38 @@ export default function GameScoreApp() {
       <Shell>
         <Nav view={view} setView={setView} />
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
-        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>How the app looks and behaves. Your teams and excitement live in Favorites.</p>
+        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, your excitement, and how the app looks and behaves.</p>
+        <Section primary={primary} label="Your teams">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
+          <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
+        </div>
+      </Section>
+        <div id="settings-excitement"><Section primary={primary} label="Your excitement">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
+          {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.035)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.28)", borderRadius: 16, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 32px" }}>
+          {FACTORS.map((f) => (
+            <div key={f.key}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: ON }}>{f.label}</span>
+                <span className="g-display" style={{ fontSize: 17, backgroundImage: "linear-gradient(180deg,#8FE89E 0%,#39B24C 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#6FD680" }}>{weights[f.key]}</span>
+              </div>
+              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
+            </div>
+          ))}
+        </div>
+      </Section></div>
+
+        <Section primary={primary} label="Players you follow">
+        <div style={field}>
+          <User size={16} color="rgba(236,231,219,0.5)" />
+          <input className="g-in-dark" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
+        </div>
+        {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
+      </Section>
         <Section primary={primary} label="Display">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
@@ -866,7 +904,7 @@ export default function GameScoreApp() {
             ))}
           </div>
           <p style={{ fontSize: 12, color: ON_FAINT, marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
-            Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your sliders in Favorites. Championship-size games carry a floor &mdash; games that big can&rsquo;t score low.{" "}
+            Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your excitement sliders. Championship-size games carry a floor &mdash; games that big can&rsquo;t score low.{" "}
             <a href="/about" style={{ color: ON, textDecoration: "underline", textUnderlineOffset: 2 }}>Read the full FAQ</a>.
           </p>
         </Section>
@@ -877,7 +915,7 @@ export default function GameScoreApp() {
         <Section primary={primary} label="Account">
           {session?.user ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b> — favorites sync to your account.</span>
+              <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b> — your teams and settings sync to your account.</span>
               <button onClick={signOut} style={chip(false)}>Sign out</button>
             </div>
           ) : (
@@ -954,6 +992,9 @@ export default function GameScoreApp() {
                   </button>
                 );
               })}
+              <button onClick={() => { setFilterOpen(false); setSettingsJump("excitement"); setView("settings"); }} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "12px 16px", border: "none", borderTop: "1px solid rgba(22,19,15,0.08)", background: "rgba(22,19,15,0.03)", cursor: "pointer", textAlign: "left", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700 }}>
+                <SlidersHorizontal size={16} color={primary} /> Adjust your excitement mix →
+              </button>
             </div>
           )}
         </div>
@@ -985,10 +1026,10 @@ export default function GameScoreApp() {
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{gamesView.sub}</p>
             {gamesView.context}
             {renderGames(gamesView.ranked, team.league)}
-            <button onClick={() => setView("favorites")} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Star size={14} /> Tune your favorites & view
+            <button onClick={() => { setSettingsJump("excitement"); setView("settings"); }} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <SlidersHorizontal size={14} /> Set your teams & excitement
             </button>
-          </>
+                    </>
         )}
         {/* Switcher bar — teams and sports as equal follows, always one thumb away */}
         <div style={{ height: 76 }} aria-hidden="true" />
@@ -1023,60 +1064,4 @@ export default function GameScoreApp() {
       </Shell>
     );
   }
-
-  // ---------- FAVORITES ----------
-  return (
-    <Shell>
-      <Nav view={view} setView={setView} />
-      <h1 className="g-display" style={screenH}>FAVORITES</h1>
-            <Section primary={primary} label="Teams">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
-          <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
-        </div>
-      </Section>
-      <Section primary={primary} label="Type of excitement you want">
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
-          {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.035)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.28)", borderRadius: 16, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 32px" }}>
-          {FACTORS.map((f) => (
-            <div key={f.key}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: ON }}>{f.label}</span>
-                <span className="g-display" style={{ fontSize: 17, backgroundImage: "linear-gradient(180deg,#8FE89E 0%,#39B24C 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#6FD680" }}>{weights[f.key]}</span>
-              </div>
-              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
-            </div>
-          ))}
-        </div>
-      </Section>
-      <Section primary={primary} label="Sport focus">
-        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.4 }}>Pick a sport to pull up its teams — tap to follow. Come back anytime to add more.</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: sportFocus ? 14 : 0 }}>
-          {SPORTS.map((sp) => (<button key={sp.id} style={chip(sportFocus === sp.id)} onClick={() => setSportFocus(sportFocus === sp.id ? null : sp.id)}>{sp.label}</button>))}
-        </div>
-        {sportFocus === "boxing" && (
-          <p style={{ fontSize: 13, color: ON_MUTED, lineHeight: 1.45, margin: 0 }}>Big fights are coming soon. For now, search any bout from the search bar on the Games tab.</p>
-        )}
-        {sportFocus && sportFocus !== "boxing" && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {TEAMS.filter((t) => t.league === sportFocus).map((t) => {
-              const on = teamSlugs.includes(t.slug);
-              return (<button key={t.slug} style={chip(on)} onClick={() => (on ? removeTeam(t) : addTeam(t))}>{dots(t)} {t.name} {on ? <Check size={12} /> : <Plus size={12} />}</button>);
-            })}
-          </div>
-        )}
-      </Section>
-      <Section primary={primary} label="Players you follow">
-        <div style={field}>
-          <User size={16} color="rgba(236,231,219,0.5)" />
-          <input className="g-in-dark" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
-        </div>
-        {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
-      </Section>
-      <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>See the ranking</button>
-    </Shell>
-  );
 }
