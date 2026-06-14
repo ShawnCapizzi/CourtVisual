@@ -68,13 +68,16 @@ export default async function Image({ params, searchParams }) {
 
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", backgroundColor: "#0A0D12", backgroundImage: "radial-gradient(70% 55% at 18% 0%, rgba(255,244,224,0.16), rgba(255,244,224,0) 60%), radial-gradient(70% 55% at 82% 0%, rgba(206,224,255,0.13), rgba(206,224,255,0) 60%), radial-gradient(120% 90% at 50% 116%, rgba(255,132,56,0.10), rgba(255,132,56,0) 55%), linear-gradient(180deg, #131822 0%, #0C1017 55%, #090B11 100%)", color: CREAM, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "64px 76px", fontFamily: "sans-serif" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", fontSize: 34, fontWeight: 800, fontFamily: display, letterSpacing: "0.5px" }}>
-            Court<span style={{ color: ORANGE }}>Visual</span>
+      <div style={{ width: "100%", height: "100%", backgroundColor: "#0A0D12", backgroundImage: "repeating-linear-gradient(45deg, rgba(255,160,90,0.022) 0px, rgba(255,160,90,0.022) 1px, transparent 1px, transparent 4px), repeating-linear-gradient(-45deg, rgba(255,160,90,0.022) 0px, rgba(255,160,90,0.022) 1px, transparent 1px, transparent 4px), radial-gradient(85% 75% at 10% 102%, rgba(255,90,44,0.16), rgba(255,90,44,0) 55%), radial-gradient(70% 55% at 82% 0%, rgba(206,224,255,0.10), rgba(206,224,255,0) 60%), linear-gradient(180deg, #14191F 0%, #0C1017 55%, #090B11 100%)", color: CREAM, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "58px 76px", fontFamily: "sans-serif" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", fontSize: 44, fontWeight: 800, fontFamily: display, letterSpacing: "0.5px" }}>
+              Court<span style={{ color: ORANGE }}>Visual</span>
+            </div>
+            <span style={{ display: "flex", fontSize: 24, color: "rgba(236,231,219,0.5)", marginTop: 4 }}>A fellow fan flagged this game</span>
           </div>
           {(rivalry || dateLabel) && (
-            <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 24, color: "rgba(236,231,219,0.55)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 30, color: "rgba(236,231,219,0.6)" }}>
               {rivalry && <span style={{ display: "flex", color: ORANGE, fontWeight: 600 }}>{rivalry}</span>}
               {rivalry && dateLabel && <span style={{ display: "flex" }}>&middot;</span>}
               {dateLabel && <span style={{ display: "flex" }}>{dateLabel}</span>}
@@ -84,13 +87,13 @@ export default async function Image({ params, searchParams }) {
 
         <div style={{ display: "flex", flexDirection: "column" }}>
           {single ? (
-            <div style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{teamName}</div>
+            <div style={{ display: "flex", fontSize: 90, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{teamName}</div>
           ) : (
             <>
-              <div style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{teamName}</div>
+              <div style={{ display: "flex", fontSize: 90, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{teamName}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 6 }}>
                 <span style={{ display: "flex", fontSize: 48, fontWeight: 600, color: "rgba(236,231,219,0.5)", fontFamily: display, letterSpacing: "0.5px" }}>VS</span>
-                <span style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{oppName}</span>
+                <span style={{ display: "flex", fontSize: 90, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{oppName}</span>
               </div>
             </>
           )}
@@ -98,9 +101,9 @@ export default async function Image({ params, searchParams }) {
 
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           {score != null ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-              <div style={{ display: "flex", position: "relative", width: 138, height: 138, alignItems: "center", justifyContent: "center" }}>
-                <svg width="138" height="138" viewBox="0 0 200 200" style={{ position: "absolute" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+              <div style={{ display: "flex", position: "relative", width: 160, height: 160, alignItems: "center", justifyContent: "center" }}>
+                <svg width="160" height="160" viewBox="0 0 200 200" style={{ position: "absolute" }}>
                   <defs>
                     <linearGradient id="flameRing" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
                       <stop offset="0%" stop-color="#FFA52B" />
@@ -108,23 +111,23 @@ export default async function Image({ params, searchParams }) {
                       <stop offset="100%" stop-color="#B3122A" />
                     </linearGradient>
                   </defs>
-                  <circle cx="100" cy="100" r="88" fill="none" stroke="url(#flameRing)" stroke-width="14" stroke-linecap="round" stroke-dasharray="503 50" transform="rotate(-134 100 100)" />
+                  <circle cx="100" cy="100" r="88" fill="none" stroke="url(#flameRing)" stroke-width="16" stroke-linecap="round" stroke-dasharray="503 50" transform="rotate(-134 100 100)" />
                 </svg>
-                <span style={{ display: "flex", fontSize: 60, fontWeight: 800, fontFamily: display, color: "#FFFFFF" }}>{score}</span>
+                <span style={{ display: "flex", fontSize: 76, fontWeight: 800, fontFamily: display, color: "#FFFFFF" }}>{score}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ display: "flex", fontSize: 19, letterSpacing: "3px", color: "rgba(236,231,219,0.45)" }}>EXCITEMENT SCORE</span>
-                {verdict && <span style={{ display: "flex", fontSize: 38, fontWeight: 800, fontFamily: display, color: "#FF7A2E", marginTop: 4, letterSpacing: "0.5px" }}>{verdict}</span>}
-                <span style={{ display: "flex", fontSize: 21, color: "#FFFFFF", marginTop: 8 }}>Tap to see why &mdash; and where to watch.</span>
+                <span style={{ display: "flex", fontSize: 26, letterSpacing: "2px", color: "rgba(236,231,219,0.55)" }}>EXCITEMENT SCORE</span>
+                {verdict && <span style={{ display: "flex", fontSize: 46, fontWeight: 800, fontFamily: display, color: "#FF7A2E", marginTop: 6, letterSpacing: "0.5px" }}>{verdict}</span>}
+                <span style={{ display: "flex", fontSize: 30, color: "#FFFFFF", marginTop: 10 }}>Tap to see why &mdash; and where to watch.</span>
               </div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ display: "flex", fontSize: 26, color: "rgba(236,231,219,0.7)" }}>Every game, scored for what excites you.</span>
-              <span style={{ display: "flex", fontSize: 21, color: "#FFFFFF", marginTop: 6 }}>Tap to see the score &mdash; and where to watch.</span>
+              <span style={{ display: "flex", fontSize: 34, color: "rgba(236,231,219,0.7)" }}>Every game, scored for what excites you.</span>
+              <span style={{ display: "flex", fontSize: 30, color: "#FFFFFF", marginTop: 8 }}>Tap to see the score &mdash; and where to watch.</span>
             </div>
           )}
-          <div style={{ display: "flex", fontSize: 22, color: "#FFFFFF", fontWeight: 700, alignItems: "flex-end" }}>No boring feeds.</div>
+          <div style={{ display: "flex", fontSize: 30, color: "#FFFFFF", fontWeight: 700, alignItems: "flex-end" }}>No boring feeds.</div>
         </div>
       </div>
     ),
