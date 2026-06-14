@@ -141,7 +141,9 @@ export default function AboutPage() {
         <h1 style={h1}>EVERY GAME, SCORED FOR YOU.</h1>
         <p style={lede}>
           No boring feeds. CourtVisual scores every upcoming game 0&ndash;10 around what <em>you</em> find exciting &mdash; so you can find the ones <strong>worth showing up for</strong>, or <strong>worth staying in to watch</strong>.
-          <strong> You set what counts.</strong> We score and rank to match, across the NBA, MLB, NFL, NHL, MLS, WNBA, college, the World Cup, tennis, golf, and boxing.
+        </p>
+        <p style={lede}>
+          <strong>You set what counts.</strong> We score and rank to match, across the NBA, MLB, NFL, NHL, MLS, WNBA, college, the World Cup, tennis, golf, and boxing.
         </p>
         <p style={sub}>
           <strong>Independent product.</strong> Schedules and tickets via Ticketmaster, broadcasts via ESPN, betting lines via The Odds API. <strong>The rivalry catalog and scoring engine are CourtVisual&rsquo;s own.</strong>

@@ -42,6 +42,7 @@ export default function SiteHeader({ view, setView }) {
           {linkMode
             ? <a href="/" style={gamesPillStyle(false)}>My Games</a>
             : <button onClick={() => setView("games")} style={gamesPillStyle(gamesOn)}>My Games</button>}
+          <a href="/about" style={gamesPillStyle(linkMode)}>About</a>
         </div>
         {linkMode
           ? <a href="/" aria-label="Open CourtVisual" style={gearStyle(false)}><Settings size={17} /></a>
