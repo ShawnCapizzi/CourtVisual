@@ -562,9 +562,9 @@ export default function GameScoreApp() {
   const sharePayload = (g, intent) => {
     const score = +scoreOf(g, weights).toFixed(1);
     const v = verdict(score);
-    const matchup = `${team.name} vs ${g.opp}`;
+    const matchup = g.matchup || `${team.name} vs ${g.opp}`;
     const origin = typeof window !== "undefined" ? window.location.origin : "https://courtvisual.com";
-    const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}?s=${score}${g.rivalryName ? `&r=${encodeURIComponent(g.rivalryName)}` : ""}`;
+    const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}-s${score}?s=${score}${g.rivalryName ? `&r=${encodeURIComponent(g.rivalryName)}` : ""}`;
     const hot = score >= 8.5;
     let text;
     if (intent === "watch") text = `${matchup} — scored ${score} on CourtVisual${hot ? ` (${v})` : ""}. Let's watch this one.`;
@@ -608,10 +608,10 @@ export default function GameScoreApp() {
   // Score under the active lens: neutral baseline, or fan-adjusted when the lens is on.
   const activeScore = (g) => (lens === "fan" ? fanScoreOf(g, weights, fanCtxFor(g)) : scoreOf(g, weights));
 
-  const renderGames = (list, leagueHint = null) => {
+  const renderGames = (list, leagueHint = null, neutral = false) => {
     let full = list;
     let note = null;
-    if (rivalryOnly) {
+    if (rivalryOnly && !neutral) {
       const rivals = list.filter((g) => g.topRivals || g.rivalry > 4);
       if (rivals.length) { full = rivals; note = "Rivalry focus — showing rivalry matchups only."; }
       else { note = "No rivalry games on this schedule right now — showing the full ranking."; }
@@ -626,7 +626,7 @@ export default function GameScoreApp() {
           </div>
         )}
         {shown.map((g, i) => (
-          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={fanCtxFor(g)}
+          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={neutral ? null : team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={neutral ? null : fanCtxFor(g)}
             primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
         ))}
         {remaining > 0 && (
@@ -1049,7 +1049,7 @@ export default function GameScoreApp() {
             <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
             <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
-            {renderGames([...eventResults].sort((a, b) => (scoreOf(b, weights) + (b._boost || 0)) - (scoreOf(a, weights) + (a._boost || 0))))}
+            {renderGames([...eventResults].sort((a, b) => (scoreOf(b, weights) + (b._boost || 0)) - (scoreOf(a, weights) + (a._boost || 0))), null, true)}
           </>
         ) : (
           <>
@@ -1131,13 +1131,15 @@ export default function GameScoreApp() {
         {/* Switcher bar — teams and sports as equal follows, always one thumb away */}
         <div style={{ height: 76 }} aria-hidden="true" />
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 40, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
-          <div style={{ pointerEvents: "auto", width: "100%", maxWidth: 540, background: "rgba(10,13,18,0.86)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderTop: "1px solid rgba(236,231,219,0.10)", padding: "10px 12px calc(10px + env(safe-area-inset-bottom))" }}>
+          <div style={{ pointerEvents: "auto", width: "100%", maxWidth: 540, background: "rgba(10,13,18,0.86)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderTop: "1px solid rgba(236,231,219,0.10)", padding: "8px 12px calc(10px + env(safe-area-inset-bottom))" }}>
+            <div style={{ fontSize: 10.5, letterSpacing: "0.06em", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontWeight: 700, textTransform: "uppercase", textAlign: "center", marginBottom: 7 }}>Swap your team or league below</div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
               {favTeams.map((t) => {
                 const on = !eventQuery && primarySlug === t.slug;
+                const tColor = t.primary || CREAM;
                 return (
                   <button key={t.slug} onClick={() => { track("bar_switch", { kind: "team", id: t.slug }); setEventResults(null); setEventQuery(""); setPrimarySlug(t.slug); }}
-                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1px solid ${on ? "transparent" : "rgba(236,231,219,0.18)"}`, background: on ? CREAM : "rgba(255,255,255,0.05)", color: on ? INK : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1.5px solid ${on ? tColor : "rgba(236,231,219,0.22)"}`, background: on ? tColor : "rgba(255,255,255,0.05)", color: on ? textOn(tColor) : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: on ? "0 2px 10px rgba(0,0,0,0.35)" : "none" }}>
                     {dots(t)} {t.name}
                   </button>
                 );
@@ -1146,7 +1148,7 @@ export default function GameScoreApp() {
                 const on = eventQuery === sp.label;
                 return (
                   <button key={sp.id} onClick={() => runSportFeed(sp)}
-                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1px solid ${on ? "transparent" : "rgba(236,231,219,0.18)"}`, background: on ? CREAM : "rgba(255,255,255,0.05)", color: on ? INK : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1.5px solid ${on ? "#FF5A2C" : "rgba(236,231,219,0.22)"}`, background: on ? "#FF5A2C" : "rgba(255,255,255,0.05)", color: on ? "#FFFFFF" : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: on ? "0 2px 10px rgba(0,0,0,0.35)" : "none" }}>
                     {sp.label}
                   </button>
                 );
