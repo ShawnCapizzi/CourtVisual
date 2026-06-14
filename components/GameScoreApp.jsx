@@ -750,7 +750,7 @@ export default function GameScoreApp() {
           No boring feeds. Just the games you&rsquo;d love — recommended like a fellow fan who gets it.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          Pick your team — or a sport like golf, the World Cup, or UFC. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
+          Pick your team — or <strong>a sport like golf, the World Cup, or UFC</strong>. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
         </p>
         <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Start with a team or sport — if it&rsquo;s a team, the app suits up in its colors.</p>
         <div style={{ ...field, marginTop: 20 }}>
