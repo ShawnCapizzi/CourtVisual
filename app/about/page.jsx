@@ -60,7 +60,7 @@ const FAQ = [
   },
 ];
 
-const stage = { background: "#0A0D12", color: "#ECE7DB", minHeight: "100vh" };
+const stage = { color: "#ECE7DB", minHeight: "100vh", position: "relative" };
 const wrap = { maxWidth: 540, margin: "0 auto", padding: "26px 20px 96px" };
 const eyebrow = { fontSize: 11, letterSpacing: "0.14em", fontFamily: "'Archivo',sans-serif", fontWeight: 700, color: "#E1641F", textTransform: "uppercase" };
 const h1 = { fontFamily: "'Anton','Archivo Black',sans-serif", fontSize: "clamp(40px,7vw,64px)", lineHeight: 1.02, letterSpacing: "0.005em", margin: "10px 0 14px" };
@@ -86,9 +86,11 @@ const FAQ_LD = {
 
 export default function AboutPage() {
   return (
-    <main style={stage}>
+    <main className="g-ui" style={stage}>
+      <div className="cv-stage" aria-hidden="true" />
+      <div className="cv-grain" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_LD) }} />
-      <div style={wrap}>
+      <div style={{ ...wrap, position: "relative", zIndex: 1 }}>
         <SiteHeader />
         <div style={eyebrow}>About</div>
         <h1 style={h1}>EVERY GAME, SCORED FOR YOU.</h1>
