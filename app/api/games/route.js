@@ -284,9 +284,13 @@ export async function GET(request) {
   if (!key) return Response.json({ games: [], source: "none", reason: "no_key" });
   if (!label) return Response.json({ games: [], source: "none", reason: "no_team" });
 
+  // Only future games: a startDateTime floor at "now" keeps finished/past games out of the
+  // upcoming schedule (e.g. a season that just ended). Cancelled-but-future games are caught
+  // separately by status below.
+  const nowISO = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const url =
     `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}` +
-    `&keyword=${encodeURIComponent(label)}&classificationName=Sports&sort=date,asc&size=199`; // TM max page ~200 — covers a full season in one fetch
+    `&keyword=${encodeURIComponent(label)}&classificationName=Sports&sort=date,asc&size=199&startDateTime=${nowISO}`; // TM max page ~200 — covers a full season in one fetch
 
   try {
     const res = await fetch(url, { next: { revalidate: 300 } });
@@ -303,6 +307,10 @@ export async function GET(request) {
     for (const ev of events) {
       const evName = ev.name || "";
       if (isNonGameEvent(evName)) continue;
+      // Skip events TM has flagged cancelled/postponed — e.g. a playoff contingency game
+      // (Finals Game 6/7) that won't be played once the series is clinched.
+      const evStatus = ev.dates?.status?.code;
+      if (evStatus === "cancelled" || evStatus === "canceled" || evStatus === "postponed") continue;
       const parts = cleanEventName(evName).split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
       if (parts.length !== 2) continue;
 
