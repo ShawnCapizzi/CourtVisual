@@ -15,6 +15,10 @@ const CREAM = "#ECE7DB"; /* solid cream replaces the old foil gradient on CTAs a
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 // Very-light jersey weave for the dialed-back card magic on the Settings surfaces (lighter + coarser than the game card's)
 const FABRIC = "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px)";
+// The signature flame gradient — used by the score ring AND the factor bars so the
+// scoring system reads consistently on every team's card, regardless of team color.
+const FLAME_STOPS = ["#FFA52B", "#FF5A2C", "#B3122A"];
+const FLAME = (deg) => `linear-gradient(${deg}deg, ${FLAME_STOPS[0]} 0%, ${FLAME_STOPS[1]} 55%, ${FLAME_STOPS[2]} 100%)`;
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 // Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
@@ -34,6 +38,7 @@ const FOLLOW_SPORTS = [
   { id: "cbb", label: "College Basketball", q: "NCAA Basketball" },
   { id: "tennis", label: "Tennis", q: "Tennis" },
   { id: "boxing", label: "Boxing", q: "Boxing" },
+  { id: "mma", label: "MMA", q: "UFC" },
   { id: "golf", label: "Golf", q: "Golf" },
   { id: "olympics", label: "Olympics", q: "Olympics" },
 ];
@@ -85,7 +90,7 @@ function Bars({ g, accent, weights, dark }) {
           <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontSize: 12, color: lab, width: 92, flexShrink: 0 }}>{f.label}</span>
             <div style={{ flex: 1, height: 6, borderRadius: 4, background: track }}>
-              <div style={{ width: `${g[f.key] * 10}%`, height: "100%", borderRadius: 4, background: `linear-gradient(90deg, ${accent}, ${shade(accent, 0.28)})` }} />
+              <div style={{ width: `${g[f.key] * 10}%`, height: "100%", borderRadius: 4, background: FLAME(90) }} />
             </div>
             <span style={{ fontSize: 11, color: txt, width: 64, textAlign: "right", flexShrink: 0 }}>{g[f.key]} · {pct}%</span>
           </div>
@@ -126,7 +131,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       <div className="g-display" aria-hidden="true" style={{ position: "absolute", top: -8, right: 4, fontSize: 80, color: dark ? "rgba(255,255,255,0.05)" : "rgba(22,19,15,0.05)", pointerEvents: "none" }}>{rank}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
         {dark ? <Ring value={anim} />
-          : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: "linear-gradient(135deg,#FFA52B 0%,#FF5A2C 55%,#B3122A 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
+          : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: FLAME(135), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
