@@ -736,7 +736,7 @@ export default function GameScoreApp() {
   };
 
   const screenH = { fontSize: 40, margin: "10px 0 6px", color: ON };
-  const field = { display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.075)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.18)", borderRadius: 12, padding: "12px 14px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07)" };
+  const field = { display: "flex", alignItems: "center", gap: 10, height: 44, background: "rgba(255,255,255,0.075)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.18)", borderRadius: 12, padding: "0 14px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.07)" };
 
   // ---------- ONBOARDING ----------
   if (view === "onboarding") {
@@ -1071,7 +1071,7 @@ export default function GameScoreApp() {
         <SiteHeader view={view} setView={setView} />
         <div style={{ display: "flex", alignItems: "stretch", gap: 8, marginBottom: 16, position: "relative" }}>
           <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(236,231,219,0.06)", border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, padding: "11px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, height: 44, background: "rgba(236,231,219,0.06)", border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, padding: "0 14px" }}>
               <Search size={17} color="rgba(236,231,219,0.5)" />
               <input className="g-in-dark" placeholder="Team, sport, or event…" value={jump} onChange={(e) => setJump(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runEventSearch(jump); }} />
               {(jump || eventResults !== null) && <button onClick={clearSearch} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(236,231,219,0.5)", padding: 0, display: "flex" }}><X size={16} /></button>}
