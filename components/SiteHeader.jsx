@@ -20,7 +20,7 @@ export function LogoPlate() {
 
 // pillBg/border are the exact in-app values so the two surfaces are pixel-identical.
 const groupWrap = { display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" };
-const gearBase = { width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" };
+const gearBase = { width: 46, height: 38, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" };
 
 // view/setView present → app (button) mode. Absent → link mode (the /about route).
 export default function SiteHeader({ view, setView }) {
