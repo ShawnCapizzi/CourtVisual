@@ -38,7 +38,7 @@ const FOLLOW_SPORTS = [
   { id: "cbb", label: "College Basketball", q: "NCAA Basketball" },
   { id: "tennis", label: "Tennis", q: "Tennis" },
   { id: "boxing", label: "Boxing", q: "Boxing" },
-  { id: "mma", label: "MMA", q: "UFC" },
+  { id: "mma", label: "MMA", q: "MMA" },
   { id: "golf", label: "Golf", q: "Golf" },
   { id: "olympics", label: "Olympics", q: "Olympics" },
 ];
