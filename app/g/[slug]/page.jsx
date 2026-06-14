@@ -1,68 +1,102 @@
-// Shared-game landing page: /g/knicks-vs-spurs-06-10?s=9.2
-// This is where a friend lands when someone taps "Share with friends."
-// generateMetadata gives the link a rich preview card in iMessage/social.
+// CourtVisual share landing — /g/[slug]
+// Slug shape: {teamSlug}-vs-{oppSlug}-{MM-DD}  (?s={score})
+// Server-rendered so the OpenGraph unfurl (iMessage/social) is a rich score card,
+// not a dead link. Resolves teams from the catalog for names + colors; degrades
+// gracefully when a slug doesn't map (still shows a valid card, never throws).
+import { TEAMS } from "../../../lib/data";
 
-import Link from "next/link";
+const CREAM = "#ECE7DB";
+const STAGE = "#0A0D12";
+const ORANGE = "#E1641F";
 
-function parseSlug(slug = "") {
-  // pattern: {team}-vs-{opp}-{MM}-{DD}
-  const m = slug.match(/^(.+)-vs-(.+)-(\d{2})-(\d{2})$/);
-  if (!m) return null;
-  const cap = (s) => s.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return { team: cap(m[1]), opp: cap(m[2]), date: `${months[+m[3] - 1]} ${+m[4]}` };
+function parseSlug(slug) {
+  // teamSlug-vs-oppSlug-MM-DD  → split on "-vs-", then peel trailing MM-DD
+  const safe = decodeURIComponent(slug || "");
+  const [teamSlug, rest] = safe.split("-vs-");
+  if (!rest) return { teamSlug: safe, oppSlug: null, ds: null };
+  const m = rest.match(/^(.*)-(\d{2}-\d{2})$/);
+  return { teamSlug, oppSlug: m ? m[1] : rest, ds: m ? m[2] : null };
+}
+
+const findTeam = (slug) => TEAMS.find((t) => t.slug === slug) || null;
+const titleCase = (s) => (s || "").split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+function resolve(slug, search) {
+  const { teamSlug, oppSlug, ds } = parseSlug(slug);
+  const team = findTeam(teamSlug);
+  const opp = findTeam(oppSlug);
+  const teamName = team?.name || titleCase(teamSlug);
+  const oppName = opp?.name || titleCase(oppSlug);
+  const scoreRaw = parseFloat(search?.s);
+  const score = !isNaN(scoreRaw) ? Math.max(0, Math.min(10, scoreRaw)).toFixed(1) : null;
+  const verdict = score == null ? null : +score >= 9.3 ? "Hottest ticket" : +score >= 8.5 ? "Must see" : +score >= 7 ? "Highly recommended" : +score >= 5.5 ? "Worth attending" : "On the slate";
+  const dateLabel = ds ? new Date(`2026-${ds}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+  return { team, opp, teamName, oppName, score, verdict, dateLabel, teamSlug, oppSlug };
 }
 
 export async function generateMetadata({ params, searchParams }) {
-  const g = parseSlug(params.slug);
-  const score = searchParams?.s;
-  const title = g ? `${g.team} vs ${g.opp} — CourtVisual` : "CourtVisual";
-  const description = g
-    ? `${score ? `This game scores ${score}/10. ` : ""}${g.team} vs ${g.opp}, ${g.date}. See why it's worth going — and grab seats.`
-    : "Every game, scored by what excites you.";
+  const { teamName, oppName, score, verdict } = resolve(params.slug, searchParams);
+  const title = `${teamName} vs ${oppName}${score ? ` — ${score}/10` : ""} | CourtVisual`;
+  const description = score
+    ? `${verdict}. CourtVisual scores this one ${score} out of 10 — see why, find where to watch, or grab tickets.`
+    : `See how CourtVisual scores ${teamName} vs ${oppName} — where to watch, or grab tickets.`;
+  const ogImage = `/g/${params.slug}/opengraph-image${score ? `?s=${score}` : "?s=0"}${searchParams?.r ? `&r=${encodeURIComponent(searchParams.r)}` : ""}`;
   return {
-    title,
-    description,
-    openGraph: { title, description, images: ["/og.png"] },
-    twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
+    title, description,
+    alternates: { canonical: `/g/${params.slug}` },
+    openGraph: { title, description, type: "website", images: [ogImage] },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage] },
   };
 }
 
-export default function SharedGame({ params, searchParams }) {
-  const g = parseSlug(params.slug);
-  const score = searchParams?.s;
-  const ink = "#16130F";
+export default function SharePage({ params, searchParams }) {
+  const { team, teamName, oppName, score, verdict, dateLabel } = resolve(params.slug, searchParams);
+  const accent = team?.primary || ORANGE;
+  const home = "https://courtvisual.com";
 
   return (
-    <div className="g-ui" style={{ background: "#E7E3D8", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ maxWidth: 420, width: "100%", textAlign: "center" }}>
-        <div className="g-display" style={{ fontSize: 26, marginBottom: 28 }}>
-          <span style={{ color: ink }}>Court</span>
-          <span style={{ backgroundImage: "linear-gradient(135deg,#FFA52B,#FF5A2C 55%,#B3122A)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>Visual</span>
-        </div>
+    <main style={{ minHeight: "100vh", background: STAGE, color: CREAM, fontFamily: "'Archivo', system-ui, sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px" }}>
+      <a href={home} style={{ position: "absolute", top: 22, left: 22, color: CREAM, textDecoration: "none", fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }}>
+        Court<span style={{ color: ORANGE }}>Visual</span>
+      </a>
 
-        <div style={{ background: "#161B26", borderRadius: 22, padding: "32px 24px", boxShadow: "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)" }}>
-          {score && (
-            <div className="g-display" style={{ fontSize: 72, lineHeight: 0.9, marginBottom: 10, backgroundImage: "linear-gradient(135deg,#FFA52B,#FF5A2C 55%,#B3122A)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>
+      <div style={{ width: "100%", maxWidth: 440, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(236,231,219,0.12)", borderRadius: 22, padding: "30px 26px", boxShadow: "0 30px 80px rgba(0,0,0,0.5)" }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(236,231,219,0.55)", marginBottom: 16 }}>Scored on CourtVisual</div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          {score != null && (
+            <div style={{ flexShrink: 0, width: 92, height: 92, borderRadius: "50%", border: `3px solid ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, fontWeight: 800 }}>
               {score}
             </div>
           )}
-          <div className="g-display" style={{ fontSize: 28, color: "#fff" }}>
-            {g ? `${g.team.toUpperCase()} VS ${g.opp.toUpperCase()}` : "GAME ON"}
+          <div>
+            <h1 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.08, margin: 0, letterSpacing: "-0.02em" }}>{teamName}<br /><span style={{ color: "rgba(236,231,219,0.6)" }}>vs</span> {oppName}</h1>
+            {(verdict || dateLabel) && (
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {verdict && <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: STAGE, background: accent, padding: "4px 10px", borderRadius: 7 }}>{verdict}</span>}
+                {dateLabel && <span style={{ fontSize: 13, color: "rgba(236,231,219,0.6)" }}>{dateLabel}</span>}
+              </div>
+            )}
           </div>
-          {g && <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginTop: 8 }}>{g.date}</div>}
-          <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginTop: 16, lineHeight: 1.5 }}>
-            A friend thinks this one's worth going to.{score ? ` CourtVisual scores it ${score}/10.` : ""}
-          </p>
-          <Link href="/" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginTop: 20, width: "100%", padding: "14px", borderRadius: 12, background: "linear-gradient(135deg,#FF5A2C,#B3122A)", color: "#fff", fontWeight: 700, fontSize: 14.5, textDecoration: "none", fontFamily: "'Archivo',sans-serif" }}>
-            See the full ranking →
-          </Link>
         </div>
 
-        <p style={{ fontSize: 12, color: "rgba(22,19,15,0.5)", marginTop: 18 }}>
-          Every game, scored by what excites you — customized for you, by you.
+        <p style={{ fontSize: 14, lineHeight: 1.5, color: "rgba(236,231,219,0.75)", margin: "22px 0 24px" }}>
+          CourtVisual scores every upcoming game 0&ndash;10 around what you find exciting &mdash; so you only chase the ones worth your time.
         </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <a href={home} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: CREAM, color: STAGE, fontWeight: 800, fontSize: 14.5, padding: "14px", borderRadius: 12, textDecoration: "none" }}>
+            Open in CourtVisual →
+          </a>
+          <a href={home} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "transparent", color: CREAM, fontWeight: 700, fontSize: 13, padding: "12px", borderRadius: 12, border: "1px solid rgba(236,231,219,0.18)", textDecoration: "none" }}>
+            Where to watch &middot; or get tickets
+          </a>
+        </div>
       </div>
-    </div>
+
+      <p style={{ fontSize: 11.5, color: "rgba(236,231,219,0.4)", marginTop: 22, textAlign: "center", maxWidth: 360, lineHeight: 1.5 }}>
+        Independent. Schedules &amp; tickets via Ticketmaster. The score is CourtVisual&rsquo;s own.
+      </p>
+    </main>
   );
 }

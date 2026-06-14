@@ -577,8 +577,11 @@ export default function GameScoreApp() {
     const { score, matchup, url, text } = sharePayload(g, intent);
     const full = `${text} ${url}`;
     if (channel === "sms") {
-      // iOS uses &body=, Android uses ?body= — &body works on both modern platforms.
-      window.open(`sms:?&body=${encodeURIComponent(full)}`, "_blank");
+      // sms: syntax is platform-split: iOS wants sms:&body=, Android wants sms:?body=.
+      // Use a real navigation (location.href), not window.open — popups don't trigger Messages.
+      const isAppleDevice = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+      const sep = isAppleDevice ? "&" : "?";
+      try { window.location.href = `sms:${sep}body=${encodeURIComponent(full)}`; } catch { try { navigator.clipboard?.writeText(full); } catch {} }
     } else if (channel === "copy") {
       try { navigator.clipboard?.writeText(full); } catch {}
       setShared(g.oppSlug + "-copied"); setTimeout(() => setShared(null), 1600);
@@ -1102,15 +1105,22 @@ export default function GameScoreApp() {
                 <>
                   <div style={{ display: "flex", gap: 9, marginBottom: 4 }}>
                     {[
-                      ["sms", <Mail size={18} />, "Text it"],
-                      ["copy", <ArrowUpRight size={18} />, shared === shareGame.oppSlug + "-copied" ? "Copied!" : "Copy link"],
-                      ["native", <Share2 size={18} />, "More"],
-                    ].map(([channel, icon, label]) => (
-                      <button key={channel} onClick={() => sendVia(shareGame, shareIntent, channel)}
-                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "16px 8px", borderRadius: 13, border: "1px solid rgba(236,231,219,0.14)", background: "rgba(255,255,255,0.04)", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                        <span style={{ color: primary, display: "inline-flex" }}>{icon}</span> {label}
-                      </button>
-                    ))}
+                      ["sms", <Mail size={20} />, "Text it"],
+                      ["copy", <ArrowUpRight size={20} />, shared === shareGame.oppSlug + "-copied" ? "Copied!" : "Copy link"],
+                      ["native", <Share2 size={20} />, "More"],
+                    ].map(([channel, icon, label]) => {
+                      const deep = deepen(primary, 0.16);
+                      return (
+                        <button key={channel} onClick={() => sendVia(shareGame, shareIntent, channel)}
+                          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 9, padding: "18px 8px", borderRadius: 14, border: "1px solid rgba(236,231,219,0.10)",
+                            backgroundColor: deep,
+                            backgroundImage: `repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 6px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 6px), radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,0.10), rgba(255,255,255,0) 55%), linear-gradient(180deg, ${deep} 0%, ${shade(deep, 0.4)} 100%)`,
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 5px 14px rgba(0,0,0,0.32)",
+                            color: "#ECE7DB", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>
+                          <span style={{ display: "inline-flex", color: "#FF5A2C" }}>{icon}</span> {label}
+                        </button>
+                      );
+                    })}
                   </div>
                   <button onClick={() => setShareIntent(null)} style={{ width: "100%", padding: "12px", marginTop: 8, background: "none", border: "none", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>← Back</button>
                 </>
