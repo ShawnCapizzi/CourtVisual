@@ -7,6 +7,7 @@ import { watchOptions } from "../lib/watch";
 import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
 import { track } from "../lib/track";
 import { supabase } from "../lib/supabaseClient";
+import SiteHeader, { LogoPlate as SharedLogoPlate } from "./SiteHeader";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
 const ON = "#ECE7DB", ON_MUTED = "rgba(236,231,219,0.60)", ON_FAINT = "rgba(236,231,219,0.40)", HAIR = "rgba(236,231,219,0.14)";
@@ -317,25 +318,6 @@ function Shell({ children }) {
   );
 }
 
-function Nav({ view, setView }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-      <LogoPlate />
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-          {[["games", "My Games"]].map(([k, l]) => {
-            const on = view === k;
-            return (<button key={k} onClick={() => setView(k)} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 16px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
-          })}
-        </div>
-        <button aria-label="Settings" onClick={() => setView("settings")} style={{ width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: view === "settings" ? CREAM : "rgba(255,255,255,0.07)", color: view === "settings" ? INK : ON_MUTED, border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" }}>
-          <Settings size={17} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function ContextCard({ title, body, primary, teamRecord }) {
   return (
     <div style={{ background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
@@ -355,14 +337,6 @@ function Section({ label, children, primary }) {
       <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
       {children}
     </div>
-  );
-}
-
-function LogoPlate() {
-  return (
-    <span className="g-display" style={{ fontSize: "clamp(20px, 5.6vw, 25px)", lineHeight: 1, letterSpacing: "0.01em", color: ON }}>
-      Court<span style={{ color: "#E1641F" }}>Visual</span>
-    </span>
   );
 }
 
@@ -732,7 +706,7 @@ export default function GameScoreApp() {
   if (view === "onboarding") {
     return (
       <Shell>
-        <Nav view={view} setView={setView} />
+        <SiteHeader view={view} setView={setView} />
         {obStep === 1 ? (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
@@ -823,7 +797,7 @@ export default function GameScoreApp() {
   if (view === "settings") {
     return (
       <Shell>
-        <Nav view={view} setView={setView} />
+        <SiteHeader view={view} setView={setView} />
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
         <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, your excitement, and how the app looks and behaves.</p>
         <Section primary={primary} label="Your teams">
@@ -1004,7 +978,7 @@ export default function GameScoreApp() {
   if (view === "games") {
     return (
       <Shell>
-        <Nav view={view} setView={setView} />
+        <SiteHeader view={view} setView={setView} />
         <div style={{ display: "flex", alignItems: "stretch", gap: 8, marginBottom: 16, position: "relative" }}>
           <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(236,231,219,0.06)", border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, padding: "11px 14px" }}>
