@@ -503,6 +503,7 @@ export default function GameScoreApp() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [sportFocus, setSportFocus] = useState(null);
   const [visible, setVisible] = useState(8);
+  const [sortMode, setSortMode] = useState("score"); // "score" (excitement, default) | "date" (chronological, for planning)
   const [hotSlugs, setHotSlugs] = useState([]);
   const DEFAULT_POPULAR = ["giants", "mets", "cowboys", "new-york-red-bulls", "la-galaxy", "chiefs", "knicks", "bulls"];
   useEffect(() => { setVisible(8); }, [primarySlug, eventQuery]); // reset reveal count on team/search change
@@ -613,7 +614,7 @@ export default function GameScoreApp() {
   // Score under the active lens: neutral baseline, or fan-adjusted when the lens is on.
   const activeScore = (g) => (lens === "fan" ? fanScoreOf(g, weights, fanCtxFor(g)) : scoreOf(g, weights));
 
-  const renderGames = (list, leagueHint = null, neutral = false) => {
+  const renderGames = (list, leagueHint = null, neutral = false, revealAll = false) => {
     let full = list;
     let note = null;
     if (rivalryOnly && !neutral) {
@@ -621,8 +622,8 @@ export default function GameScoreApp() {
       if (rivals.length) { full = rivals; note = "Rivalry focus — showing rivalry matchups only."; }
       else { note = "No rivalry games on this schedule right now — showing the full ranking."; }
     }
-    const shown = full.slice(0, visible);
-    const remaining = full.length - shown.length;
+    const shown = revealAll ? full : full.slice(0, visible);
+    const remaining = revealAll ? 0 : full.length - shown.length;
     return (
       <>
         {note && (
@@ -802,13 +803,13 @@ export default function GameScoreApp() {
           );
         })()}
         </>) : (<>
-        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Step 2 of 2 \u00b7 Your taste</div>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Step 2 of 2 · Your taste</div>
         <h1 className="g-display" style={screenH}>WHAT MAKES A GAME WORTH IT, TO YOU?</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
           This is the part no other app asks.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          Pick a starting point \u2014 every game gets scored and re-ranked around it. Fine-tune the exact mix anytime with the <SlidersHorizontal size={12} style={{ verticalAlign: "-2px" }} /> sliders.
+          Pick a starting point — every game gets scored and re-ranked around it. Fine-tune the exact mix anytime with the <SlidersHorizontal size={12} style={{ verticalAlign: "-2px" }} /> sliders.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "16px 0 12px" }}>
           {FACTORS.map((f, fi) => (
@@ -851,7 +852,7 @@ export default function GameScoreApp() {
           Show my games
         </button>
         <button onClick={() => setObStep(1)} style={{ marginTop: 12, width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600 }}>
-          \u2190 Back to teams
+          ← Back to teams
         </button>
         </>)}
       </Shell>
@@ -1038,7 +1039,17 @@ export default function GameScoreApp() {
       base = sampleSlate(team); sub = "Example matchups — the season's not live yet.";
       context = <ContextCard primary={primary} teamRecord={teamRecord} title={`The ${LEAGUE} is in its off-season`} body={teamRecord ? `The ${team.name} finished ${teamRecord.str}. Here's a taste of the matchups to come.` : `No games scheduled right now. Here's a taste of the matchups to come.`} />;
     }
-    gamesView = { sub, context, ranked: [...base].sort((a, b) => activeScore(b) - activeScore(a)) };
+    const byDate = (a, b) => {
+      // Chronological for trip planning. Use the route's iso date; fall back to ds, TBD last.
+      const ax = a.iso || (a.ds && a.ds !== "tbd" ? a.ds : null);
+      const bx = b.iso || (b.ds && b.ds !== "tbd" ? b.ds : null);
+      if (ax && bx) return ax < bx ? -1 : ax > bx ? 1 : 0;
+      if (ax) return -1; if (bx) return 1; return 0; // games without a date sink to the bottom
+    };
+    const ordered = sortMode === "date"
+      ? [...base].sort(byDate)
+      : [...base].sort((a, b) => activeScore(b) - activeScore(a));
+    gamesView = { sub, context, ranked: ordered };
   }
   if (view === "games") {
     return (
@@ -1091,7 +1102,7 @@ export default function GameScoreApp() {
             <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: primary }} />Search results</div>
             <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
-            <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {team.name}</button>
+            <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {favTeams.length ? team.name : "my games"}</button>
             {renderGames([...eventResults].sort((a, b) => (scoreOf(b, weights) + (b._boost || 0)) - (scoreOf(a, weights) + (a._boost || 0))), null, true)}
           </>
         ) : (
@@ -1114,10 +1125,22 @@ export default function GameScoreApp() {
                 })}
               </div>
             </div>
-            <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
-            <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{gamesView.sub}</p>
+            <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · {sortMode === "date" ? "in date order" : "ranked for you"}</p>
+            <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 12 }}>{gamesView.sub}</p>
+            {liveGames && (
+              <div style={{ display: "inline-flex", gap: 3, padding: 3, marginBottom: 16, background: "rgba(255,255,255,0.07)", borderRadius: 11, border: "1px solid rgba(255,255,255,0.06)" }}>
+                {[["score", Flame, "By score"], ["date", Calendar, "By date"]].map(([k, Icon, label]) => {
+                  const on = sortMode === k;
+                  return (
+                    <button key={k} onClick={() => { track("sort_mode", { mode: k }); setSortMode(k); setVisible(8); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 32, padding: "0 13px", border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
+                      <Icon size={13} /> {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {gamesView.context}
-            {renderGames(gamesView.ranked, team.league)}
+            {renderGames(gamesView.ranked, team.league, false, liveGames && sortMode === "date")}
             <button onClick={() => { setSettingsJump("excitement"); setView("settings"); }} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <SlidersHorizontal size={14} /> Set your teams & excitement
             </button>

@@ -139,7 +139,7 @@ function eventToGame(ev) {
   const f = deriveFactors(ev.name || "", opp, "", dt);
   const genre = ev.classifications?.[0]?.genre?.name || null;
   return {
-    matchup, opp, oppSlug, date, ds, home: false, tag: f.tag, dow: dowOf(dt, ev.dates?.start?.localDate),
+    matchup, opp, oppSlug, date, ds, iso: dt || (ev.dates?.start?.localDate ? `${ev.dates.start.localDate}T00:00:00Z` : null), home: false, tag: f.tag, dow: dowOf(dt, ev.dates?.start?.localDate),
     sport: genre ? genre.toLowerCase() : null,
     playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
     topRivals: isTopRivalry(rA, rB),
@@ -338,7 +338,7 @@ export async function GET(request) {
       const minPrice = ev.priceRanges?.[0]?.min;
 
       const g = {
-        opp, oppSlug, date, ds, home, dow: dowOf(dt, ev.dates?.start?.localDate),
+        opp, oppSlug, date, ds, iso: dt || (ev.dates?.start?.localDate ? `${ev.dates.start.localDate}T00:00:00Z` : null), home, dow: dowOf(dt, ev.dates?.start?.localDate),
         tag: f.tag,
         playoff: f.playoff, rivalry: f.rivalry, hot: f.hot, historic: f.historic,
         url: ev.url || null,
