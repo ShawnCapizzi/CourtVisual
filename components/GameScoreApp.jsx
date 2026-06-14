@@ -1144,23 +1144,8 @@ export default function GameScoreApp() {
             <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 12 }}>{gamesView.sub}</p>
             {liveGames && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, marginBottom: 16 }}>
-                <div style={{ width: 244, display: "flex", flexDirection: "column", gap: 5 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, textAlign: "center" }}>
-                    {sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}
-                  </span>
-                  <div style={{ display: "flex", gap: 3, padding: 3, background: "rgba(255,255,255,0.07)", borderRadius: 11, border: "1px solid rgba(255,255,255,0.06)" }}>
-                    {[["score", Flame, "By score"], ["date", Calendar, "By date"]].map(([k, Icon, label]) => {
-                      const on = sortMode === k;
-                      return (
-                        <button key={k} onClick={() => { track("sort_mode", { mode: k }); setSortMode(k); setVisible(8); }} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 34, border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
-                          <Icon size={13} /> {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div style={{ width: 244, display: "flex", flexDirection: "column", gap: 5 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16 }}>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, textAlign: "center" }}>
                     {viewMode === "tickets" ? "Going to the game" : "Watch from the couch"}
                   </span>
@@ -1168,8 +1153,23 @@ export default function GameScoreApp() {
                     {[["watch", Tv, "Watch"], ["tickets", Ticket, "Tickets"]].map(([k, Icon, label]) => {
                       const on = viewMode === k;
                       return (
-                        <button key={k} aria-label={label} onClick={() => { track("view_mode", { mode: k }); setViewMode(k); }} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 34, border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
+                        <button key={k} aria-label={label} onClick={() => { track("view_mode", { mode: k }); setViewMode(k); }} style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, height: 34, border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
                           <Icon size={14} /> {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, textAlign: "center" }}>
+                    {sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}
+                  </span>
+                  <div style={{ display: "flex", gap: 3, padding: 3, background: "rgba(255,255,255,0.07)", borderRadius: 11, border: "1px solid rgba(255,255,255,0.06)" }}>
+                    {[["score", Flame, "By score"], ["date", Calendar, "By date"]].map(([k, Icon, label]) => {
+                      const on = sortMode === k;
+                      return (
+                        <button key={k} onClick={() => { track("sort_mode", { mode: k }); setSortMode(k); setVisible(8); }} style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, height: 34, border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
+                          <Icon size={13} /> {label}
                         </button>
                       );
                     })}
