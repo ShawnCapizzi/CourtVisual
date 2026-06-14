@@ -10,36 +10,48 @@ const STAGE = "#0A0D12";
 const ORANGE = "#E1641F";
 
 function parseSlug(slug) {
-  // teamSlug-vs-oppSlug-MM-DD  → split on "-vs-", then peel trailing MM-DD
-  const safe = decodeURIComponent(slug || "");
+  // Two shapes:
+  //   team game:        teamSlug-vs-oppSlug-MM-DD-sN.N
+  //   standalone event: eventSlug-MM-DD-sN.N   (no "-vs-")
+  const raw = decodeURIComponent(slug || "");
+  let safe = raw, slugScore = null;
+  const sm = raw.match(/^(.*)-s(\d+(?:\.\d+)?)$/);
+  if (sm) { safe = sm[1]; slugScore = sm[2]; }
+  if (!safe.includes("-vs-")) {
+    // Standalone event: peel the trailing date, the rest is the event name.
+    const dm = safe.match(/^(.*)-(\d{2}-\d{2})$/);
+    return { teamSlug: dm ? dm[1] : safe, oppSlug: null, ds: dm ? dm[2] : null, slugScore, single: true };
+  }
   const [teamSlug, rest] = safe.split("-vs-");
-  if (!rest) return { teamSlug: safe, oppSlug: null, ds: null };
   const m = rest.match(/^(.*)-(\d{2}-\d{2})$/);
-  return { teamSlug, oppSlug: m ? m[1] : rest, ds: m ? m[2] : null };
+  return { teamSlug, oppSlug: m ? m[1] : rest, ds: m ? m[2] : null, slugScore, single: false };
 }
 
 const findTeam = (slug) => TEAMS.find((t) => t.slug === slug) || null;
 const titleCase = (s) => (s || "").split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
 function resolve(slug, search) {
-  const { teamSlug, oppSlug, ds } = parseSlug(slug);
+  const { teamSlug, oppSlug, ds, slugScore, single } = parseSlug(slug);
   const team = findTeam(teamSlug);
   const opp = findTeam(oppSlug);
   const teamName = team?.name || titleCase(teamSlug);
   const oppName = opp?.name || titleCase(oppSlug);
-  const scoreRaw = parseFloat(search?.s);
+  const scoreRaw = parseFloat(slugScore != null ? slugScore : search?.s);
   const score = !isNaN(scoreRaw) ? Math.max(0, Math.min(10, scoreRaw)).toFixed(1) : null;
   const verdict = score == null ? null : +score >= 9.3 ? "Hottest ticket" : +score >= 8.5 ? "Must see" : +score >= 7 ? "Highly recommended" : +score >= 5.5 ? "Worth attending" : "On the slate";
   const dateLabel = ds ? new Date(`2026-${ds}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
-  return { team, opp, teamName, oppName, score, verdict, dateLabel, teamSlug, oppSlug };
+  // For a standalone event the "title" is just the event name (no opponent).
+  const eventName = single ? teamName : null;
+  return { team, opp, teamName, oppName, score, verdict, dateLabel, teamSlug, oppSlug, single, eventName };
 }
 
 export async function generateMetadata({ params, searchParams }) {
-  const { teamName, oppName, score, verdict } = resolve(params.slug, searchParams);
-  const title = `${teamName} vs ${oppName}${score ? ` — ${score}/10` : ""} | CourtVisual`;
+  const { teamName, oppName, score, verdict, single, eventName } = resolve(params.slug, searchParams);
+  const label = single ? eventName : `${teamName} vs ${oppName}`;
+  const title = `${label}${score ? ` — ${score}/10` : ""} | CourtVisual`;
   const description = score
     ? `${verdict}. CourtVisual scores this one ${score} out of 10 — see why, find where to watch, or grab tickets.`
-    : `See how CourtVisual scores ${teamName} vs ${oppName} — where to watch, or grab tickets.`;
+    : `See how CourtVisual scores ${label} — where to watch, or grab tickets.`;
   const ogImage = `/g/${params.slug}/opengraph-image${score ? `?s=${score}` : "?s=0"}${searchParams?.r ? `&r=${encodeURIComponent(searchParams.r)}` : ""}`;
   return {
     title, description,

@@ -568,9 +568,17 @@ export default function GameScoreApp() {
   const sharePayload = (g, intent) => {
     const score = +scoreOf(g, weights).toFixed(1);
     const v = verdict(score);
-    const matchup = g.matchup || `${team.name} vs ${g.opp}`;
+    // Discovery/standalone events carry their own matchup and have no real team frame.
+    // A true team game has an opponent team distinct from the event title.
+    const isStandalone = !!g.matchup && (!g.opp || g.opp === g.matchup);
+    const matchup = isStandalone ? g.matchup : (g.matchup || `${team.name} vs ${g.opp}`);
     const origin = typeof window !== "undefined" ? window.location.origin : "https://courtvisual.com";
-    const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}-s${score}?s=${score}${g.rivalryName ? `&r=${encodeURIComponent(g.rivalryName)}` : ""}`;
+    // Slug: a standalone event encodes its own name (no team-vs frame, so the share
+    // card never fabricates "Knicks vs GMC 48"). A team game keeps team-vs-opp.
+    const slugCore = isStandalone
+      ? g.oppSlug || g.matchup.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+      : `${team.slug}-vs-${g.oppSlug}`;
+    const url = `${origin}/g/${slugCore}-${g.ds}-s${score}?s=${score}${g.rivalryName ? `&r=${encodeURIComponent(g.rivalryName)}` : ""}`;
     const hot = score >= 8.5;
     let text;
     if (intent === "watch") text = `${matchup} — scored ${score} on CourtVisual${hot ? ` (${v})` : ""}. Let's watch this one.`;

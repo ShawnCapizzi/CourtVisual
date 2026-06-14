@@ -27,9 +27,16 @@ function parse(slug, sp) {
   let body = safe, slugScore = null;
   const sm = safe.match(/^(.*)-s(\d+(?:\.\d+)?)$/);
   if (sm) { body = sm[1]; slugScore = sm[2]; }
-  const [teamSlug, rest] = body.split("-vs-");
-  let oppSlug = null, ds = null;
-  if (rest) { const m = rest.match(/^(.*)-(\d{2}-\d{2})$/); oppSlug = m ? m[1] : rest; ds = m ? m[2] : null; }
+  let teamSlug, oppSlug = null, ds = null, single = false;
+  if (!body.includes("-vs-")) {
+    // Standalone event: no opponent. Peel the trailing date; the rest is the event name.
+    const dm = body.match(/^(.*)-(\d{2}-\d{2})$/);
+    teamSlug = dm ? dm[1] : body; ds = dm ? dm[2] : null; single = true;
+  } else {
+    let rest;
+    [teamSlug, rest] = body.split("-vs-");
+    if (rest) { const m = rest.match(/^(.*)-(\d{2}-\d{2})$/); oppSlug = m ? m[1] : rest; ds = m ? m[2] : null; }
+  }
   const team = findTeam(teamSlug), opp = findTeam(oppSlug);
   const sc = parseFloat(slugScore != null ? slugScore : sp?.s);
   const score = !isNaN(sc) && sc > 0 ? Math.max(0, Math.min(10, sc)).toFixed(1) : null;
@@ -39,6 +46,7 @@ function parse(slug, sp) {
   return {
     teamName: team?.name || titleCase(teamSlug),
     oppName: opp?.name || titleCase(oppSlug),
+    single,
     accent: team?.primary || ORANGE,
     score, verdict, dateLabel, rivalry,
   };
@@ -54,7 +62,7 @@ async function antonFont() {
 }
 
 export default async function Image({ params, searchParams }) {
-  const { teamName, oppName, accent, score, verdict, dateLabel, rivalry } = parse(params.slug, searchParams);
+  const { teamName, oppName, single, accent, score, verdict, dateLabel, rivalry } = parse(params.slug, searchParams);
   const anton = await antonFont();
   const display = anton ? "Anton" : "sans-serif";
 
@@ -75,11 +83,17 @@ export default async function Image({ params, searchParams }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{teamName}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 6 }}>
-            <span style={{ display: "flex", fontSize: 48, fontWeight: 600, color: "rgba(236,231,219,0.5)", fontFamily: display, letterSpacing: "0.5px" }}>VS</span>
-            <span style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{oppName}</span>
-          </div>
+          {single ? (
+            <div style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{teamName}</div>
+          ) : (
+            <>
+              <div style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{teamName}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 6 }}>
+                <span style={{ display: "flex", fontSize: 48, fontWeight: 600, color: "rgba(236,231,219,0.5)", fontFamily: display, letterSpacing: "0.5px" }}>VS</span>
+                <span style={{ display: "flex", fontSize: 92, fontWeight: 800, fontFamily: display, lineHeight: 1.0, letterSpacing: "0.5px" }}>{oppName}</span>
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
