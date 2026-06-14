@@ -221,10 +221,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
       {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}>
         <Bars g={game} accent={primary} weights={weights} dark={dark} />
-        {game.matchupWhy && (
+        {game.matchupWhy ? (
           <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
             <Zap size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
             Matchup: {game.matchupWhy}.
+          </div>
+        ) : (
+          <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.4)" : "rgba(22,19,15,0.4)" }}>
+            <Zap size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
+            Matchup read available closer to game day.
           </div>
         )}
         {fb.bump > 0 && (
@@ -736,9 +741,9 @@ export default function GameScoreApp() {
           No boring feeds. Just the games you&rsquo;d love — recommended like a fellow fan who gets it.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          Pick your #1 team and what makes a game worth it. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
+          Pick your team — or a sport like golf, the World Cup, or UFC. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
         </p>
-        <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Start with your team — the app suits up in its colors.</p>
+        <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Start with a team or sport — if it&rsquo;s a team, the app suits up in its colors.</p>
         <div style={{ ...field, marginTop: 20 }}>
           <Search size={18} color="rgba(236,231,219,0.5)" />
           <input className="g-in-dark" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -759,15 +764,43 @@ export default function GameScoreApp() {
             <Search size={15} color={ON_MUTED} /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
           </button>
         )}
+        {!q.trim() && (() => {
+          const cur = followedSports || [];
+          const marquee = ["mma", "boxing", "golf", "tennis", "mls"];
+          const picks = FOLLOW_SPORTS.filter((sp) => marquee.includes(sp.id));
+          return (
+            <>
+              <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "22px 0 6px" }}>Or follow a sport</div>
+              <div style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 10, lineHeight: 1.4 }}>No team? Follow a whole sport or event — we rank what&rsquo;s worth watching across it.</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {picks.map((sp) => {
+                  const on = cur.includes(sp.id);
+                  return (
+                    <button key={sp.id} style={chip(on)} onClick={() => { const next = on ? cur.filter((i) => i !== sp.id) : [...cur, sp.id]; setFollowedSports(next); track("follow_sport", { id: sp.id, on: !on, where: "onboarding" }); }}>
+                      {on ? <Check size={13} /> : null} {sp.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })()}
         {favTeams.length > 0 && (
           <div style={{ fontSize: 11.5, color: ON_MUTED, lineHeight: 1.45, marginTop: 20, border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, padding: "10px 12px" }}>
             <i style={{ display: "none" }} />Every game&rsquo;s scored for a neutral fan, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. You can fine-tune what counts anytime in Settings.
           </div>
         )}
-        <button disabled={!teamSlugs.length} onClick={() => setObStep(2)}
-          style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: teamSlugs.length ? CREAM : "rgba(255,255,255,0.08)", color: teamSlugs.length ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: teamSlugs.length ? "pointer" : "default", boxShadow: teamSlugs.length ? DEPTH : "none" }}>
-          {teamSlugs.length ? "Next: your kind of exciting \u2192" : "Add your #1 team to continue"}
-        </button>
+        {(() => {
+          const hasSport = followedSports && followedSports.length > 0;
+          const canContinue = teamSlugs.length > 0 || hasSport;
+          // A sport-first user has no taste step value yet, but presets still apply — send them through too.
+          return (
+            <button disabled={!canContinue} onClick={() => setObStep(2)}
+              style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: canContinue ? CREAM : "rgba(255,255,255,0.08)", color: canContinue ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: canContinue ? "pointer" : "default", boxShadow: canContinue ? DEPTH : "none" }}>
+              {canContinue ? "Next: your kind of exciting \u2192" : "Add a team or sport to continue"}
+            </button>
+          );
+        })()}
         </>) : (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Step 2 of 2 \u00b7 Your taste</div>
         <h1 className="g-display" style={screenH}>WHAT MAKES A GAME WORTH IT, TO YOU?</h1>
@@ -803,7 +836,17 @@ export default function GameScoreApp() {
             );
           })}
         </div>
-        <button onClick={() => { track("onboarding_complete", { preset, teams: teamSlugs.length }); setShowTopper(true); setView("games"); }}
+        <button onClick={() => {
+          track("onboarding_complete", { preset, teams: teamSlugs.length, sports: (followedSports || []).length });
+          setShowTopper(true);
+          // Sport-only user (no team picked): open their first followed sport's feed so they
+          // don't land on a fallback team's schedule.
+          if (!teamSlugs.length && followedSports && followedSports.length) {
+            const sp = FOLLOW_SPORTS.find((s) => s.id === followedSports[0]);
+            if (sp) { setView("games"); runSportFeed(sp); return; }
+          }
+          setView("games");
+        }}
           style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>
           Show my games
         </button>
