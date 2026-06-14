@@ -369,6 +369,7 @@ export default function GameScoreApp() {
   const [reactions, setReactions] = useState({});
   const [shared, setShared] = useState(null);
   const [shareGame, setShareGame] = useState(null); // game pending an intent-picker choice
+  const [shareIntent, setShareIntent] = useState(null); // chosen intent → reveals channel row
   const [session, setSession] = useState(null);
   const [isTouch, setIsTouch] = useState(false);
   const [authEmail, setAuthEmail] = useState("");
@@ -557,23 +558,36 @@ export default function GameScoreApp() {
     setShareGame(g); // open the intent picker
   };
   // Fire the native share (or clipboard) with a chosen, score-accurate caption.
-  const shareWith = (g, intent) => {
+  // Build the score-accurate caption + url for a game/intent (pure — no side effects).
+  const sharePayload = (g, intent) => {
     const score = +scoreOf(g, weights).toFixed(1);
     const v = verdict(score);
     const matchup = `${team.name} vs ${g.opp}`;
     const origin = typeof window !== "undefined" ? window.location.origin : "https://courtvisual.com";
-    const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}?s=${score}`;
-    // Captions stay honest: hype scales with the real verdict, never overpromises a low score.
+    const url = `${origin}/g/${team.slug}-vs-${g.oppSlug}-${g.ds}?s=${score}${g.rivalryName ? `&r=${encodeURIComponent(g.rivalryName)}` : ""}`;
     const hot = score >= 8.5;
     let text;
     if (intent === "watch") text = `${matchup} — scored ${score} on CourtVisual${hot ? ` (${v})` : ""}. Let's watch this one.`;
     else if (intent === "go") text = `${matchup} — a ${score} on CourtVisual${hot ? `, ${v}` : ""}. Let's grab seats. You in?`;
     else text = hot ? `Gotta-see game: ${matchup}, a ${score} on CourtVisual (${v}). Don't miss this one.` : `${matchup} — scored ${score} on CourtVisual. Here's the rundown.`;
-    const data = { title: matchup, text, url };
-    try { if (navigator.share) { navigator.share(data).catch(() => {}); } else { navigator.clipboard?.writeText(`${text} ${url}`); } } catch { try { navigator.clipboard?.writeText(`${text} ${url}`); } catch {} }
-    track("share_game", { opp: g.opp, ds: g.ds, score, intent });
-    setShareGame(null);
-    setShared(g.oppSlug); setTimeout(() => setShared(null), 1600);
+    return { score, matchup, url, text };
+  };
+  // Channel senders. Each picks the right transport; all close the sheet + flash the confirm.
+  const sendVia = (g, intent, channel) => {
+    const { score, matchup, url, text } = sharePayload(g, intent);
+    const full = `${text} ${url}`;
+    if (channel === "sms") {
+      // iOS uses &body=, Android uses ?body= — &body works on both modern platforms.
+      window.open(`sms:?&body=${encodeURIComponent(full)}`, "_blank");
+    } else if (channel === "copy") {
+      try { navigator.clipboard?.writeText(full); } catch {}
+      setShared(g.oppSlug + "-copied"); setTimeout(() => setShared(null), 1600);
+    } else { // "native" — the OS share sheet (WhatsApp, Messenger, email, Instagram on mobile, etc.)
+      try { if (navigator.share) { navigator.share({ title: matchup, text, url }).catch(() => {}); } else { navigator.clipboard?.writeText(full); } } catch { try { navigator.clipboard?.writeText(full); } catch {} }
+    }
+    track("share_game", { opp: g.opp, ds: g.ds, score, intent, channel });
+    if (channel !== "copy") { setShared(g.oppSlug); setTimeout(() => setShared(null), 1600); }
+    setShareGame(null); setShareIntent(null);
   };
 
 
@@ -1065,22 +1079,42 @@ export default function GameScoreApp() {
         )}
         {/* Share-intent picker — three score-aware captions in the app's voice */}
         {shareGame && (
-          <div onClick={() => setShareGame(null)} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,7,10,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div onClick={() => { setShareGame(null); setShareIntent(null); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,7,10,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
             <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, background: "#14181F", borderTopLeftRadius: 22, borderTopRightRadius: 22, border: "1px solid rgba(236,231,219,0.12)", borderBottom: "none", padding: "20px 18px calc(20px + env(safe-area-inset-bottom))", boxShadow: "0 -20px 60px rgba(0,0,0,0.5)" }}>
               <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(236,231,219,0.2)", margin: "0 auto 16px" }} />
-              <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, textAlign: "center", marginBottom: 4 }}>Share this game</div>
+              <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, textAlign: "center", marginBottom: 4 }}>{shareIntent ? "Send it" : "Share this game"}</div>
               <div style={{ textAlign: "center", fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, color: ON, marginBottom: 16 }}>{team.name} vs {shareGame.opp}</div>
-              {[
-                ["watch", <Tv size={16} />, "Let's watch this one"],
-                ["go", <Ticket size={16} />, "Let's go to this"],
-                ["hype", <Flame size={16} />, "Gotta-see game"],
-              ].map(([intent, icon, label]) => (
-                <button key={intent} onClick={() => shareWith(shareGame, intent)}
-                  style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "14px 16px", marginBottom: 9, borderRadius: 13, border: "1px solid rgba(236,231,219,0.14)", background: "rgba(255,255,255,0.04)", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
-                  <span style={{ color: primary, display: "inline-flex" }}>{icon}</span> {label}
-                </button>
-              ))}
-              <button onClick={() => setShareGame(null)} style={{ width: "100%", padding: "12px", marginTop: 4, background: "none", border: "none", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              {!shareIntent ? (
+                <>
+                  {[
+                    ["watch", <Tv size={16} />, "Let's watch this one"],
+                    ["go", <Ticket size={16} />, "Let's go to this"],
+                    ["hype", <Flame size={16} />, "Gotta-see game"],
+                  ].map(([intent, icon, label]) => (
+                    <button key={intent} onClick={() => setShareIntent(intent)}
+                      style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "14px 16px", marginBottom: 9, borderRadius: 13, border: "1px solid rgba(236,231,219,0.14)", background: "rgba(255,255,255,0.04)", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "left" }}>
+                      <span style={{ color: primary, display: "inline-flex" }}>{icon}</span> {label}
+                    </button>
+                  ))}
+                  <button onClick={() => setShareGame(null)} style={{ width: "100%", padding: "12px", marginTop: 4, background: "none", border: "none", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 9, marginBottom: 4 }}>
+                    {[
+                      ["sms", <Mail size={18} />, "Text it"],
+                      ["copy", <ArrowUpRight size={18} />, shared === shareGame.oppSlug + "-copied" ? "Copied!" : "Copy link"],
+                      ["native", <Share2 size={18} />, "More"],
+                    ].map(([channel, icon, label]) => (
+                      <button key={channel} onClick={() => sendVia(shareGame, shareIntent, channel)}
+                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "16px 8px", borderRadius: 13, border: "1px solid rgba(236,231,219,0.14)", background: "rgba(255,255,255,0.04)", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        <span style={{ color: primary, display: "inline-flex" }}>{icon}</span> {label}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => setShareIntent(null)} style={{ width: "100%", padding: "12px", marginTop: 8, background: "none", border: "none", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>← Back</button>
+                </>
+              )}
             </div>
           </div>
         )}
