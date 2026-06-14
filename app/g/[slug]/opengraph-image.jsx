@@ -5,7 +5,7 @@
 // plain language. Anton is embedded so the card carries the real brand type; if the font
 // fetch fails, it degrades to the system sans (card still renders, never errors).
 import { ImageResponse } from "next/og";
-import { TEAMS } from "../../../../lib/data";
+import { TEAMS } from "../../../lib/data";
 
 export const runtime = "edge";
 export const alt = "Game matchup scored on CourtVisual";
