@@ -1103,6 +1103,18 @@ export default function GameScoreApp() {
             <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
             <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {favTeams.length ? team.name : "my games"}</button>
+            {eventResults.length > 0 && (
+              <div style={{ display: "inline-flex", gap: 4, padding: 4, marginBottom: 16, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+                {[["watch", Tv, "Watch"], ["tickets", Ticket, "Tickets"]].map(([k, Icon, label]) => {
+                  const on = viewMode === k;
+                  return (
+                    <button key={k} aria-label={label} onClick={() => { track("view_mode", { mode: k, ctx: "discovery" }); setViewMode(k); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 34, padding: "0 11px", border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
+                      <Icon size={14} /> {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {renderGames([...eventResults].sort((a, b) => (scoreOf(b, weights) + (b._boost || 0)) - (scoreOf(a, weights) + (a._boost || 0))), null, true)}
           </>
         ) : (
