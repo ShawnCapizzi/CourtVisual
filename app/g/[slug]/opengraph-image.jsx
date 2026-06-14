@@ -22,11 +22,16 @@ const titleCase = (s) => (s || "").split("-").map((w) => w.charAt(0).toUpperCase
 
 function parse(slug, sp) {
   const safe = decodeURIComponent(slug || "");
-  const [teamSlug, rest] = safe.split("-vs-");
+  // Score is baked into the slug as a trailing "-s7.7" segment (reliable — the image
+  // route always receives the slug; searchParams are not reliably passed to OG routes).
+  let body = safe, slugScore = null;
+  const sm = safe.match(/^(.*)-s(\d+(?:\.\d+)?)$/);
+  if (sm) { body = sm[1]; slugScore = sm[2]; }
+  const [teamSlug, rest] = body.split("-vs-");
   let oppSlug = null, ds = null;
   if (rest) { const m = rest.match(/^(.*)-(\d{2}-\d{2})$/); oppSlug = m ? m[1] : rest; ds = m ? m[2] : null; }
   const team = findTeam(teamSlug), opp = findTeam(oppSlug);
-  const sc = parseFloat(sp?.s);
+  const sc = parseFloat(slugScore != null ? slugScore : sp?.s);
   const score = !isNaN(sc) && sc > 0 ? Math.max(0, Math.min(10, sc)).toFixed(1) : null;
   const verdict = score == null ? null : +score >= 9.3 ? "HOTTEST TICKET" : +score >= 8.5 ? "MUST SEE" : +score >= 7 ? "HIGHLY RECOMMENDED" : +score >= 5.5 ? "WORTH ATTENDING" : "ON THE SLATE";
   const dateLabel = ds ? new Date(`2026-${ds}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
@@ -80,16 +85,32 @@ export default async function Image({ params, searchParams }) {
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           {score != null ? (
             <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-              <div style={{ display: "flex", width: 132, height: 132, borderRadius: 132, border: "8px solid " + accent, alignItems: "center", justifyContent: "center", fontSize: 60, fontWeight: 800, fontFamily: display, color: FLAME_MID }}>
-                {score}
+              <div style={{ display: "flex", position: "relative", width: 138, height: 138, alignItems: "center", justifyContent: "center" }}>
+                <svg width="138" height="138" viewBox="0 0 200 200" style={{ position: "absolute" }}>
+                  <defs>
+                    <linearGradient id="flameRing" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#FFA52B" />
+                      <stop offset="55%" stop-color="#FF5A2C" />
+                      <stop offset="100%" stop-color="#B3122A" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="100" cy="100" r="88" fill="none" stroke="url(#flameRing)" stroke-width="14" stroke-linecap="round" stroke-dasharray="503 50" transform="rotate(-134 100 100)" />
+                </svg>
+                <span style={{ display: "flex", fontSize: 60, fontWeight: 800, fontFamily: display, color: "#FFFFFF" }}>{score}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ display: "flex", fontSize: 20, letterSpacing: "2px", color: "rgba(236,231,219,0.5)" }}>EXCITEMENT SCORE</span>
-                {verdict && <span style={{ display: "flex", fontSize: 34, fontWeight: 800, fontFamily: display, color: accent, marginTop: 4, letterSpacing: "0.5px" }}>{verdict}</span>}
+                <span style={{ display: "flex", fontSize: 19, letterSpacing: "3px", color: "rgba(236,231,219,0.45)" }}>EXCITEMENT SCORE</span>
+                {verdict && <span style={{ display: "flex", fontSize: 38, fontWeight: 800, fontFamily: display, color: "#FF7A2E", marginTop: 4, letterSpacing: "0.5px" }}>{verdict}</span>}
+                <span style={{ display: "flex", fontSize: 21, color: "#FFFFFF", marginTop: 8 }}>Tap to see why &mdash; and where to watch.</span>
               </div>
             </div>
-          ) : <div style={{ display: "flex" }} />}
-          <div style={{ display: "flex", fontSize: 22, color: "rgba(236,231,219,0.55)", alignItems: "flex-end" }}>No boring feeds.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ display: "flex", fontSize: 26, color: "rgba(236,231,219,0.7)" }}>Every game, scored for what excites you.</span>
+              <span style={{ display: "flex", fontSize: 21, color: "#FFFFFF", marginTop: 6 }}>Tap to see the score &mdash; and where to watch.</span>
+            </div>
+          )}
+          <div style={{ display: "flex", fontSize: 22, color: "#FFFFFF", fontWeight: 700, alignItems: "flex-end" }}>No boring feeds.</div>
         </div>
       </div>
     ),
