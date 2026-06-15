@@ -760,7 +760,7 @@ export default function GameScoreApp() {
             </p>
           </div>
         </div>
-        <h2 className="g-display" style={{ fontSize: 22, color: ON, margin: "20px 0 0", lineHeight: 1.15 }}>Start with a team or sport — if it&rsquo;s a team, the app suits up in its colors.</h2>
+        <h2 style={{ fontFamily: "'Archivo Black', 'Archivo', sans-serif", fontSize: 21, color: ON, margin: "20px 0 0", lineHeight: 1.25, letterSpacing: "0.01em" }}>Start with a team or sport — if it&rsquo;s a team, the app suits up in its colors.</h2>
         <div style={{ ...field, marginTop: 20 }}>
           <Search size={18} color="rgba(236,231,219,0.5)" />
           <input className="g-in-dark" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} />
