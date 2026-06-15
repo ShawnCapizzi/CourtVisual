@@ -749,16 +749,18 @@ export default function GameScoreApp() {
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
           No boring feeds. Just the games you&rsquo;d love — recommended like a fellow fan who gets it.
         </p>
-        <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          Pick your team — or <strong>a sport like golf, the World Cup, or UFC</strong>. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
-        </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 18 }}>
-          <Flame size={16} color="#FF5A2C" style={{ flexShrink: 0 }} />
-          <p style={{ fontSize: 14.5, fontWeight: 700, color: ON, lineHeight: 1.35, margin: 0 }}>
-            The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E" }}>CourtVisual&rsquo;s own</span>.
+        <div style={{ marginTop: 16, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.28)" }}>
+          <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.45, margin: 0 }}>
+            Pick your team — or <strong>a sport like golf, the World Cup, or UFC</strong>. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
           </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 14 }}>
+            <Flame size={16} color="#FF5A2C" style={{ flexShrink: 0 }} />
+            <p style={{ fontSize: 14.5, fontWeight: 700, color: ON, lineHeight: 1.35, margin: 0 }}>
+              The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E" }}>CourtVisual&rsquo;s own</span>.
+            </p>
+          </div>
         </div>
-        <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 16 }}>Start with a team or sport — if it&rsquo;s a team, the app suits up in its colors.</p>
+        <h2 className="g-display" style={{ fontSize: 22, color: ON, margin: "20px 0 0", lineHeight: 1.15 }}>Start with a team or sport — if it&rsquo;s a team, the app suits up in its colors.</h2>
         <div style={{ ...field, marginTop: 20 }}>
           <Search size={18} color="rgba(236,231,219,0.5)" />
           <input className="g-in-dark" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -800,8 +802,8 @@ export default function GameScoreApp() {
           );
         })()}
         {favTeams.length > 0 && (
-          <div style={{ fontSize: 11.5, color: ON_MUTED, lineHeight: 1.45, marginTop: 20, border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, padding: "10px 12px" }}>
-            <i style={{ display: "none" }} />Every game&rsquo;s scored for a neutral fan, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. You can fine-tune what counts anytime in Settings.
+          <div style={{ fontSize: 11.5, color: ON_MUTED, lineHeight: 1.45, marginTop: 16, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.28)" }}>
+            Every game&rsquo;s scored for a neutral fan, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. You can fine-tune what counts anytime in Settings.
           </div>
         )}
         {(() => {
