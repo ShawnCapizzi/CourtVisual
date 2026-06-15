@@ -781,8 +781,7 @@ export default function GameScoreApp() {
         )}
         {!q.trim() && (() => {
           const cur = followedSports || [];
-          const marquee = ["mma", "boxing", "golf", "tennis", "mls"];
-          const picks = FOLLOW_SPORTS.filter((sp) => marquee.includes(sp.id));
+          const picks = FOLLOW_SPORTS;
           return (
             <>
               <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "22px 0 6px" }}>Or follow a sport</div>
