@@ -508,6 +508,7 @@ export default function GameScoreApp() {
   const [liveGames, setLiveGames] = useState(null);
   const [leagueGames, setLeagueGames] = useState(null);
   const [slateMode, setSlateMode] = useState("team");
+  const [gamesLoading, setGamesLoading] = useState(true); // team-games fetch in flight: don't conclude "off-season" yet
   const [teamRecord, setTeamRecord] = useState(null);
   const [jump, setJump] = useState("");
   const [eventResults, setEventResults] = useState(null);
@@ -534,6 +535,7 @@ export default function GameScoreApp() {
   useEffect(() => {
     if (!team) return;
     let cancel = false;
+    setGamesLoading(true);
     fetch(`/api/games?label=${encodeURIComponent(team.label)}&name=${encodeURIComponent(team.name)}&city=${encodeURIComponent(team.city)}&slug=${team.slug}&league=${team.league || ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
@@ -542,8 +544,9 @@ export default function GameScoreApp() {
         setLeagueGames(d.leagueGames?.length ? d.leagueGames : null);
         setSlateMode(d.mode || "team");
         setTeamRecord(d.teamRecord || null);
+        setGamesLoading(false);
       })
-      .catch(() => { if (!cancel) { setLiveGames(null); setLeagueGames(null); setSlateMode("offseason"); } });
+      .catch(() => { if (!cancel) { setLiveGames(null); setLeagueGames(null); setSlateMode("offseason"); setGamesLoading(false); } });
     return () => { cancel = true; };
   }, [team?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1086,14 +1089,20 @@ export default function GameScoreApp() {
   let gamesView;
   {
     let base, sub, context = null;
-    if (liveGames) {
+    if (gamesLoading && !liveGames) {
+      // Fetch still in flight. Don't conclude anything about the season yet.
+      base = []; sub = "Pulling your latest schedule\u2026";
+      context = <ContextCard primary={primary} title="Loading your slate" body="Checking the latest games, broadcasts, and prices." />;
+    } else if (liveGames) {
       base = liveGames; sub = "Live schedule + prices via Ticketmaster.";
     } else if (slateMode === "league" && leagueGames?.length) {
       base = leagueGames; sub = `Live in the ${LEAGUE} right now.`;
-      context = <ContextCard primary={primary} teamRecord={teamRecord} title={`The ${team.name} season has ended`} body={`No upcoming ${team.name} games right now${teamRecord ? ` — they finished ${teamRecord.str}` : ""}. Here's what's live in the ${LEAGUE}, ranked by your taste.`} />;
+      context = <ContextCard primary={primary} teamRecord={teamRecord} title={`No upcoming ${team.name} games`} body={`Nothing on the ${team.name} calendar right now. Here's what's live in the ${LEAGUE}, ranked by your taste.`} />;
     } else {
-      base = sampleSlate(team); sub = "Example matchups — the season's not live yet.";
-      context = <ContextCard primary={primary} teamRecord={teamRecord} title={`The ${LEAGUE} is in its off-season`} body={teamRecord ? `The ${team.name} finished ${teamRecord.str}. Here's a taste of the matchups to come.` : `No games scheduled right now. Here's a taste of the matchups to come.`} />;
+      // Empty result. We do NOT assert the season is over: an empty pull can mean off-season, a
+      // schedule that hasn't posted yet, or simply no listed events. Stay neutral, show a taste.
+      base = sampleSlate(team); sub = "Example matchups, ranked by your taste.";
+      context = <ContextCard primary={primary} teamRecord={teamRecord} title="No upcoming games listed yet" body={`We don't see scheduled ${team.name} games right now. Here's a taste of the matchups to come while the schedule fills in.`} />;
     }
     const byDate = (a, b) => {
       // Chronological for trip planning. Use the route's iso date; fall back to ds, TBD last.
