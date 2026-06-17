@@ -367,8 +367,8 @@ export async function GET(request) {
         if (cMine != null) g.teamContention = cMine; // viewing team's contention, for the fan-lens "in the race" bump
         // Matchup from records: win-pct of both sides if the league context exposes it.
         const pMine = ctx.winPct ? ctx.winPct(label) : null, pOpp = ctx.winPct ? ctx.winPct(opp) : null;
-        const mr = matchupFromRecords(pMine, pOpp);
-        if (mr) { g.historic = mr.value; g.matchupWhy = mr.why; }
+        const mr = matchupFromRecords(pMine, pOpp, lastWord(label), opp);
+        if (mr) { g.historic = mr.value; g.matchupWhy = mr.why; g.matchupKind = mr.kind; }
         // A national storyline still earns a tag, but no longer feeds a factor (stars are gone).
         if (ctx.storyline(label) || ctx.storyline(opp)) { if (g.tag === "Regular season") g.tag = "Storyline game"; }
       }
@@ -381,8 +381,8 @@ export async function GET(request) {
       const smap = await fetchSpreadMap(league);
       if (smap.size) for (const g of games) {
         const sp = spreadFor(smap, g.opp, g.ds);
-        const ms = matchupFromSpread(sp);
-        if (ms) { g.historic = ms.value; g.matchupWhy = ms.why; }
+        const ms = matchupFromSpread(sp, g.opp, lastWord(label));
+        if (ms) { g.historic = ms.value; g.matchupWhy = ms.why; g.matchupKind = ms.kind; }
       }
     } catch {}
 
