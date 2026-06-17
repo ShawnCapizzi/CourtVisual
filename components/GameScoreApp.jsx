@@ -230,7 +230,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           <ChevronDown size={15} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s", color: muted }} />
         </button>
       </div>
-      {open && <div style={{ marginTop: 8, padding: "12px 14px 11px", borderRadius: 13, background: dark ? "linear-gradient(180deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.025) 100%)" : "linear-gradient(180deg, rgba(22,19,15,0.05) 0%, rgba(22,19,15,0.015) 100%)", boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.06)" : "inset 0 1px 0 rgba(255,255,255,0.45)" }}>
+      {open && <div className="cv-gleam" style={{ marginTop: 8, padding: "12px 14px 11px", borderRadius: 13, background: dark ? "linear-gradient(180deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.025) 100%)" : "linear-gradient(180deg, rgba(22,19,15,0.05) 0%, rgba(22,19,15,0.015) 100%)", boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.06)" : "inset 0 1px 0 rgba(255,255,255,0.45)" }}>
         <Bars g={game} accent={primary} weights={weights} dark={dark} />
         {(standingMine || standingOpp) && (
           <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
@@ -819,7 +819,7 @@ export default function GameScoreApp() {
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
 
-        <div style={{ marginTop: 16, borderRadius: 20, padding: "20px", position: "relative", overflow: "hidden", background: "linear-gradient(180deg, rgba(255,90,44,0.11) 0%, rgba(255,90,44,0.035) 100%)", backgroundImage: FABRIC, border: "1px solid rgba(255,90,44,0.22)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+        <div className="cv-gleam" style={{ marginTop: 16, borderRadius: 20, padding: "20px", position: "relative", overflow: "hidden", background: "linear-gradient(180deg, rgba(255,90,44,0.11) 0%, rgba(255,90,44,0.035) 100%)", backgroundImage: FABRIC, border: "1px solid rgba(255,90,44,0.22)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
           <p style={{ fontSize: 17, color: ON, fontWeight: 600, lineHeight: 1.4, margin: 0, letterSpacing: "-0.01em" }}>
             CourtVisual helps busy fans find the games <span style={{ color: "#FF7A2E", fontWeight: 800 }}>worth watching, attending, or sharing</span>, before they miss them.
           </p>
@@ -896,7 +896,7 @@ export default function GameScoreApp() {
           );
         })()}
         {favTeams.length > 0 && (
-          <div style={{ fontSize: 12.5, color: "rgba(236,231,219,0.85)", lineHeight: 1.5, marginTop: 16, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(96,128,176,0.12)", backgroundImage: FABRIC, border: "1px solid rgba(120,150,190,0.24)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+          <div className="cv-gleam" style={{ "--cv-gleam-head": "rgba(236,243,255,0.98)", "--cv-gleam-glow": "rgba(150,180,230,0.7)", fontSize: 12.5, color: "rgba(236,231,219,0.85)", lineHeight: 1.5, marginTop: 16, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(96,128,176,0.12)", backgroundImage: FABRIC, border: "1px solid rgba(120,150,190,0.24)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
             Every game&rsquo;s scored for a <b style={{ color: ON }}>neutral fan</b>, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a <b style={{ color: ON }}>plain-English read</b> of why it&rsquo;s worth watching. Prefer quick chips, or a different announcer voice? Switch anytime in <b style={{ color: ON }}>Settings</b>, where you can fine-tune what counts too.
           </div>
         )}
@@ -995,7 +995,7 @@ export default function GameScoreApp() {
           <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
         </div>
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(236,231,219,0.08)" }}>
-          <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>How hard do you go for each team? Die-hards see their games &mdash; and their rivals &mdash; run hotter.</div>
+          <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>How hard do you go for each team? Die-hards see their games (and their rivals) run hotter.</div>
           {favTeams.map((t) => {
             const di = (intensities[t.slug] || "follow") === "diehard";
             return (
@@ -1021,7 +1021,7 @@ export default function GameScoreApp() {
               })}
             </div>
           </div>
-          <div style={{ fontSize: 11, color: ON_FAINT, marginTop: 8, lineHeight: 1.4 }}>Fan view lifts your teams&rsquo; games with disclosed bumps, shown on every card. Neutral is the honest baseline &mdash; flip back anytime.</div>
+          <div style={{ fontSize: 11, color: ON_FAINT, marginTop: 8, lineHeight: 1.4 }}>Fan view lifts your teams&rsquo; games with disclosed bumps, shown on every card. Neutral is the honest baseline. Flip back anytime.</div>
         </div>
       </Section>
         <div id="settings-excitement"><Section primary={primary} label="Your excitement">
@@ -1125,7 +1125,7 @@ export default function GameScoreApp() {
             ))}
           </div>
           <p style={{ fontSize: 12, color: ON_FAINT, marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
-            Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your excitement sliders. Championship-size games carry a floor &mdash; games that big can&rsquo;t score low.{" "}
+            Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your excitement sliders. Championship-size games carry a floor, games that big can&rsquo;t score low.{" "}
             <a href="/about" style={{ color: ON, textDecoration: "underline", textUnderlineOffset: 2 }}>Read the full FAQ</a>.
           </p>
         </Section>

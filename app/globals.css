@@ -62,3 +62,24 @@ button:active { transform: scale(0.985); }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 160px 160px;
 }
+
+/* Border-beam gleam: a soft light that orbits a card's rounded edge, a quiet
+   premium cue on key surfaces (the open why-it-scores panel, the welcome value
+   block, the neutral-fan note). The animated custom property is paused for free
+   by the reduced-motion rule above. Per-card tint via --cv-gleam-head / -glow. */
+@property --cv-gleam-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.cv-gleam { position: relative; isolation: isolate; }
+.cv-gleam::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit;
+  padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--cv-gleam-a),
+    transparent 0deg, transparent 300deg,
+    var(--cv-gleam-glow, rgba(255,150,80,0.70)) 330deg,
+    var(--cv-gleam-head, rgba(255,246,236,0.98)) 344deg,
+    var(--cv-gleam-glow, rgba(255,150,80,0.70)) 352deg,
+    transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: cv-gleam-orbit 5s linear infinite;
+}
+@keyframes cv-gleam-orbit { to { --cv-gleam-a: 360deg; } }
