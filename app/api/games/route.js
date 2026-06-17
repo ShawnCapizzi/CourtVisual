@@ -329,6 +329,7 @@ export async function GET(request) {
       const oppFull = (teamFirst ? parts[1] : parts[0]).trim();
       const resolved = ctx?.resolveTeam(oppFull);
       const opp = resolved?.nick || lastWord(oppFull);
+      const oppId = resolved?.id || null; // ESPN team id, for exact standings matching
       const oppSlug = slugify(opp);
       if (!opp || /^\d+$/.test(opp)) continue; // guard against junk like "5"
 
@@ -346,7 +347,7 @@ export async function GET(request) {
       const minPrice = ev.priceRanges?.[0]?.min;
 
       const g = {
-        opp, oppSlug, date, ds, iso: dt || (ev.dates?.start?.localDate ? `${ev.dates.start.localDate}T00:00:00Z` : null), home, dow: dowOf(dt, ev.dates?.start?.localDate),
+        opp, oppSlug, oppId, date, ds, iso: dt || (ev.dates?.start?.localDate ? `${ev.dates.start.localDate}T00:00:00Z` : null), home, dow: dowOf(dt, ev.dates?.start?.localDate),
         tag: f.tag,
         playoff: f.playoff, rivalry: f.rivalry, hot: f.hot, historic: f.historic,
         url: ev.url || null,
