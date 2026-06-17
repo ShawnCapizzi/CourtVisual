@@ -152,27 +152,25 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
 
       {(recommendation || standingMine || standingOpp) && (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, textAlign: "center" }}>
+          {recommendation && <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: ink }}>{recommendation}</div>}
           {whyView === "chips" ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: recommendation ? 8 : 0 }}>
               {game.topRivals && <span style={whyChip(dark, ink)}>{(rivalryNames !== false && game.rivalryName) || "Rivalry"}</span>}
               {game.matchupWhy && <span style={whyChip(dark, ink)}>{game.matchupWhy.charAt(0).toUpperCase() + game.matchupWhy.slice(1)}</span>}
               {standingMine && <span style={whyChip(dark, ink)}>{teamName} {rankOnly(standingMine)}</span>}
               {standingOpp && <span style={whyChip(dark, ink)}>{game.opp} {rankOnly(standingOpp)}</span>}
             </div>
-          ) : recommendation ? (
-            <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45, color: ink }}>{recommendation}</div>
-          ) : null}
-          {(standingMine || standingOpp) && whyView !== "chips" && (
+          ) : (standingMine || standingOpp) ? (
             <div style={{ marginTop: 5, fontSize: 11, color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}>
               <Trophy size={11} />
               {[standingMine && `${teamName || "Home"} ${rankOnly(standingMine)}`, standingOpp && `${game.opp} ${rankOnly(standingOpp)}`].filter(Boolean).join(" · ")}
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
-      {mode === "watch" ? (() => {
+      {(() => {
         const w = watchOptions(league || game.sport, game);
         const chipS = { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.07)", color: ink, border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(22,19,15,0.10)" };
         return (
@@ -182,54 +180,32 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
                 <Tv size={15} /> On {w.networks.join(" · ")}
               </div>
             ) : (
-              <>
-                <div className="g-eyebrow" style={{ fontSize: 9, color: muted, marginBottom: 8 }}>Where to watch</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {w.national.map((n) => (<span key={n} style={chipS}>{n}</span>))}
-                </div>
-              </>
+              <div className="g-eyebrow" style={{ fontSize: 9, color: muted, marginBottom: 8 }}>Where to watch</div>
             )}
-            {w.streamer && (
-              <button onClick={() => { track("stream_click", { key: w.streamer.key }); window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener"); }}
-                style={{ width: "100%", marginTop: 9, padding: "11px 14px", borderRadius: 12, cursor: "pointer", background: dark ? "rgba(255,255,255,0.07)" : "rgba(22,19,15,0.05)", border: dark ? "1px solid rgba(255,255,255,0.14)" : "1px solid rgba(22,19,15,0.12)", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-                <Tv size={14} /> {w.streamer.label} <span style={{ fontWeight: 500, color: muted }}>· {w.streamer.note}</span> <ArrowUpRight size={12} />
-              </button>
-            )}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: w.networks ? 9 : 0 }}>
+              {!w.networks && w.national.map((n) => (<span key={n} style={chipS}>{n}</span>))}
+              {w.streamer && (
+                <button onClick={() => { track("stream_click", { key: w.streamer.key }); window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener"); }} style={{ ...chipS, cursor: "pointer", gap: 4 }}>
+                  <Tv size={11} /> {w.streamer.label} <ArrowUpRight size={10} />
+                </button>
+              )}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10.5, color: muted, lineHeight: 1.4 }}>{w.localNote}</div>
             {liveTvOffer() && (
-              <button onClick={() => { track("livetv_click", {}); window.open(liveTvOffer().url, "_blank", "noopener"); }}
-                style={{ width: "100%", marginTop: 7, padding: "9px 14px", borderRadius: 12, cursor: "pointer", background: "none", border: dark ? "1px dashed rgba(255,255,255,0.18)" : "1px dashed rgba(22,19,15,0.18)", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <button onClick={() => { track("livetv_click", {}); window.open(liveTvOffer().url, "_blank", "noopener"); }} style={{ marginTop: 6, padding: 0, background: "none", border: "none", cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
                 Don&rsquo;t have these channels? {liveTvOffer().label} <ArrowUpRight size={11} />
               </button>
             )}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
-              <span style={{ fontSize: 10.5, color: muted, lineHeight: 1.4 }}>{w.localNote}</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, marginTop: 10, paddingTop: 10, borderTop: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(22,19,15,0.08)" }}>
               {game.url && (
-                <button onClick={() => onShare(game, "buy")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  <Ticket size={12} /> {game.minPrice ? `Tickets from $${game.minPrice}` : "Get tickets"} <ArrowUpRight size={11} />
+                <button onClick={() => onShare(game, "buy")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Ticket size={13} /> {game.minPrice ? `Tickets from $${game.minPrice}` : "Get tickets"} <ArrowUpRight size={12} />
                 </button>
               )}
             </div>
           </div>
         );
-      })() : (
-      <>
-      <button onClick={() => onShare(game, "buy")}
-        style={{ width: "100%", marginTop: 14, padding: "13px 16px", borderRadius: 13, border: "none", cursor: "pointer",
-          color: textOn(secondary), backgroundColor: secondary,
-          backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), linear-gradient(180deg, ${secondary} 0%, ${shade(secondary, 0.12)} 100%)`,
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.34), 0 6px 15px rgba(0,0,0,0.30)",
-          fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: game.minPrice ? "space-between" : "center", gap: 8 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Ticket size={15} /> Get tickets <ArrowUpRight size={13} /></span>
-        {game.minPrice ? <span style={{ fontWeight: 800 }}>From ${game.minPrice}</span> : null}
-      </button>
-      {tickpickCompareUrl(game.matchup || `${teamName} vs ${game.opp}`) && (
-        <button onClick={() => { track("tickpick_click", { opp: game.opp }); window.open(tickpickCompareUrl(game.matchup || `${teamName} vs ${game.opp}`), "_blank", "noopener"); }}
-          style={{ width: "100%", marginTop: 7, padding: 0, background: "none", border: "none", cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-          Compare prices on TickPick <ArrowUpRight size={11} />
-        </button>
-      )}
-      </>
-      )}
+      })()}
 
       <div style={{ marginTop: 14, paddingTop: 11, borderTop: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(22,19,15,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <button onClick={() => onShare(game, "share")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ink, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -280,8 +256,9 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
 }
 
 const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? "transparent" : "rgba(236,231,219,0.20)"}`, background: active ? CREAM : "transparent", color: active ? INK : ON, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
-// Small scannable factor/standing chip for the card's "chips" why-view.
-const whyChip = (dark, ink) => ({ display: "inline-flex", alignItems: "center", padding: "4px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.01em", color: ink, background: dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.07)", border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(22,19,15,0.10)" });
+// Small scannable factor/standing chip for the card's optional chips view. Deliberately a
+// different (warm flame-tinted) surface so the chips read as their own layer, not card UI.
+const whyChip = (dark, ink) => ({ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.01em", color: ink, background: "rgba(255,90,44,0.14)", border: "1px solid rgba(255,90,44,0.32)" });
 
 // "Hot games for you" — ranking boost from the fan's profile. Pure and additive:
 // the displayed score stays the honest scoreOf; the boost only reorders the list.
@@ -1004,13 +981,12 @@ export default function GameScoreApp() {
             <button onClick={() => setRivalryNames(!rivalryNames)} style={chip(rivalryNames)}>{rivalryNames ? <Check size={13} /> : <X size={13} />} {rivalryNames ? "On" : "Off"}</button>
           </div>
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 3 }}>How games read</div>
-            <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 8, lineHeight: 1.4 }}>Each game gets a plain-English <b style={{ color: ON }}>why watch</b> line. Prefer a quick scan? Switch it to <b style={{ color: ON }}>chips</b>.</div>
-            <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-              {[["sentence", "Sentence"], ["chips", "Chips"]].map(([k, l]) => {
-                const on = whyView === k;
-                return (<button key={k} onClick={() => { track("why_view", { mode: k }); setWhyView(k); }} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 14px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
-              })}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Show factor chips</div>
+                <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 3, lineHeight: 1.4 }}>Every game keeps its plain-English why-watch line. Turn this on to add scannable chips beneath it.</div>
+              </div>
+              <button onClick={() => { const next = whyView === "chips" ? "sentence" : "chips"; track("why_view", { mode: next }); setWhyView(next); }} style={chip(whyView === "chips")}>{whyView === "chips" ? <Check size={13} /> : <X size={13} />} {whyView === "chips" ? "On" : "Off"}</button>
             </div>
           </div>
           <div style={{ marginTop: 16 }}>
@@ -1022,16 +998,6 @@ export default function GameScoreApp() {
                   {voice === v.id && <Check size={13} />} {v.label}
                 </button>
               ))}
-            </div>
-          </div>
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 3 }}>Card actions</div>
-            <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 8, lineHeight: 1.4 }}>Every game flips between <b style={{ color: ON }}>where to watch</b> (TV &amp; streaming) and <b style={{ color: ON }}>tickets</b> to be there live — the <Ticket size={11} style={{ verticalAlign: "-1px" }} /> / <Tv size={11} style={{ verticalAlign: "-1px" }} /> toggle next to your team name.</div>
-            <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-              {[["watch", Tv, "Watch"], ["tickets", Ticket, "Tickets"]].map(([k, Icon, l]) => {
-                const on = viewMode === k;
-                return (<button key={k} onClick={() => { track("view_mode", { mode: k, from: "settings" }); setViewMode(k); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 14px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}><Icon size={13} /> {l}</button>);
-              })}
             </div>
           </div>
           <div style={{ marginTop: 16 }}>
@@ -1193,18 +1159,6 @@ export default function GameScoreApp() {
             <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
             <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {favTeams.length ? team.name : "my games"}</button>
-            {eventResults.length > 0 && (
-              <div style={{ display: "inline-flex", gap: 4, padding: 4, marginBottom: 16, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
-                {[["watch", Tv, "Watch"], ["tickets", Ticket, "Tickets"]].map(([k, Icon, label]) => {
-                  const on = viewMode === k;
-                  return (
-                    <button key={k} aria-label={label} onClick={() => { track("view_mode", { mode: k, ctx: "discovery" }); setViewMode(k); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 34, padding: "0 11px", border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
-                      <Icon size={14} /> {label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
             {renderGames([...eventResults].sort((a, b) => (scoreOf(b, weights) + (b._boost || 0)) - (scoreOf(a, weights) + (a._boost || 0))), null, true)}
           </>
         ) : (
@@ -1220,37 +1174,13 @@ export default function GameScoreApp() {
             <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 12 }}>{gamesView.sub}</p>
             {liveGames && (
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16 }}>
-                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, textAlign: "center" }}>
-                    {viewMode === "tickets" ? "Going to the game" : "Watch from the couch"}
-                  </span>
-                  <div style={{ display: "flex", gap: 3, padding: 3, background: "rgba(255,255,255,0.07)", borderRadius: 11, border: "1px solid rgba(255,255,255,0.06)" }}>
-                    {[["watch", Tv, "Watch"], ["tickets", Ticket, "Tickets"]].map(([k, Icon, label]) => {
-                      const on = viewMode === k;
-                      return (
-                        <button key={k} aria-label={label} onClick={() => { track("view_mode", { mode: k }); setViewMode(k); }} style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, height: 34, border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
-                          <Icon size={14} /> {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, textAlign: "center" }}>
-                    {sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}
-                  </span>
-                  <div style={{ display: "flex", gap: 3, padding: 3, background: "rgba(255,255,255,0.07)", borderRadius: 11, border: "1px solid rgba(255,255,255,0.06)" }}>
-                    {[["score", Flame, "By score"], ["date", Calendar, "By date"]].map(([k, Icon, label]) => {
-                      const on = sortMode === k;
-                      return (
-                        <button key={k} onClick={() => { track("sort_mode", { mode: k }); setSortMode(k); setVisible(8); }} style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, height: 34, border: "none", cursor: "pointer", borderRadius: 9, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>
-                          <Icon size={13} /> {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: ON_MUTED }}>
+                  {sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}
+                </span>
+                <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
+                </button>
               </div>
             )}
             {gamesView.context}
