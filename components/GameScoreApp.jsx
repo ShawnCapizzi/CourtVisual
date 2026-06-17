@@ -135,7 +135,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: FLAME(135), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span className="g-display" style={{ fontSize: 21, color: ink }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
+            <span className="g-display" style={{ fontSize: 21, color: ink, lineHeight: 1.08, minWidth: 0, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
             {game.topRivals ? (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: dark ? "#fff" : INK, fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
                 <Flame size={10} /> {(rivalryNames !== false && game.rivalryName) || "Top Rivals"}
@@ -882,7 +882,7 @@ export default function GameScoreApp() {
           );
         })()}
         {favTeams.length > 0 && (
-          <div className="cv-gleam" style={{ "--cv-gleam-head": "rgba(236,243,255,0.98)", "--cv-gleam-glow": "rgba(150,180,230,0.7)", fontSize: 12.5, color: "rgba(236,231,219,0.85)", lineHeight: 1.5, marginTop: 16, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(96,128,176,0.12)", backgroundImage: FABRIC, border: "1px solid rgba(120,150,190,0.24)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+          <div className="cv-gleam" style={{ fontSize: 12.5, color: "rgba(236,231,219,0.85)", lineHeight: 1.5, marginTop: 16, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(96,128,176,0.12)", backgroundImage: FABRIC, border: "1px solid rgba(120,150,190,0.24)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
             Every game&rsquo;s scored for a <b style={{ color: ON }}>neutral fan</b>, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a <b style={{ color: ON }}>plain-English read</b> of why it&rsquo;s worth watching. Prefer quick chips, or a different announcer voice? Switch anytime in <b style={{ color: ON }}>Settings</b>, where you can fine-tune what counts too.
           </div>
         )}
@@ -927,9 +927,9 @@ export default function GameScoreApp() {
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5, color: ON }}>
                   <span style={{ width: 9, height: 9, borderRadius: 2, background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} /> {f.label}
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: ON_MUTED, fontVariantNumeric: "tabular-nums" }}>{weights[f.key]}</span>
+                <span className="g-display" style={{ fontSize: 16, backgroundImage: FLAME(180), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{weights[f.key]}</span>
               </div>
-              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
+              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} style={{ "--g-fill": weights[f.key] + "%" }} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
             </div>
           ))}
         </div>
@@ -939,20 +939,19 @@ export default function GameScoreApp() {
           const cp = scoreParts(demo, weights).contrib;
           const top = FACTORS.reduce((a, f) => (cp[f.key] > cp[a.key] ? f : a), FACTORS[0]);
           return (
-            <div className="cv-gleam" style={{ marginTop: 20, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.12)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
-              <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED }}>A sample game, scored by your mix</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 10 }}>
-                <span className="g-display" style={{ fontSize: 40, lineHeight: 1, backgroundImage: FLAME(135), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{sc.toFixed(1)}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, color: ON }}>{verdict(sc)}</div>
-                  <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 2 }}>Rivalry night, two close teams</div>
+            <div className="cv-gleam" style={{ marginTop: 22, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", backgroundColor: "#171B23", backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.10), rgba(255,255,255,0) 55%)", border: "1px solid rgba(255,255,255,0.10)", boxShadow: `${DEPTH}, inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -46px 70px rgba(0,0,0,0.40)` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
+                <Ring value={sc} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span className="g-display" style={{ fontSize: 18, color: ON, lineHeight: 1.08 }}>RIVALRY NIGHT</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)", fontSize: 10, fontWeight: 700 }}><Flame size={10} /> {verdict(sc)}</span>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: ON_MUTED, marginTop: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>A sample game, scored by your mix</div>
                 </div>
               </div>
-              <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginTop: 12 }}>
-                {FACTORS.map((f, fi) => (<span key={f.key} style={{ flex: Math.max(weights[f.key], 0.001), background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} />))}
-              </div>
-              <div style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10, lineHeight: 1.4 }}>
-                Move a slider and this score moves. Right now it leans on your <b style={{ color: ON_MUTED }}>{top.label}</b> weight. That is exactly how we rank every real game on your slate.
+              <div style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 14, lineHeight: 1.45 }}>
+                Move a slider and this score moves. Right now it leans on your <b style={{ color: ON_MUTED }}>{top.label}</b> weight, exactly how we rank every real game on your slate.
               </div>
             </div>
           );
@@ -1030,9 +1029,9 @@ export default function GameScoreApp() {
             <div key={f.key}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: ON }}>{f.label}</span>
-                <span className="g-display" style={{ fontSize: 17, backgroundImage: "linear-gradient(180deg,#8FE89E 0%,#39B24C 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#6FD680" }}>{weights[f.key]}</span>
+                <span className="g-display" style={{ fontSize: 16, backgroundImage: FLAME(180), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{weights[f.key]}</span>
               </div>
-              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
+              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} style={{ "--g-fill": weights[f.key] + "%" }} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
             </div>
           ))}
         </div>

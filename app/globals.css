@@ -13,9 +13,17 @@ html, body {
 .g-ui { font-family: 'Archivo', sans-serif; font-variant-numeric: tabular-nums; }
 .g-eyebrow { font-family: 'Archivo', sans-serif; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
 
-.g-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 3px; border-radius: 3px; background: rgba(236,231,219,0.16); outline: none; accent-color: #B9B5AC; cursor: pointer; }
-.g-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FBFAF7 0%, #D2CFC7 40%, #8E8B83 100%); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.45), inset 0 -1px 2px rgba(0,0,0,0.28), inset 0 1px 1px rgba(255,255,255,0.65); }
-.g-slider::-moz-range-thumb { width: 18px; height: 18px; border: none; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FBFAF7 0%, #D2CFC7 40%, #8E8B83 100%); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.45), inset 0 -1px 2px rgba(0,0,0,0.28), inset 0 1px 1px rgba(255,255,255,0.65); }
+/* Modern range slider: thin rounded track, flame fill up to the thumb (driven by the
+   inline --g-fill percentage), clean white thumb with a flame ring. One look everywhere. */
+.g-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; outline: none; cursor: pointer; --g-fill: 50%; }
+.g-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(90deg, #FF7A2E 0%, #FF5A2C var(--g-fill), rgba(236,231,219,0.16) var(--g-fill), rgba(236,231,219,0.16) 100%); }
+.g-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%; background: #FBFAF7; border: 2px solid #FF5A2C; box-shadow: 0 2px 6px rgba(0,0,0,0.45); }
+.g-slider::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(236,231,219,0.16); }
+.g-slider::-moz-range-progress { height: 6px; border-radius: 999px; background: linear-gradient(90deg, #FF7A2E, #FF5A2C); }
+.g-slider::-moz-range-thumb { width: 18px; height: 18px; border: 2px solid #FF5A2C; border-radius: 50%; background: #FBFAF7; box-shadow: 0 2px 6px rgba(0,0,0,0.45); }
+.g-slider:focus-visible { outline: none; }
+.g-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(255,90,44,0.30), 0 2px 6px rgba(0,0,0,0.45); }
+.g-slider:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(255,90,44,0.30), 0 2px 6px rgba(0,0,0,0.45); }
 
 .g-in { font-family: 'Archivo', sans-serif; font-size: 16px; color: #16130F; background: transparent; border: none; outline: none; width: 100%; }
 .g-in::placeholder { color: rgba(22,19,15,0.4); }
@@ -74,9 +82,9 @@ button:active { transform: scale(0.985); }
   padding: 1.5px; pointer-events: none;
   background: conic-gradient(from var(--cv-gleam-a),
     transparent 0deg, transparent 300deg,
-    var(--cv-gleam-glow, rgba(255,150,80,0.70)) 330deg,
-    var(--cv-gleam-head, rgba(255,246,236,0.98)) 344deg,
-    var(--cv-gleam-glow, rgba(255,150,80,0.70)) 352deg,
+    var(--cv-gleam-glow, rgba(255,255,255,0.35)) 330deg,
+    var(--cv-gleam-head, rgba(255,255,255,0.95)) 344deg,
+    var(--cv-gleam-glow, rgba(255,255,255,0.35)) 352deg,
     transparent 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
