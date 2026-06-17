@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
 import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv } from "lucide-react";
-import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf } from "../lib/data";
+import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf, recommend, VOICE_LIST } from "../lib/data";
+import { indexStandings, findStanding, rankOnly, rankGroup } from "../lib/standings-read";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { watchOptions } from "../lib/watch";
 import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
@@ -101,7 +102,7 @@ function Bars({ g, accent, weights, dark }) {
 }
 
 
-function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames, mode, league, fanCtx }) {
+function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames, mode, league, fanCtx, standingMine, standingOpp, recommendation, whyView }) {
   const parts = scoreParts(game, weights);
   const fb = fanCtx ? fanBump(game, fanCtx) : { bump: 0, reasons: [] };
   const score = fb.bump > 0 ? Math.round(Math.min(10, parts.score + fb.bump) * 10) / 10 : parts.score;
@@ -149,6 +150,27 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
         </div>
       </div>
+
+      {(recommendation || standingMine || standingOpp) && (
+        <div style={{ marginTop: 12 }}>
+          {whyView === "chips" ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {game.topRivals && <span style={whyChip(dark, ink)}>{(rivalryNames !== false && game.rivalryName) || "Rivalry"}</span>}
+              {game.matchupWhy && <span style={whyChip(dark, ink)}>{game.matchupWhy.charAt(0).toUpperCase() + game.matchupWhy.slice(1)}</span>}
+              {standingMine && <span style={whyChip(dark, ink)}>{teamName} {rankOnly(standingMine)}</span>}
+              {standingOpp && <span style={whyChip(dark, ink)}>{game.opp} {rankOnly(standingOpp)}</span>}
+            </div>
+          ) : recommendation ? (
+            <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.45, color: ink }}>{recommendation}</div>
+          ) : null}
+          {(standingMine || standingOpp) && whyView !== "chips" && (
+            <div style={{ marginTop: 5, fontSize: 11, color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Trophy size={11} />
+              {[standingMine && `${teamName || "Home"} ${rankOnly(standingMine)}`, standingOpp && `${game.opp} ${rankOnly(standingOpp)}`].filter(Boolean).join(" · ")}
+            </div>
+          )}
+        </div>
+      )}
 
       {mode === "watch" ? (() => {
         const w = watchOptions(league || game.sport, game);
@@ -221,6 +243,12 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
       {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}>
         <Bars g={game} accent={primary} weights={weights} dark={dark} />
+        {(standingMine || standingOpp) && (
+          <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
+            <Trophy size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
+            Standings: {[standingMine && `${teamName || "Home"}: ${rankGroup(standingMine)}`, standingOpp && `${game.opp}: ${rankGroup(standingOpp)}`].filter(Boolean).join(" · ")}.
+          </div>
+        )}
         {game.matchupWhy ? (
           <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
             <Zap size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
@@ -252,6 +280,8 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
 }
 
 const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? "transparent" : "rgba(236,231,219,0.20)"}`, background: active ? CREAM : "transparent", color: active ? INK : ON, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "'Archivo',sans-serif" });
+// Small scannable factor/standing chip for the card's "chips" why-view.
+const whyChip = (dark, ink) => ({ display: "inline-flex", alignItems: "center", padding: "4px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.01em", color: ink, background: dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.07)", border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(22,19,15,0.10)" });
 
 // "Hot games for you" — ranking boost from the fan's profile. Pure and additive:
 // the displayed score stays the honest scoreOf; the boost only reorders the list.
@@ -369,6 +399,8 @@ export default function GameScoreApp() {
   const [followedSports, setFollowedSports] = useState(null); // null = auto from team leagues
   const [intensities, setIntensities] = useState({}); // { slug: "follow" | "diehard" } — fan-lens per-team
   const [lens, setLens] = useState("neutral"); // "neutral" | "fan" — global, flippable, disclosed
+  const [whyView, setWhyView] = useState("sentence"); // "sentence" (default) | "chips" — how the why reads
+  const [voice, setVoice] = useState("house"); // recommendation voice id, or "mix" to rotate per game
   const [override, setOverride] = useState(null);
   const [q, setQ] = useState("");
   const [reactions, setReactions] = useState({});
@@ -380,7 +412,7 @@ export default function GameScoreApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authMsg, setAuthMsg] = useState("");
 
-  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode, followedSports, intensities, lens };
+  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode, followedSports, intensities, lens, whyView, voice };
   const snapRef = useRef(snapshot);
   snapRef.current = snapshot;
   const applyState = (st) => {
@@ -397,6 +429,8 @@ export default function GameScoreApp() {
     if (st.followedSports !== undefined) setFollowedSports(st.followedSports);
     if (st.intensities) setIntensities(st.intensities);
     if (st.lens) setLens(st.lens);
+    if (st.whyView) setWhyView(st.whyView);
+    if (st.voice) setVoice(st.voice);
   };
 
   // hydrate from on-device storage (swap for Supabase later)
@@ -418,6 +452,8 @@ export default function GameScoreApp() {
     if (s.followedSports !== undefined) setFollowedSports(s.followedSports);
     if (s.intensities) setIntensities(s.intensities);
     if (s.lens) setLens(s.lens);
+    if (s.whyView) setWhyView(s.whyView);
+    if (s.voice) setVoice(s.voice);
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }, []);
@@ -483,7 +519,7 @@ export default function GameScoreApp() {
   useEffect(() => {
     store.save(snapshot);
     if (session?.user) { const t = setTimeout(() => saveRemote(session.user.id, snapshot), 600); return () => clearTimeout(t); }
-  }, [teamSlugs, primarySlug, players, location, weights, preset, cardStyle, override, reactions, session]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [teamSlugs, primarySlug, players, location, weights, preset, cardStyle, override, reactions, session, rivalryNames, viewMode, followedSports, intensities, lens, whyView, voice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const favTeams = teamSlugs.map(teamBySlug).filter(Boolean);
   const team = teamBySlug(primarySlug) || favTeams[0] || TEAMS[0];
@@ -505,6 +541,16 @@ export default function GameScoreApp() {
   const [visible, setVisible] = useState(8);
   const [sortMode, setSortMode] = useState("score"); // "score" (excitement, default) | "date" (chronological, for planning)
   const [hotSlugs, setHotSlugs] = useState([]);
+  const [standings, setStandings] = useState({}); // { [league]: indexedRows } — cached standing context
+  // Pull a league's standings once, index it, keep it. Inert if the league has none yet.
+  useEffect(() => {
+    const lg = team?.league;
+    if (!lg || standings[lg]) return;
+    fetch(`/api/standings?league=${lg}`)
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d.rows) && d.rows.length) setStandings((s) => ({ ...s, [lg]: indexStandings(d.rows) })); })
+      .catch(() => {});
+  }, [team?.league]); // eslint-disable-line react-hooks/exhaustive-deps
   const DEFAULT_POPULAR = ["giants", "mets", "cowboys", "new-york-red-bulls", "la-galaxy", "chiefs", "knicks", "bulls"];
   useEffect(() => { setVisible(8); }, [primarySlug, eventQuery]); // reset reveal count on team/search change
   useEffect(() => { fetch("/api/popular").then((r) => r.json()).then((d) => { if (Array.isArray(d.hot)) setHotSlugs(d.hot); }).catch(() => {}); }, []);
@@ -639,10 +685,18 @@ export default function GameScoreApp() {
             <Flame size={12} color="#FF5A2C" /> {note}
           </div>
         )}
-        {shown.map((g, i) => (
-          <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={neutral ? null : team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={neutral ? null : fanCtxFor(g)}
-            primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch} />
-        ))}
+        {shown.map((g, i) => {
+          const idx = standings[leagueHint || team?.league];
+          // Your team (team view) vs the opponent. Opp matches by ESPN id first, then nick.
+          const sMine = idx && !neutral ? findStanding(idx, { label: team.label, name: team.name }) : null;
+          const sOpp = idx ? findStanding(idx, { teamId: g.oppId, name: g.opp, label: g.opp }) : null;
+          const rec = recommend(g, weights, neutral ? null : fanCtxFor(g), voice);
+          return (
+            <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={neutral ? null : team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={neutral ? null : fanCtxFor(g)}
+              primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch}
+              standingMine={sMine} standingOpp={sOpp} recommendation={rec} whyView={whyView} />
+          );
+        })}
         {remaining > 0 && (
           <>
             <button onClick={() => setVisible((v) => v + STEP)} style={{ width: "100%", marginTop: 4, padding: "13px", borderRadius: 12, cursor: "pointer", background: "rgba(236,231,219,0.07)", border: "1px solid rgba(236,231,219,0.14)", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
@@ -803,7 +857,7 @@ export default function GameScoreApp() {
         })()}
         {favTeams.length > 0 && (
           <div style={{ fontSize: 11.5, color: ON_MUTED, lineHeight: 1.45, marginTop: 16, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.28)" }}>
-            Every game&rsquo;s scored for a neutral fan, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. You can fine-tune what counts anytime in Settings.
+            Every game&rsquo;s scored for a neutral fan, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a plain-English read of why it&rsquo;s worth watching; prefer quick chips, or a different announcer voice? Switch anytime in Settings. You can fine-tune what counts there too.
           </div>
         )}
         {(() => {
@@ -948,6 +1002,27 @@ export default function GameScoreApp() {
               <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 3, lineHeight: 1.4 }}>Show the real name — &ldquo;El Tr&aacute;fico&rdquo;, &ldquo;Subway Series&rdquo;, &ldquo;Hell Is Real&rdquo; — instead of &ldquo;Top Rivals&rdquo;.</div>
             </div>
             <button onClick={() => setRivalryNames(!rivalryNames)} style={chip(rivalryNames)}>{rivalryNames ? <Check size={13} /> : <X size={13} />} {rivalryNames ? "On" : "Off"}</button>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 3 }}>How games read</div>
+            <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 8, lineHeight: 1.4 }}>Each game gets a plain-English <b style={{ color: ON }}>why watch</b> line. Prefer a quick scan? Switch it to <b style={{ color: ON }}>chips</b>.</div>
+            <div style={{ display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+              {[["sentence", "Sentence"], ["chips", "Chips"]].map(([k, l]) => {
+                const on = whyView === k;
+                return (<button key={k} onClick={() => { track("why_view", { mode: k }); setWhyView(k); }} style={{ border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "7px 14px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" }}>{l}</button>);
+              })}
+            </div>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 3 }}>Voice</div>
+            <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 8, lineHeight: 1.4 }}>The personality of the why-watch line. <b style={{ color: ON }}>Mix</b> rotates voices across your slate.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {[{ id: "mix", label: "Mix" }, ...VOICE_LIST].map((v) => (
+                <button key={v.id} style={chip(voice === v.id)} onClick={() => { track("voice", { id: v.id }); setVoice(v.id); }}>
+                  {voice === v.id && <Check size={13} />} {v.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 3 }}>Card actions</div>
