@@ -153,7 +153,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
 
       {(recommendation || standingMine || standingOpp) && (
         <div style={{ marginTop: 12, textAlign: "center" }}>
-          {recommendation && <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.38, color: ink }}>{recommendation}</div>}
+          {recommendation && <div style={{ fontSize: 19.5, fontWeight: 600, lineHeight: 1.34, color: ink }}>{recommendation}</div>}
           {whyView === "chips" ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: recommendation ? 8 : 0 }}>
               {game.topRivals && <span style={whyChip(dark, ink)}>{(rivalryNames !== false && game.rivalryName) || "Rivalry"}</span>}
