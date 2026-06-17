@@ -37,7 +37,14 @@ export async function GET(request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return Response.json({ ok: false, error: "missing_supabase_env" }, { status: 500 });
-
+if (new URL(request.url).searchParams.get("debug") === "1") {
+    return Response.json({
+      urlHost: url ? new URL(url).host : null,
+      keyLen: key ? key.length : 0,
+      keyStart: key ? key.slice(0, 6) : null,
+      keyIsJwt: key ? key.split(".").length === 3 : false,
+    });
+  }
   const supabase = createClient(url, key, { auth: { persistSession: false } });
   const results = [];
 
