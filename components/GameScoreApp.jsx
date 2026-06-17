@@ -837,21 +837,7 @@ export default function GameScoreApp() {
           <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.35 }}>The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E", fontWeight: 700 }}>CourtVisual&rsquo;s own</span>.</span>
         </div>
 
-        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "26px 0 10px" }}>What are you trying to find?</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {GOALS.map((g) => {
-            const on = goal === g.id;
-            return (
-              <button key={g.id} onClick={() => chooseGoal(g)}
-                style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "13px 15px", borderRadius: 13, cursor: "pointer", background: on ? "rgba(255,90,44,0.12)" : "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: `1.5px solid ${on ? "rgba(255,90,44,0.45)" : "rgba(236,231,219,0.12)"}`, color: on ? ON : "rgba(236,231,219,0.82)", fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14 }}>
-                <span style={{ width: 20, height: 20, borderRadius: 999, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", border: on ? "none" : "1.5px solid rgba(236,231,219,0.25)", background: on ? "#E8401F" : "transparent", color: "#fff" }}>{on ? <Check size={13} /> : null}</span>
-                {g.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div id="ob-pick" className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "26px 0 8px" }}>{goal ? "Now pick your team or sport" : "Pick your team or sport"}</div>
+        <div id="ob-pick" className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "26px 0 8px" }}>Pick your team or sport</div>
         <p style={{ fontSize: 13, color: ON_FAINT, lineHeight: 1.45, margin: "0 0 12px" }}>
           Pick a team and the app suits up in its colors, or follow a whole sport like golf, the World Cup, or UFC.
         </p>
@@ -918,9 +904,9 @@ export default function GameScoreApp() {
           This is the part no other app asks.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          Tap what you&rsquo;re after and every game re-ranks around it. Fine-tune the exact mix anytime.
+          Tap a quick start, or score each factor yourself. Watch a real game&rsquo;s rating move as you do, that&rsquo;s exactly how we rank your whole slate.
         </p>
-        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "20px 0 10px" }}>What are you trying to find?</div>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "20px 0 10px" }}>Quick start</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {GOALS.map((gl) => {
             const on = goal === gl.id;
@@ -933,33 +919,44 @@ export default function GameScoreApp() {
             );
           })}
         </div>
-        <div className="g-eyebrow" style={{ fontSize: 9.5, color: ON_FAINT, margin: "22px 0 10px" }}>Or fine-tune the mix</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "16px 0 12px" }}>
+        <div className="g-eyebrow" style={{ fontSize: 9.5, color: ON_FAINT, margin: "26px 0 12px" }}>Or score each factor yourself</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {FACTORS.map((f, fi) => (
-            <span key={f.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, color: ON_MUTED }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} /> {f.label}
-            </span>
+            <div key={f.key}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5, color: ON }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 2, background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} /> {f.label}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: ON_MUTED, fontVariantNumeric: "tabular-nums" }}>{weights[f.key]}</span>
+              </div>
+              <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
+            </div>
           ))}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {PRESETS.map((p) => {
-            const on = preset === p.id;
-            return (
-              <button key={p.id} onClick={() => { applyPreset(p); track("onboarding_preset", { id: p.id }); }}
-                style={{ textAlign: "left", padding: "14px 16px", borderRadius: 14, cursor: "pointer", background: "rgba(255,255,255,0.05)", backgroundImage: FABRIC, border: `2px solid ${on ? CREAM : "rgba(236,231,219,0.14)"}`, boxShadow: on ? "0 4px 14px rgba(0,0,0,0.35)" : "none" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, color: on ? ON : "rgba(236,231,219,0.85)" }}>
-                  {on && <Check size={14} />} {p.label}
+        {(() => {
+          const demo = { tag: "Rivalry night", playoff: 6, rivalry: 9, hot: 7, historic: 8, topRivals: true };
+          const sc = scoreOf(demo, weights);
+          const cp = scoreParts(demo, weights).contrib;
+          const top = FACTORS.reduce((a, f) => (cp[f.key] > cp[a.key] ? f : a), FACTORS[0]);
+          return (
+            <div className="cv-gleam" style={{ marginTop: 20, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.12)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+              <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED }}>A sample game, scored by your mix</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 10 }}>
+                <span className="g-display" style={{ fontSize: 40, lineHeight: 1, backgroundImage: FLAME(135), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{sc.toFixed(1)}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, color: ON }}>{verdict(sc)}</div>
+                  <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 2 }}>Rivalry night, two close teams</div>
                 </div>
-                <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 4, lineHeight: 1.4 }}>{PRESET_DESC[p.id]}</div>
-                <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginTop: 10, opacity: on ? 1 : 0.55 }}>
-                  {FACTORS.map((f, fi) => (
-                    <span key={f.key} style={{ flex: p.w[f.key], background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} />
-                  ))}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+              </div>
+              <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginTop: 12 }}>
+                {FACTORS.map((f, fi) => (<span key={f.key} style={{ flex: Math.max(weights[f.key], 0.001), background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} />))}
+              </div>
+              <div style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10, lineHeight: 1.4 }}>
+                Move a slider and this score moves. Right now it leans on your <b style={{ color: ON_MUTED }}>{top.label}</b> weight. That is exactly how we rank every real game on your slate.
+              </div>
+            </div>
+          );
+        })()}
         <button onClick={() => {
           track("onboarding_complete", { preset, teams: teamSlugs.length, sports: (followedSports || []).length });
           setShowTopper(true);
