@@ -16,7 +16,7 @@ const CREAM = "#ECE7DB"; /* solid cream replaces the old foil gradient on CTAs a
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 // Very-light jersey weave for the dialed-back card magic on the Settings surfaces (lighter + coarser than the game card's)
 const FABRIC = "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px)";
-// The signature flame gradient — used by the score ring AND the factor bars so the
+// The signature flame gradient, used by the score ring AND the factor bars so the
 // scoring system reads consistently on every team's card, regardless of team color.
 const FLAME_STOPS = ["#FFA52B", "#FF5A2C", "#B3122A"];
 const FLAME = (deg) => `linear-gradient(${deg}deg, ${FLAME_STOPS[0]} 0%, ${FLAME_STOPS[1]} 55%, ${FLAME_STOPS[2]} 100%)`;
@@ -25,7 +25,7 @@ const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Mat
 // Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
 const deepen = (hex, target) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = (n & 255); const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; const k = lum > target ? target / lum : 1; r = Math.round(r * k); g = Math.round(g * k); b = Math.round(b * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketball" }, { id: "mlb", label: "Baseball" }, { id: "nhl", label: "Hockey" }, { id: "mls", label: "Soccer" }, { id: "wnba", label: "WNBA" }, { id: "boxing", label: "Boxing" }];
-// Sports a user can follow in the bottom bar — each taps into a ranked league/sport feed.
+// Sports a user can follow in the bottom bar, each taps into a ranked league/sport feed.
 // `q` is the Ticketmaster classification name the feed queries.
 const FOLLOW_SPORTS = [
   { id: "nba", label: "NBA", q: "NBA" },
@@ -153,7 +153,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
 
       {(recommendation || standingMine || standingOpp) && (
         <div style={{ marginTop: 12, textAlign: "center" }}>
-          {recommendation && <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: ink }}>{recommendation}</div>}
+          {recommendation && <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.38, color: ink }}>{recommendation}</div>}
           {whyView === "chips" ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: recommendation ? 8 : 0 }}>
               {game.topRivals && <span style={whyChip(dark, ink)}>{(rivalryNames !== false && game.rivalryName) || "Rivalry"}</span>}
@@ -182,14 +182,27 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
             ) : (
               <div className="g-eyebrow" style={{ fontSize: 9, color: muted, marginBottom: 8 }}>Where to watch</div>
             )}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: w.networks ? 9 : 0 }}>
-              {!w.networks && w.national.map((n) => (<span key={n} style={chipS}>{n}</span>))}
-              {w.streamer && (
-                <button onClick={() => { track("stream_click", { key: w.streamer.key }); window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener"); }} style={{ ...chipS, cursor: "pointer", gap: 4 }}>
-                  <Tv size={11} /> {w.streamer.label} <ArrowUpRight size={10} />
-                </button>
-              )}
-            </div>
+            {(() => {
+              const gridChip = { ...chipS, display: "flex", justifyContent: "center" };
+              const nets = w.networks ? [] : (w.national || []);
+              const count = nets.length + (w.streamer ? 1 : 0);
+              if (!count) return null;
+              const cols = count <= 1 ? 1 : 2;
+              const odd = cols === 2 && count % 2 === 1; // lone last pill spans the full row
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 6, marginTop: w.networks ? 9 : 0 }}>
+                  {nets.map((n, i) => {
+                    const last = !w.streamer && i === nets.length - 1;
+                    return <span key={n} style={{ ...gridChip, ...(odd && last ? { gridColumn: "1 / -1" } : {}) }}>{n}</span>;
+                  })}
+                  {w.streamer && (
+                    <button onClick={() => { track("stream_click", { key: w.streamer.key }); window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener"); }} style={{ ...gridChip, cursor: "pointer", gap: 4, ...(odd ? { gridColumn: "1 / -1" } : {}) }}>
+                      <Tv size={11} /> {w.streamer.label} <ArrowUpRight size={10} />
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             <div style={{ marginTop: 8, fontSize: 10.5, color: muted, lineHeight: 1.4 }}>{w.localNote}</div>
             {liveTvOffer() && (
               <button onClick={() => { track("livetv_click", {}); window.open(liveTvOffer().url, "_blank", "noopener"); }} style={{ marginTop: 6, padding: 0, background: "none", border: "none", cursor: "pointer", color: muted, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -217,7 +230,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
           <ChevronDown size={15} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s", color: muted }} />
         </button>
       </div>
-      {open && <div style={{ paddingTop: 8, paddingBottom: 6 }}>
+      {open && <div style={{ marginTop: 8, padding: "12px 14px 11px", borderRadius: 13, background: dark ? "linear-gradient(180deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.025) 100%)" : "linear-gradient(180deg, rgba(22,19,15,0.05) 0%, rgba(22,19,15,0.015) 100%)", boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.06)" : "inset 0 1px 0 rgba(255,255,255,0.45)" }}>
         <Bars g={game} accent={primary} weights={weights} dark={dark} />
         {(standingMine || standingOpp) && (
           <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
@@ -245,7 +258,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         {parts.floored && (
           <div style={{ marginTop: 10, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
             <Trophy size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
-            {game.tag} floor {parts.floor.toFixed(1)} — games this big can&rsquo;t score low. Your weights rank everything above it.
+            {game.tag} floor {parts.floor.toFixed(1)}. Games this big can&rsquo;t score low, so your weights rank everything above it.
           </div>
         )}
       </div>}
@@ -260,7 +273,7 @@ const chip = (active) => ({ display: "inline-flex", alignItems: "center", gap: 6
 // different (warm flame-tinted) surface so the chips read as their own layer, not card UI.
 const whyChip = (dark, ink) => ({ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.01em", color: ink, background: "rgba(255,90,44,0.14)", border: "1px solid rgba(255,90,44,0.32)" });
 
-// "Hot games for you" — ranking boost from the fan's profile. Pure and additive:
+// "Hot games for you", ranking boost from the fan's profile. Pure and additive:
 // the displayed score stays the honest scoreOf; the boost only reorders the list.
 const LEAGUE_GENRE = { nba: "basketball", wnba: "basketball", mlb: "baseball", nfl: "football", nhl: "hockey", mls: "soccer" };
 export function interestBoost(g, favTeams, players) {
@@ -337,7 +350,7 @@ function Shell({ children }) {
         {children}
         <footer style={{ marginTop: 36, paddingTop: 16, borderTop: "1px solid rgba(236,231,219,0.08)", textAlign: "center" }}>
           <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ fontSize: 11, color: "rgba(236,231,219,0.38)", textDecoration: "none", fontFamily: "'Archivo',sans-serif" }}>
-            Designed &amp; built by <span style={{ textDecoration: "underline", textUnderlineOffset: 2 }}>Shawn M. Capizzi</span> — shawncapizzi.com
+            Designed &amp; built by <span style={{ textDecoration: "underline", textUnderlineOffset: 2 }}>Shawn M. Capizzi</span>, shawncapizzi.com
           </a>
         </footer>
       </div>
@@ -382,11 +395,11 @@ export default function GameScoreApp() {
   const [preset, setPreset] = useState("balanced");
   const [cardStyle, setCardStyle] = useState("dashboard");
   const [rivalryNames, setRivalryNames] = useState(true); // show "El Tráfico" / "Subway Series" on pills (Settings)
-  const [viewMode, setViewMode] = useState("watch"); // "watch" | "tickets" — the card's action layer (watch is the everyday default)
+  const [viewMode, setViewMode] = useState("watch"); // "watch" | "tickets", the card's action layer (watch is the everyday default)
   const [followedSports, setFollowedSports] = useState(null); // null = auto from team leagues
-  const [intensities, setIntensities] = useState({}); // { slug: "follow" | "diehard" } — fan-lens per-team
-  const [lens, setLens] = useState("neutral"); // "neutral" | "fan" — global, flippable, disclosed
-  const [whyView, setWhyView] = useState("sentence"); // "sentence" (default) | "chips" — how the why reads
+  const [intensities, setIntensities] = useState({}); // { slug: "follow" | "diehard" }, fan-lens per-team
+  const [lens, setLens] = useState("neutral"); // "neutral" | "fan", global, flippable, disclosed
+  const [whyView, setWhyView] = useState("sentence"); // "sentence" (default) | "chips", how the why reads
   const [voice, setVoice] = useState("house"); // recommendation voice id, or "mix" to rotate per game
   const [override, setOverride] = useState(null);
   const [q, setQ] = useState("");
@@ -530,7 +543,7 @@ export default function GameScoreApp() {
   const [visible, setVisible] = useState(8);
   const [sortMode, setSortMode] = useState("score"); // "score" (excitement, default) | "date" (chronological, for planning)
   const [hotSlugs, setHotSlugs] = useState([]);
-  const [standings, setStandings] = useState({}); // { [league]: indexedRows } — cached standing context
+  const [standings, setStandings] = useState({}); // { [league]: indexedRows }, cached standing context
   // Pull a league's standings once, index it, keep it. Inert if the league has none yet.
   useEffect(() => {
     const lg = team?.league;
@@ -608,7 +621,7 @@ export default function GameScoreApp() {
     setShareGame(g); // open the intent picker
   };
   // Fire the native share (or clipboard) with a chosen, score-accurate caption.
-  // Build the score-accurate caption + url for a game/intent (pure — no side effects).
+  // Build the score-accurate caption + url for a game/intent (pure, no side effects).
   const sharePayload = (g, intent) => {
     const score = +scoreOf(g, weights).toFixed(1);
     const v = verdict(score);
@@ -625,9 +638,9 @@ export default function GameScoreApp() {
     const url = `${origin}/g/${slugCore}-${g.ds}-s${score}?s=${score}${g.rivalryName ? `&r=${encodeURIComponent(g.rivalryName)}` : ""}`;
     const hot = score >= 8.5;
     let text;
-    if (intent === "watch") text = `${matchup} — scored ${score} on CourtVisual${hot ? ` (${v})` : ""}. Let's watch this one.`;
-    else if (intent === "go") text = `${matchup} — a ${score} on CourtVisual${hot ? `, ${v}` : ""}. Let's grab seats. You in?`;
-    else text = hot ? `Gotta-see game: ${matchup}, a ${score} on CourtVisual (${v}). Don't miss this one.` : `${matchup} — scored ${score} on CourtVisual. Here's the rundown.`;
+    if (intent === "watch") text = `${matchup}, scored ${score} on CourtVisual${hot ? ` (${v})` : ""}. Let's watch this one.`;
+    else if (intent === "go") text = `${matchup}, a ${score} on CourtVisual${hot ? `, ${v}` : ""}. Let's grab seats. You in?`;
+    else text = hot ? `Gotta-see game: ${matchup}, a ${score} on CourtVisual (${v}). Don't miss this one.` : `${matchup}, scored ${score} on CourtVisual. Here's the rundown.`;
     return { score, matchup, url, text };
   };
   // Channel senders. Each picks the right transport; all close the sheet + flash the confirm.
@@ -636,14 +649,14 @@ export default function GameScoreApp() {
     const full = `${text} ${url}`;
     if (channel === "sms") {
       // sms: syntax is platform-split: iOS wants sms:&body=, Android wants sms:?body=.
-      // Use a real navigation (location.href), not window.open — popups don't trigger Messages.
+      // Use a real navigation (location.href), not window.open, popups don't trigger Messages.
       const isAppleDevice = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
       const sep = isAppleDevice ? "&" : "?";
       try { window.location.href = `sms:${sep}body=${encodeURIComponent(full)}`; } catch { try { navigator.clipboard?.writeText(full); } catch {} }
     } else if (channel === "copy") {
       try { navigator.clipboard?.writeText(full); } catch {}
       setShared(g.oppSlug + "-copied"); setTimeout(() => setShared(null), 1600);
-    } else { // "native" — the OS share sheet (WhatsApp, Messenger, email, Instagram on mobile, etc.)
+    } else { // "native", the OS share sheet (WhatsApp, Messenger, email, Instagram on mobile, etc.)
       try { if (navigator.share) { navigator.share({ title: matchup, text, url }).catch(() => {}); } else { navigator.clipboard?.writeText(full); } } catch { try { navigator.clipboard?.writeText(full); } catch {} }
     }
     track("share_game", { opp: g.opp, ds: g.ds, score, intent, channel });
@@ -661,7 +674,7 @@ export default function GameScoreApp() {
   const rivalryOnly = weights.rivalry / wTotal >= RIVALRY_FOCUS;
 
   // Fan-lens context for a game in the current team view. The viewing team is, by
-  // definition, one the user follows — so intensity comes from their setting (default follow).
+  // definition, one the user follows, so intensity comes from their setting (default follow).
   const fanCtxFor = (g) => (lens !== "fan" ? null : { intensity: intensities[team.slug] || "follow", isRival: !!g.topRivals, contention: g.teamContention });
   // Score under the active lens: neutral baseline, or fan-adjusted when the lens is on.
   const activeScore = (g) => (lens === "fan" ? fanScoreOf(g, weights, fanCtxFor(g)) : scoreOf(g, weights));
@@ -671,8 +684,8 @@ export default function GameScoreApp() {
     let note = null;
     if (rivalryOnly && !neutral) {
       const rivals = list.filter((g) => g.topRivals || g.rivalry > 4);
-      if (rivals.length) { full = rivals; note = "Rivalry focus — showing rivalry matchups only."; }
-      else { note = "No rivalry games on this schedule right now — showing the full ranking."; }
+      if (rivals.length) { full = rivals; note = "Rivalry focus, showing rivalry matchups only."; }
+      else { note = "No rivalry games on this schedule right now, showing the full ranking."; }
     }
     const shown = revealAll ? full : full.slice(0, visible);
     const remaining = revealAll ? 0 : full.length - shown.length;
@@ -722,6 +735,13 @@ export default function GameScoreApp() {
   const beginSearch = (label) => { setEventLoading(true); setEventResults([]); setEventQuery(label); setJump(""); setFilterOpen(false); setView("games"); };
   const runEventSearch = async (query) => {
     const qq = (query || "").trim(); if (!qq) return;
+    // A team search opens that team's full experience (and adds it to the swap bar so it can be
+    // swapped out), exactly like the rest of the app. Only sports/events fall through to see-all.
+    const ql = qq.toLowerCase();
+    const exact = TEAMS.find((t) => t.label.toLowerCase() === ql || t.name.toLowerCase() === ql);
+    const partial = TEAMS.filter((t) => t.label.toLowerCase().includes(ql) || t.name.toLowerCase().includes(ql));
+    const tm = exact || (partial.length === 1 ? partial[0] : null);
+    if (tm) { track("search_team", { slug: tm.slug }); jumpToTeam(tm); setView("games"); return; }
     beginSearch(qq);
     try { const r = await fetch(`/api/games?q=${encodeURIComponent(qq)}`); const d = await r.json(); setEventResults(d.games || []); }
     catch { setEventResults([]); }
@@ -876,8 +896,8 @@ export default function GameScoreApp() {
           );
         })()}
         {favTeams.length > 0 && (
-          <div style={{ fontSize: 11.5, color: ON_MUTED, lineHeight: 1.45, marginTop: 16, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.28)" }}>
-            Every game&rsquo;s scored for a neutral fan, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a plain-English read of why it&rsquo;s worth watching; prefer quick chips, or a different announcer voice? Switch anytime in Settings. You can fine-tune what counts there too.
+          <div style={{ fontSize: 12.5, color: "rgba(236,231,219,0.85)", lineHeight: 1.5, marginTop: 16, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(96,128,176,0.12)", backgroundImage: FABRIC, border: "1px solid rgba(120,150,190,0.24)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+            Every game&rsquo;s scored for a <b style={{ color: ON }}>neutral fan</b>, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a <b style={{ color: ON }}>plain-English read</b> of why it&rsquo;s worth watching. Prefer quick chips, or a different announcer voice? Switch anytime in <b style={{ color: ON }}>Settings</b>, where you can fine-tune what counts too.
           </div>
         )}
         {(() => {
@@ -898,8 +918,22 @@ export default function GameScoreApp() {
           This is the part no other app asks.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          Pick a starting point, and every game gets scored and re-ranked around it. Fine-tune the exact mix anytime with the <SlidersHorizontal size={12} style={{ verticalAlign: "-2px" }} /> sliders.
+          Tap what you&rsquo;re after and every game re-ranks around it. Fine-tune the exact mix anytime.
         </p>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "20px 0 10px" }}>What are you trying to find?</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {GOALS.map((gl) => {
+            const on = goal === gl.id;
+            return (
+              <button key={gl.id} onClick={() => chooseGoal(gl)}
+                style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "12px 14px", borderRadius: 12, cursor: "pointer", background: on ? "rgba(255,90,44,0.12)" : "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: `1.5px solid ${on ? "rgba(255,90,44,0.45)" : "rgba(236,231,219,0.12)"}`, color: on ? ON : "rgba(236,231,219,0.82)", fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5 }}>
+                <span style={{ width: 18, height: 18, borderRadius: 999, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", border: on ? "none" : "1.5px solid rgba(236,231,219,0.25)", background: on ? "#E8401F" : "transparent", color: "#fff" }}>{on ? <Check size={12} /> : null}</span>
+                {gl.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="g-eyebrow" style={{ fontSize: 9.5, color: ON_FAINT, margin: "22px 0 10px" }}>Or fine-tune the mix</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "16px 0 12px" }}>
           {FACTORS.map((f, fi) => (
             <span key={f.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, color: ON_MUTED }}>
@@ -1019,7 +1053,7 @@ export default function GameScoreApp() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Rivalry names on cards</div>
-              <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 3, lineHeight: 1.4 }}>Show the real name — &ldquo;El Tr&aacute;fico&rdquo;, &ldquo;Subway Series&rdquo;, &ldquo;Hell Is Real&rdquo; — instead of &ldquo;Top Rivals&rdquo;.</div>
+              <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 3, lineHeight: 1.4 }}>Show the real name, &ldquo;El Tr&aacute;fico&rdquo;, &ldquo;Subway Series&rdquo;, &ldquo;Hell Is Real&rdquo;, instead of &ldquo;Top Rivals&rdquo;.</div>
             </div>
             <button onClick={() => setRivalryNames(!rivalryNames)} style={chip(rivalryNames)}>{rivalryNames ? <Check size={13} /> : <X size={13} />} {rivalryNames ? "On" : "Off"}</button>
           </div>
@@ -1097,25 +1131,25 @@ export default function GameScoreApp() {
         </Section>
         <Section primary={primary} label="Home market">
           <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; and your local market.</p>
-          <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region — for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+          <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region, for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
         </Section>
         <Section primary={primary} label="Account">
           {session?.user ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b> — your teams and settings sync to your account.</span>
+              <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b>, your teams and settings sync to your account.</span>
               <button onClick={signOut} style={chip(false)}>Sign out</button>
             </div>
           ) : (
             <div>
               <p style={{ fontSize: 13.5, color: ON_MUTED, margin: "0 0 12px", lineHeight: 1.45 }}>
-                Fast and free — just your email, no password. Your teams and excitement settings stay saved on every device.
+                Fast and free, just your email, no password. Your teams and excitement settings stay saved on every device.
               </p>
               <div style={field}><Mail size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="you@email.com" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} /></div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
                 <button onClick={sendLink} style={{ ...chip(true), padding: "9px 16px" }}>Send magic link</button>
                 {authMsg && <span style={{ fontSize: 12, color: ON_MUTED }}>{authMsg}</span>}
               </div>
-              <p style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10 }}>Optional — sign in to sync across devices. Skip it and everything still saves on this device.</p>
+              <p style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 10 }}>Optional, sign in to sync across devices. Skip it and everything still saves on this device.</p>
             </div>
           )}
         </Section>
@@ -1214,7 +1248,7 @@ export default function GameScoreApp() {
           <>
             {showTopper && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, padding: "10px 13px", borderRadius: 12, background: "rgba(236,231,219,0.08)", border: "1px solid rgba(236,231,219,0.14)", opacity: topperGone ? 0 : 1, transition: "opacity 0.6s ease", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700 }}>
-                <Zap size={14} color={primary} /> Ranked for your taste — your top games right now
+                <Zap size={14} color={primary} /> Ranked for your taste, your top games right now
               </div>
             )}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
@@ -1239,7 +1273,7 @@ export default function GameScoreApp() {
             </button>
                     </>
         )}
-        {/* Share-intent picker — three score-aware captions in the app's voice */}
+        {/* Share-intent picker, three score-aware captions in the app's voice */}
         {shareGame && (
           <div onClick={() => { setShareGame(null); setShareIntent(null); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,7,10,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
             <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, background: "#14181F", borderTopLeftRadius: 22, borderTopRightRadius: 22, border: "1px solid rgba(236,231,219,0.12)", borderBottom: "none", padding: "20px 18px calc(20px + env(safe-area-inset-bottom))", boxShadow: "0 -20px 60px rgba(0,0,0,0.5)" }}>
@@ -1287,7 +1321,7 @@ export default function GameScoreApp() {
             </div>
           </div>
         )}
-        {/* Switcher bar — teams and sports as equal follows, always one thumb away */}
+        {/* Switcher bar, teams and sports as equal follows, always one thumb away */}
         <div style={{ height: 76 }} aria-hidden="true" />
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 40, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
           <div style={{ pointerEvents: "auto", width: "100%", maxWidth: 540, background: "rgba(10,13,18,0.86)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderTop: "1px solid rgba(236,231,219,0.10)", padding: "8px 12px calc(10px + env(safe-area-inset-bottom))" }}>
