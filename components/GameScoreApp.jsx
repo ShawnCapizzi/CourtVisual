@@ -778,11 +778,11 @@ export default function GameScoreApp() {
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
         <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
-          No boring feeds. Just the games you&rsquo;d love — recommended like a fellow fan who gets it.
+          No boring feeds. Just the games you&rsquo;d love, recommended like a fellow fan who gets it.
         </p>
         <div style={{ marginTop: 16, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.28)" }}>
           <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.45, margin: 0 }}>
-            Pick your team — or <strong>a sport like golf, the World Cup, or UFC</strong>. We score every upcoming game 0&ndash;10 and surface the ones worth your time — to watch, or to be there.
+            Pick your team, or <strong>a sport like golf, the World Cup, or UFC</strong>. We score every upcoming game 0&ndash;10, surface the ones worth your time, and tell you in plain English why each one is worth it.
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 14 }}>
             <Flame size={16} color="#FF5A2C" style={{ flexShrink: 0 }} />
@@ -791,7 +791,7 @@ export default function GameScoreApp() {
             </p>
           </div>
         </div>
-        <h2 style={{ fontFamily: "'Archivo Black', 'Archivo', sans-serif", fontSize: 21, color: ON, margin: "20px 0 0", lineHeight: 1.25, letterSpacing: "0.01em" }}>Start with a team or sport — if it&rsquo;s a team, the app suits up in its colors.</h2>
+        <h2 style={{ fontFamily: "'Archivo Black', 'Archivo', sans-serif", fontSize: 21, color: ON, margin: "20px 0 0", lineHeight: 1.25, letterSpacing: "0.01em" }}>Start with a team or sport. If it&rsquo;s a team, the app suits up in its colors.</h2>
         <div style={{ ...field, marginTop: 20 }}>
           <Search size={18} color="rgba(236,231,219,0.5)" />
           <input className="g-in-dark" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -809,7 +809,7 @@ export default function GameScoreApp() {
         </div>
         {q.trim() && (
           <button onClick={() => { runEventSearch(q); setView("games"); }} style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 600, textAlign: "left" }}>
-            <Search size={15} color={ON_MUTED} /> <span>Search all events for &ldquo;{q.trim()}&rdquo; — countries, leagues, tennis &amp; more →</span>
+            <Search size={15} color={ON_MUTED} /> <span>Search all events for &ldquo;{q.trim()}&rdquo;: countries, leagues, tennis &amp; more →</span>
           </button>
         )}
         {!q.trim() && (() => {
@@ -818,7 +818,7 @@ export default function GameScoreApp() {
           return (
             <>
               <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "22px 0 6px" }}>Or follow a sport</div>
-              <div style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 10, lineHeight: 1.4 }}>No team? Follow a whole sport or event — we rank what&rsquo;s worth watching across it.</div>
+              <div style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 10, lineHeight: 1.4 }}>No team? Follow a whole sport or event, and we rank what&rsquo;s worth watching across it.</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {picks.map((sp) => {
                   const on = cur.includes(sp.id);
@@ -840,7 +840,7 @@ export default function GameScoreApp() {
         {(() => {
           const hasSport = followedSports && followedSports.length > 0;
           const canContinue = teamSlugs.length > 0 || hasSport;
-          // A sport-first user has no taste step value yet, but presets still apply — send them through too.
+          // A sport-first user has no taste step value yet, but presets still apply, so send them through too.
           return (
             <button disabled={!canContinue} onClick={() => setObStep(2)}
               style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: canContinue ? CREAM : "rgba(255,255,255,0.08)", color: canContinue ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: canContinue ? "pointer" : "default", boxShadow: canContinue ? DEPTH : "none" }}>
@@ -855,7 +855,7 @@ export default function GameScoreApp() {
           This is the part no other app asks.
         </p>
         <p style={{ fontSize: 13.5, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>
-          Pick a starting point — every game gets scored and re-ranked around it. Fine-tune the exact mix anytime with the <SlidersHorizontal size={12} style={{ verticalAlign: "-2px" }} /> sliders.
+          Pick a starting point, and every game gets scored and re-ranked around it. Fine-tune the exact mix anytime with the <SlidersHorizontal size={12} style={{ verticalAlign: "-2px" }} /> sliders.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "16px 0 12px" }}>
           {FACTORS.map((f, fi) => (
@@ -1019,12 +1019,12 @@ export default function GameScoreApp() {
         </Section>
         <Section primary={primary} label="Onboarding">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup — how scoring, watch, and tickets work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
+            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup: how scoring, the why-watch read, and watch options work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
             <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
           </div>
         </Section>
         <Section primary={primary} label="Sports you follow">
-          <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>These appear in the bottom bar next to your teams — tap one for that sport&rsquo;s ranked slate.</div>
+          <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>These appear in the bottom bar next to your teams. Tap one for that sport&rsquo;s ranked slate.</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {FOLLOW_SPORTS.map((sp) => {
               const cur = followedSports !== null ? followedSports : FOLLOW_SPORTS.filter((x) => favTeams.some((t) => t.league === x.id)).map((x) => x.id);
