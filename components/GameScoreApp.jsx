@@ -287,7 +287,7 @@ const GOALS = [
   { id: "team", label: "My team's best upcoming games", preset: "balanced" },
   { id: "cheap", label: "A cheap live sports night", preset: "balanced" },
   { id: "rivalry", label: "Rivalries and big moments", preset: "rivalry" },
-  { id: "friends", label: "Games my friends might care about", preset: "stars" },
+  { id: "friends", label: "Games my friends might care about", preset: "rivalry" },
 ];
 
 function StyleMini({ variant }) {
@@ -585,11 +585,11 @@ export default function GameScoreApp() {
     if (typeof document !== "undefined") requestAnimationFrame(() => { const el = document.getElementById("ob-pick"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); });
   };
   const PRESET_DESC = {
-    balanced: "A little of everything — the all-around great game.",
+    balanced: "A little of everything, the all-around great game.",
     stakes: "Championships, knockout rounds, playoff races. Something on the line.",
     rivalry: "Subway Series, El Tr\u00e1fico, Yankees\u2013Sox. History between the teams.",
-    stars: "Marquee players and the hottest teams right now.",
-    matchup: "Two strong teams, projected close \u2014 the games that go down to the wire.",
+    stars: "Teams fighting for a playoff spot, with the standings on the line.",
+    matchup: "Two strong teams, projected close, the games that go down to the wire.",
   };
   const onReact = (slug, id) => setReactions((r) => ({ ...r, [slug]: id }));
   const sendLink = async () => {
@@ -799,13 +799,18 @@ export default function GameScoreApp() {
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
 
-        <div style={{ marginTop: 14, borderRadius: 20, padding: "18px 20px", position: "relative", overflow: "hidden", background: "rgba(255,90,44,0.06)", backgroundImage: FABRIC, border: "1px solid rgba(255,90,44,0.20)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}>
-          <p style={{ fontSize: 15.5, color: ON_MUTED, lineHeight: 1.5, margin: 0 }}>
-            CourtVisual helps busy fans find the games <strong style={{ color: ON }}>worth watching, attending, or sharing</strong>, <strong style={{ color: ON }}>before they miss them</strong>.
+        <div style={{ marginTop: 16, borderRadius: 20, padding: "20px", position: "relative", overflow: "hidden", background: "linear-gradient(180deg, rgba(255,90,44,0.11) 0%, rgba(255,90,44,0.035) 100%)", backgroundImage: FABRIC, border: "1px solid rgba(255,90,44,0.22)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+          <p style={{ fontSize: 17, color: ON, fontWeight: 600, lineHeight: 1.4, margin: 0, letterSpacing: "-0.01em" }}>
+            CourtVisual helps busy fans find the games <span style={{ color: "#FF7A2E", fontWeight: 800 }}>worth watching, attending, or sharing</span>, before they miss them.
           </p>
-          <p style={{ fontSize: 14.5, color: ON, fontWeight: 700, lineHeight: 1.5, margin: "10px 0 0" }}>
-            Tonight&rsquo;s best games. Your teams. Your city. <span style={{ color: "#FF7A2E" }}>One simple score</span>, with plain-English reasons why.
-          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "7px 11px", marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,90,44,0.18)" }}>
+            {["Tonight\u2019s best games", "Your teams", "Your city", "One simple score"].map((t, i) => (
+              <React.Fragment key={t}>
+                {i > 0 && <span style={{ width: 4, height: 4, borderRadius: 999, background: "rgba(255,122,46,0.75)", flexShrink: 0 }} />}
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.005em", color: ON }}>{t}</span>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 2px 0" }}>
           <Flame size={14} color="#FF5A2C" style={{ flexShrink: 0 }} />
@@ -1074,10 +1079,10 @@ export default function GameScoreApp() {
         <Section primary={primary} label="How scoring works">
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
             {[
-              ["Playoff stakes", "Championships, knockout rounds, and playoff races — games with something on the line."],
+              ["Stakes", "Championships, knockout rounds, and playoff races. Games with something on the line."],
               ["Rivalry", "161 named rivalries, from the Subway Series to El Tr\u00e1fico. History between the teams runs hot."],
-              ["Star power", "Marquee players and hot teams, refreshed from live league data."],
-              ["Historic weight", "The heritage of the stage and the matchup."],
+              ["The race", "How much both teams have on the line in the standings, fighting for a playoff spot. From live league data."],
+              ["Matchup", "How good the game itself projects to be, so a likely nail-biter outranks a blowout."],
             ].map(([t, d]) => (
               <div key={t} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
                 <span style={{ width: 14, height: 4, borderRadius: 2, background: "#E8401F", flexShrink: 0, position: "relative", top: -2 }} />

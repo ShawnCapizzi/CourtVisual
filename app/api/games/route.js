@@ -6,7 +6,7 @@
 // -> { games: [...], source: "ticketmaster" | "none", reason? }
 //
 // Factor scores for live games are v1 heuristics (event-name keywords + a small
-// rivalry map). Star power is a baseline until a stats feed is wired in.
+// rivalry map). The race factor comes from live standings contention via the league context.
 
 import { getLeagueContext } from "../../../lib/espn";
 import { rivalryFactor, isTopRivalry, rivalryInfo } from "../../../lib/rivalries";
@@ -94,7 +94,7 @@ function deriveFactors(eventName, oppName, teamSlug, startsAt) {
 
   const rivals = RIVALS[teamSlug] || [];
   const rivalry = (rivals.some((r) => opp.includes(r)) || /derby|clasico|rivalry|el clasico/.test(n)) ? 9 : 5;
-  const hot = 7; // baseline until a live stats feed is wired
+  const hot = 5; // THE RACE: neutral until standings contention is wired in below. Was a fake "stars" 7.
 
   return { playoff, rivalry, hot, historic, tag };
 }
@@ -359,17 +359,18 @@ export async function GET(request) {
       g.rivalryName = (rivalryInfo(name, opp) || {}).name || null;
 
       if (ctx) {
-        const sMine = ctx.star(label), sOpp = ctx.star(opp);
-        if (sMine != null || sOpp != null) g.hot = Math.max(g.hot, Math.round((sMine || 0) * 0.55 + (sOpp || 0) * 0.45) || g.hot);
+        // THE RACE = standings pressure on both sides. Contention now drives the `hot`
+        // (race) factor directly, instead of quietly inflating Stakes as it used to. Stakes
+        // stays about the game's round; the race is about what's on the line in the standings.
         const cMine = ctx.contention(label), cOpp = ctx.contention(opp);
-        if (cMine != null && cOpp != null) g.playoff = Math.max(g.playoff, Math.round((cMine + cOpp) / 2));
-        if (cMine != null) g.teamContention = cMine; // viewing team's contention — for the fan-lens "in the race" bump
+        if (cMine != null && cOpp != null) g.hot = Math.max(g.hot, Math.round((cMine + cOpp) / 2));
+        if (cMine != null) g.teamContention = cMine; // viewing team's contention, for the fan-lens "in the race" bump
         // Matchup from records: win-pct of both sides if the league context exposes it.
         const pMine = ctx.winPct ? ctx.winPct(label) : null, pOpp = ctx.winPct ? ctx.winPct(opp) : null;
         const mr = matchupFromRecords(pMine, pOpp);
         if (mr) { g.historic = mr.value; g.matchupWhy = mr.why; }
-        // Storyline is a STARS signal (marquee/heat), not a matchup signal.
-        if (ctx.storyline(label) || ctx.storyline(opp)) { g.hot = Math.max(g.hot, 9); if (g.tag === "Regular season") g.tag = "Storyline game"; }
+        // A national storyline still earns a tag, but no longer feeds a factor (stars are gone).
+        if (ctx.storyline(label) || ctx.storyline(opp)) { if (g.tag === "Regular season") g.tag = "Storyline game"; }
       }
 
       games.push(g);
@@ -433,12 +434,10 @@ export async function GET(request) {
               g.topRivals = isTopRivalry(n1, n2);
               g.rivalryName = (rivalryInfo(n1, n2) || {}).name || null;
               if (ctx) {
-                const s1 = ctx.star(n1), s2 = ctx.star(n2);
-                const ss = [s1, s2].filter((x) => x != null);
-                if (ss.length) g.hot = Math.max(g.hot, Math.round(ss.reduce((a, b) => a + b, 0) / ss.length));
+                // THE RACE: contention drives the race factor (hot). Stars are gone.
                 const c1 = ctx.contention(n1), c2 = ctx.contention(n2);
-                if (c1 != null && c2 != null) g.playoff = Math.max(g.playoff, Math.round((c1 + c2) / 2));
-                if (ctx.storyline(n1) || ctx.storyline(n2)) { g.historic = Math.max(g.historic, 9); if (g.tag === "Regular season") g.tag = "Storyline game"; }
+                if (c1 != null && c2 != null) g.hot = Math.max(g.hot, Math.round((c1 + c2) / 2));
+                if (ctx.storyline(n1) || ctx.storyline(n2)) { if (g.tag === "Regular season") g.tag = "Storyline game"; }
               }
               leagueGames.push(g);
               if (leagueGames.length >= 14) break;
