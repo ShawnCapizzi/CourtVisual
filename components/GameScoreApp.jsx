@@ -279,6 +279,16 @@ const dots = (t) => (
   </span>
 );
 const tick = { display: "inline-block", width: 16, height: 4, background: "#E8401F", borderRadius: 1, marginRight: 9, verticalAlign: "middle" };
+// First-screen "what are you trying to find?" options. Each primes the ranking via a preset so the
+// app is tuned the moment a team or sport is added. Plain language on purpose: zero jargon to parse.
+const GOALS = [
+  { id: "watch", label: "A great game to watch tonight", preset: "matchup" },
+  { id: "go", label: "A game worth going to", preset: "stakes" },
+  { id: "team", label: "My team's best upcoming games", preset: "balanced" },
+  { id: "cheap", label: "A cheap live sports night", preset: "balanced" },
+  { id: "rivalry", label: "Rivalries and big moments", preset: "rivalry" },
+  { id: "friends", label: "Games my friends might care about", preset: "stars" },
+];
 
 function StyleMini({ variant }) {
   const uid = useId().replace(/[:]/g, "");
@@ -509,6 +519,7 @@ export default function GameScoreApp() {
   const [leagueGames, setLeagueGames] = useState(null);
   const [slateMode, setSlateMode] = useState("team");
   const [gamesLoading, setGamesLoading] = useState(true); // team-games fetch in flight: don't conclude "off-season" yet
+  const [goal, setGoal] = useState(null); // first-screen "what are you trying to find?" selection
   const [teamRecord, setTeamRecord] = useState(null);
   const [jump, setJump] = useState("");
   const [eventResults, setEventResults] = useState(null);
@@ -566,6 +577,13 @@ export default function GameScoreApp() {
   const addTeam = (t) => { if (!teamSlugs.includes(t.slug)) { setTeamSlugs([...teamSlugs, t.slug]); if (!primarySlug) setPrimarySlug(t.slug); } setQ(""); };
   const removeTeam = (t) => { const next = teamSlugs.filter((s) => s !== t.slug); setTeamSlugs(next); if (primarySlug === t.slug) setPrimarySlug(next[0] || null); };
   const applyPreset = (p) => { setPreset(p.id); setWeights(p.w); };
+  const chooseGoal = (g) => {
+    setGoal(g.id);
+    const p = PRESETS.find((x) => x.id === g.preset);
+    if (p) applyPreset(p);
+    track("onboarding_goal", { id: g.id, preset: g.preset });
+    if (typeof document !== "undefined") requestAnimationFrame(() => { const el = document.getElementById("ob-pick"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  };
   const PRESET_DESC = {
     balanced: "A little of everything — the all-around great game.",
     stakes: "Championships, knockout rounds, playoff races. Something on the line.",
@@ -780,22 +798,39 @@ export default function GameScoreApp() {
         {obStep === 1 ? (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
-        <p style={{ fontSize: 15, fontWeight: 700, color: ON, marginTop: 14, lineHeight: 1.4 }}>
-          No boring feeds. Just the games you&rsquo;d love, recommended like a fellow fan who gets it.
-        </p>
-        <div style={{ marginTop: 16, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.28)" }}>
-          <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.45, margin: 0 }}>
-            Pick your team, or <strong>a sport like golf, the World Cup, or UFC</strong>. We score every upcoming game 0&ndash;10, surface the ones worth your time, and tell you in plain English why each one is worth it.
+
+        <div style={{ marginTop: 14, borderRadius: 20, padding: "18px 20px", position: "relative", overflow: "hidden", background: "rgba(255,90,44,0.06)", backgroundImage: FABRIC, border: "1px solid rgba(255,90,44,0.20)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}>
+          <p style={{ fontSize: 15.5, color: ON_MUTED, lineHeight: 1.5, margin: 0 }}>
+            CourtVisual helps busy fans find the games <strong style={{ color: ON }}>worth watching, attending, or sharing</strong>, <strong style={{ color: ON }}>before they miss them</strong>.
           </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 14 }}>
-            <Flame size={16} color="#FF5A2C" style={{ flexShrink: 0 }} />
-            <p style={{ fontSize: 14.5, fontWeight: 700, color: ON, lineHeight: 1.35, margin: 0 }}>
-              The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E" }}>CourtVisual&rsquo;s own</span>.
-            </p>
-          </div>
+          <p style={{ fontSize: 14.5, color: ON, fontWeight: 700, lineHeight: 1.5, margin: "10px 0 0" }}>
+            Tonight&rsquo;s best games. Your teams. Your city. <span style={{ color: "#FF7A2E" }}>One simple score</span>, with plain-English reasons why.
+          </p>
         </div>
-        <h2 style={{ fontFamily: "'Archivo Black', 'Archivo', sans-serif", fontSize: 21, color: ON, margin: "20px 0 0", lineHeight: 1.25, letterSpacing: "0.01em" }}>Start with a team or sport. If it&rsquo;s a team, the app suits up in its colors.</h2>
-        <div style={{ ...field, marginTop: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 2px 0" }}>
+          <Flame size={14} color="#FF5A2C" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.35 }}>The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E", fontWeight: 700 }}>CourtVisual&rsquo;s own</span>.</span>
+        </div>
+
+        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "26px 0 10px" }}>What are you trying to find?</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {GOALS.map((g) => {
+            const on = goal === g.id;
+            return (
+              <button key={g.id} onClick={() => chooseGoal(g)}
+                style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "13px 15px", borderRadius: 13, cursor: "pointer", background: on ? "rgba(255,90,44,0.12)" : "rgba(255,255,255,0.04)", backgroundImage: FABRIC, border: `1.5px solid ${on ? "rgba(255,90,44,0.45)" : "rgba(236,231,219,0.12)"}`, color: on ? ON : "rgba(236,231,219,0.82)", fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14 }}>
+                <span style={{ width: 20, height: 20, borderRadius: 999, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", border: on ? "none" : "1.5px solid rgba(236,231,219,0.25)", background: on ? "#E8401F" : "transparent", color: "#fff" }}>{on ? <Check size={13} /> : null}</span>
+                {g.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div id="ob-pick" className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "26px 0 8px" }}>{goal ? "Now pick your team or sport" : "Pick your team or sport"}</div>
+        <p style={{ fontSize: 13, color: ON_FAINT, lineHeight: 1.45, margin: "0 0 12px" }}>
+          Pick a team and the app suits up in its colors, or follow a whole sport like golf, the World Cup, or UFC.
+        </p>
+        <div style={{ ...field, marginTop: 0 }}>
           <Search size={18} color="rgba(236,231,219,0.5)" />
           <input className="g-in-dark" placeholder="Search a team, sport, place, or event…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
