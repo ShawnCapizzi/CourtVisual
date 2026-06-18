@@ -13,6 +13,7 @@ import { rivalryFactor, isTopRivalry, rivalryInfo } from "../../../lib/rivalries
 import { fetchBroadcastMap, networksFor } from "../../../lib/broadcasts";
 import { fetchSpreadMap, spreadFor } from "../../../lib/odds";
 import { matchupFromSpread, matchupFromRecords } from "../../../lib/data";
+import { fetchWorldCupGames } from "../../../lib/worldcup";
 
 export const revalidate = 300;
 
@@ -185,6 +186,18 @@ export async function GET(request) {
   const lng = p.get("lng");
 
   const key = process.env.TICKETMASTER_API_KEY;
+
+  // World Cup is fixture-first: ESPN's fifa.world feed is the source of truth (full schedule,
+  // scores, venues, per-team colors), NOT Ticketmaster, which lists only a handful of matches.
+  // Catches both the chip (sportfeed=World Cup) and a typed "World Cup" search (q).
+  if (/world cup/i.test(sportFeed) || /world cup/i.test(q)) {
+    try {
+      const games = await fetchWorldCupGames();
+      return Response.json({ games, source: games.length ? "espn" : "none", mode: "sportfeed", sport: "World Cup" });
+    } catch {
+      return Response.json({ games: [], source: "none", reason: "worldcup_error", mode: "sportfeed", sport: "World Cup" });
+    }
+  }
 
   // Free-text search: any sport, league, series, or event ("World Cup", "Premier
   // League", "Yankees", "El Clasico"). Returns matchup cards, factors from the
