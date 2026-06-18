@@ -39,16 +39,26 @@ const RIVALS = {
 
 const LEAGUE_KW = { nba: "NBA", mlb: "MLB", nhl: "NHL", nfl: "NFL", wnba: "WNBA", mls: "MLS" };
 
-// Strip playoff/qualifier noise so the opponent parses cleanly.
+// Strip playoff/qualifier noise so the opponent parses cleanly and the title reads like
+// a matchup, not a ticketing SKU. Handles "Rd 4 Hm Gm 1", "Home Game 2", "Final TBD",
+// "Winner of Round 3", parentheticals, "presented by", and dangling connectors.
 function cleanEventName(name) {
   let s = name || "";
-  s = s.split(/\s[-\u2013\u2014]\s/)[0];          // drop "- Game 5", "\u2013 If Necessary"
-  s = s.replace(/\(.*?\)/g, " ");                    // parentheticals
+  s = s.split(/\s[-\u2013\u2014]\s/)[0];                                  // drop "- Game 5", "\u2013 If Necessary"
+  s = s.replace(/\(.*?\)/g, " ");                                          // parentheticals
+  s = s.replace(/\b(?:rd|round)\.?\s*\d+\b/gi, " ");                       // Rd 4, Round 4
+  s = s.replace(/\b(?:hm|home|away|aw|road)?\s*g(?:a)?m(?:e)?\.?\s*\d+\b/gi, " "); // Hm Gm 1, Home Game 2, Gm 3
   s = s.replace(/\bgame\s*\d+\b/gi, " ");
   s = s.replace(/\bif necessary\b/gi, " ");
-  s = s.replace(/\b(nba finals|world series|stanley cup|finals|playoffs?|postseason|first round|conference (?:semi)?finals?|division series|wild ?card|presented by[^,]*)\b/gi, " ");
+  s = s.replace(/\b(?:final|finals|series|conf(?:erence)?|division|wild ?card|round|winner|loser)\s+tbd\b/gi, " "); // "Final TBD"
+  s = s.replace(/\bwinner of\b[^,]*/gi, " ");                              // "Winner of Round 3"
+  s = s.replace(/\btbd\b/gi, " ");
+  s = s.replace(/\b(nba finals|world series|stanley cup|finals?|playoffs?|postseason|first round|conference (?:semi)?finals?|division series|wild ?card|presented by[^,]*)\b/gi, " ");
   s = s.replace(/\b\d{4}\b/g, " ");
-  return s.replace(/[:,]/g, " ").replace(/\s+/g, " ").trim();
+  s = s.replace(/\b(?:hm|aw)\b/gi, " ");                                   // stray home/away markers
+  s = s.replace(/[:,]/g, " ").replace(/\s+/g, " ").trim();
+  s = s.replace(/^(?:vs\.?|v\.?|at|@)\s+/i, "").replace(/\s+(?:vs\.?|v\.?|at|@)$/i, ""); // dangling connectors
+  return s.trim();
 }
 const slugify = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const lastWord = (s) => { const w = (s || "").trim().split(/\s+/); return w[w.length - 1] || s; };
@@ -65,7 +75,7 @@ const dowOf = (dt, localDate) => {
   return null;
 };
 
-const NON_GAME = /watch ?part(?:y|ies)|viewing part(?:y|ies)|fan ?fest|tailgate|happy hour|trivia|bingo|brunch|bar crawl|pub crawl|tribute|hospitality|vip (?:package|experience)|gameday experience|pregame part|postgame part|parking/i;
+const NON_GAME = /watch ?part(?:y|ies)|viewing part(?:y|ies)|fan ?fest|tailgate|happy hour|trivia|bingo|brunch|bar crawl|pub crawl|tribute|hospitality|vip (?:package|experience)|gameday experience|pregame part|postgame part|parking|season (?:ticket|membership|seat|plan)|full season|half season|partial (?:plan|season)|mini[- ]?plan|flex (?:plan|pack|membership)|\bpackage\b|\bsuite\b|premium seat|club seat|\bpsl\b|personal seat license|ticket package|group (?:ticket|outing)|\bdeposit\b|gift card|voucher|\bmembership\b|all[- ]?access|meet (?:and|&) greet/i;
 const isNonGameEvent = (name) => NON_GAME.test(name || "");
 
 function deriveFactors(eventName, oppName, teamSlug, startsAt) {
@@ -117,19 +127,30 @@ function fmtDate(dt, localDate) {
   return { date: "TBD", ds: "tbd" };
 }
 
+// Stable start instant for date logic. Real timestamps pass through; date-only events
+// resolve to local noon (NOT midnight UTC, which shifted the game to the prior day and
+// broke "Watch today"). No-date events stay null so they never claim to be "on today".
+const isoStart = (dt, localDate) => dt || (localDate ? `${localDate}T12:00:00` : null);
+
 function eventToGame(ev) {
   const cleaned = cleanEventName(ev.name || "");
-  const parts = cleaned.split(/\s+(?:vs\.?|v\.?|at|@)\s+/i);
   const dt = ev.dates?.start?.dateTime;
   const { date, ds } = fmtDate(dt, ev.dates?.start?.localDate);
   const venue = ev._embedded?.venues?.[0];
   const minP = ev.priceRanges?.[0]?.min;
   let matchup, opp, oppSlug, rA = "", rB = "";
-  if (parts.length === 2 && parts[0].trim().length <= 28 && parts[1].trim().length <= 28) {
-    matchup = `${parts[0].trim()} vs ${parts[1].trim()}`;
-    opp = parts[1].trim();
+  const sides = cleaned.split(/\s+(?:vs\.?|v\.?|at|@)\s+/i).map((p) => p.trim()).filter(Boolean);
+  if (sides.length === 2 && sides[0].length <= 28 && sides[1].length <= 28) {
+    matchup = `${sides[0]} vs ${sides[1]}`;
+    opp = sides[1];
     oppSlug = slugify(matchup).slice(0, 48);
-    rA = lastWord(parts[0]); rB = lastWord(parts[1]);
+    rA = lastWord(sides[0]); rB = lastWord(sides[1]);
+  } else if (sides.length === 1 && sides[0].length <= 30) {
+    // One known side (e.g. an opponent still TBD). Show the real team, let the tag carry context.
+    matchup = sides[0];
+    opp = sides[0];
+    oppSlug = slugify(sides[0]).slice(0, 48) || "event";
+    rB = sides[0];
   } else {
     matchup = (cleaned || ev.name || "Event").slice(0, 44);
     opp = matchup;
@@ -139,7 +160,7 @@ function eventToGame(ev) {
   const f = deriveFactors(ev.name || "", opp, "", dt);
   const genre = ev.classifications?.[0]?.genre?.name || null;
   return {
-    matchup, opp, oppSlug, date, ds, iso: dt || (ev.dates?.start?.localDate ? `${ev.dates.start.localDate}T00:00:00Z` : null), home: false, tag: f.tag, dow: dowOf(dt, ev.dates?.start?.localDate),
+    matchup, opp, oppSlug, date, ds, iso: isoStart(dt, ev.dates?.start?.localDate), home: false, tag: f.tag, dow: dowOf(dt, ev.dates?.start?.localDate),
     sport: genre ? genre.toLowerCase() : null,
     playoff: f.playoff, rivalry: rivalryFactor(rA, rB), hot: f.hot, historic: f.historic,
     topRivals: isTopRivalry(rA, rB),
@@ -347,7 +368,7 @@ export async function GET(request) {
       const minPrice = ev.priceRanges?.[0]?.min;
 
       const g = {
-        opp, oppSlug, oppId, date, ds, iso: dt || (ev.dates?.start?.localDate ? `${ev.dates.start.localDate}T00:00:00Z` : null), home, dow: dowOf(dt, ev.dates?.start?.localDate),
+        opp, oppSlug, oppId, date, ds, iso: isoStart(dt, ev.dates?.start?.localDate), home, dow: dowOf(dt, ev.dates?.start?.localDate),
         tag: f.tag,
         playoff: f.playoff, rivalry: f.rivalry, hot: f.hot, historic: f.historic,
         url: ev.url || null,
