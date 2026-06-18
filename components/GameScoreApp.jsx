@@ -351,6 +351,7 @@ const dots = (t) => (
   </span>
 );
 const tick = { display: "inline-block", width: 16, height: 4, background: "#E8401F", borderRadius: 1, marginRight: 9, verticalAlign: "middle" };
+const FACTOR_DOT = { playoff: "#B3122A", rivalry: "#E8401F", hot: "#FF7A2E", historic: "#ECE7DB" };
 // First-screen "what are you trying to find?" options. Each primes the ranking via a preset so the
 // app is tuned the moment a team or sport is added. Plain language on purpose: zero jargon to parse.
 const GOALS = [
@@ -428,10 +429,10 @@ function ContextCard({ title, body, primary, teamRecord }) {
   );
 }
 
-function Section({ label, children, primary }) {
+function Section({ label, children, primary, first }) {
   return (
-    <div style={{ borderRadius: 16, padding: "16px 16px 18px", marginBottom: 12, background: "rgba(255,255,255,0.022)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.06)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)" }}>
-      <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, marginBottom: 14 }}><span style={{ ...tick, background: primary }} />{label}</div>
+    <div style={{ padding: first ? "4px 0 22px" : "22px 0", borderTop: first ? "none" : "1px solid rgba(236,231,219,0.09)" }}>
+      <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, marginBottom: 15 }}><span style={{ ...tick, background: primary }} />{label}</div>
       {children}
     </div>
   );
@@ -1107,7 +1108,7 @@ export default function GameScoreApp() {
         <SiteHeader view={view} setView={setView} />
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
         <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
-        <Section primary={primary} label="Your teams">
+        <Section primary={primary} label="Your teams" first>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
           <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
@@ -1145,11 +1146,11 @@ export default function GameScoreApp() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
           {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
         </div>
-        <div style={{ background: "rgba(255,255,255,0.035)", backgroundImage: FABRIC, border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.28)", borderRadius: 16, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 32px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {FACTORS.map((f) => (
             <div key={f.key}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: ON }}>{f.label}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, color: ON }}><span style={{ width: 9, height: 9, borderRadius: 2, background: FACTOR_DOT[f.key], flexShrink: 0 }} />{f.label}</span>
                 <span className="g-display" style={{ fontSize: 17, color: "#FF7A2E" }}>{weights[f.key]}</span>
               </div>
               <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} style={{ "--g-fill": weights[f.key] + "%" }} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
