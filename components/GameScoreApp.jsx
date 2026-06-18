@@ -49,11 +49,21 @@ const FOLLOW_SPORTS = [
   { id: "olympics", label: "Olympics", q: "Olympics" },
 ];
 
-// Event/sport feeds that have no club of their own get a dedicated identity here, so they never
-// inherit a random team's colors. World Cup = pitch green + trophy gold. Key by FOLLOW_SPORTS id;
-// anything not listed keeps the team-color fallback.
+// Per-league/sport colorways. A feed (or a card in a neutral feed) paints in its own league's
+// colors instead of borrowing the user's team. Primaries are picked bright enough to stay visible
+// as accents after the card deepens them; the flame score ring stays orange on top regardless.
+// `_neutral` is the house tone for cross-sport / unlisted feeds. Add leagues by FOLLOW_SPORTS id.
 const SPORT_THEME = {
-  worldcup: { primary: "#2E9E54", secondary: "#E6B43C" },
+  worldcup: { primary: "#2E9E54", secondary: "#E6B43C" }, // pitch green + trophy gold
+  soccer:   { primary: "#2E9E54", secondary: "#E6B43C" },
+  mls:      { primary: "#2E9E54", secondary: "#E6B43C" },
+  nba:      { primary: "#1D428A", secondary: "#C8102E" }, // league blue + red
+  nfl:      { primary: "#013369", secondary: "#D50A0A" }, // NFL navy + red
+  mlb:      { primary: "#0A2756", secondary: "#BF0D3E" }, // MLB navy + red
+  nhl:      { primary: "#8A9197", secondary: "#15151E" }, // ice silver + black
+  mma:      { primary: "#6E747C", secondary: "#C2C7CD" }, // gunmetal + silver (black/gray/silver)
+  boxing:   { primary: "#C9A227", secondary: "#15151A" }, // belt gold + black
+  _neutral: { primary: "#5C6470", secondary: "#C7CCD4" }, // house slate + silver
 };
 
 // Welcome showcase: a fixed marquee game that runs through the real scoring engine
@@ -513,6 +523,9 @@ export default function GameScoreApp() {
 
   // Land at the top of every screen when switching views (don't inherit scroll).
   useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } if (view === "onboarding") setObStep(1); }, [view]);
+  // Advancing a setup step should land at the top of that step (e.g. the quick-start intro),
+  // not wherever the previous step left the scroll, which made step 2 jump straight to the sliders.
+  useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } }, [obStep]);
   useEffect(() => {
     if (!showTopper) return;
     const a = setTimeout(() => setTopperGone(true), 5200);
@@ -752,6 +765,11 @@ export default function GameScoreApp() {
     }
     const shown = revealAll ? full : full.slice(0, visible);
     const remaining = revealAll ? 0 : full.length - shown.length;
+    // Neutral feeds (a league slate or a cross-sport list) shouldn't wear the user's team colors.
+    // Theme each card by its feed's league, falling back to the house tone for unlisted/mixed feeds.
+    const ctheme = neutral ? (SPORT_THEME[leagueHint] || SPORT_THEME._neutral) : null;
+    const cardPrimary = ctheme?.primary || primary;
+    const cardSecondary = ctheme?.secondary || secondary;
     return (
       <>
         {note && (
@@ -767,7 +785,7 @@ export default function GameScoreApp() {
           const rec = recommend(g, weights, neutral ? null : fanCtxFor(g), voice);
           return (
             <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={neutral ? null : team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={neutral ? null : fanCtxFor(g)}
-              primary={primary} secondary={secondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch}
+              primary={cardPrimary} secondary={cardSecondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch}
               standingMine={sMine} standingOpp={sOpp} recommendation={rec} whyView={whyView} />
           );
         })}
@@ -1115,6 +1133,12 @@ export default function GameScoreApp() {
         </div>
       </Section></div>
 
+        <Section primary={primary} label="How CourtVisual works">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup: how scoring, the why-watch read, and watch options work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
+            <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
+          </div>
+        </Section>
         <Section primary={primary} label="Players you follow">
         <div style={field}>
           <User size={16} color="rgba(236,231,219,0.5)" />
@@ -1178,12 +1202,6 @@ export default function GameScoreApp() {
                 );
               })}
             </div>
-          </div>
-        </Section>
-        <Section primary={primary} label="How CourtVisual works">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup: how scoring, the why-watch read, and watch options work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
-            <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
           </div>
         </Section>
         <Section primary={primary} label="Sports you follow">
