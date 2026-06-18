@@ -8,6 +8,7 @@ import { watchOptions } from "../lib/watch";
 import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
 import { track } from "../lib/track";
 import { supabase } from "../lib/supabaseClient";
+import { searchStars, playerHit, playerFlag } from "../lib/players";
 import SiteHeader, { LogoPlate as SharedLogoPlate } from "./SiteHeader";
 
 const PAGE = "#E7E3D8", INK = "#16130F";
@@ -124,7 +125,7 @@ function Ring({ value, size = 66 }) {
 // this so it stays the source of truth); layout="poster" is the centered stacked presentation
 // for the welcome sample card and empty states. Both render from the same Ring + verdict(), so
 // the poster can never drift from the real card.
-function ScoreHead({ layout = "slate", game, score, anim, dark = true, ink, muted, primary, secondary, rivalryNames, why }) {
+function ScoreHead({ layout = "slate", game, score, anim, dark = true, ink, muted, primary, secondary, rivalryNames, why, playerFlag }) {
   const title = game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`;
   if (layout === "poster") {
     const pInk = ink || ON, pMuted = muted || ON_MUTED;
@@ -171,6 +172,11 @@ function ScoreHead({ layout = "slate", game, score, anim, dark = true, ink, mute
               <Flame size={10} /> {verdict(score)}
             </span>
           )}
+          {playerFlag && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: dark ? "rgba(255,255,255,0.08)" : "rgba(22,19,15,0.06)", color: dark ? "rgba(236,231,219,0.9)" : INK, fontSize: 10, fontWeight: 700 }}>
+              <User size={10} /> {playerFlag}
+            </span>
+          )}
         </div>
         <div style={{ fontSize: 10.5, fontWeight: 600, color: muted, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{game.tag}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
@@ -203,7 +209,7 @@ function Bars({ g, accent, weights, dark }) {
 }
 
 
-function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames, mode, league, fanCtx, standingMine, standingOpp, recommendation, whyView }) {
+function GameModule({ rank, game, teamName, weights, style, primary, secondary, reaction, onReact, onShare, shared, laser, isTouch, rivalryNames, mode, league, fanCtx, standingMine, standingOpp, recommendation, whyView, playerFlag }) {
   const parts = scoreParts(game, weights);
   const fb = fanCtx ? fanBump(game, fanCtx) : { bump: 0, reasons: [] };
   const score = fb.bump > 0 ? Math.round(Math.min(10, parts.score + fb.bump) * 10) / 10 : parts.score;
@@ -231,7 +237,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const body = (
     <div style={card}>
       <div className="g-display" aria-hidden="true" style={{ position: "absolute", top: -8, right: 4, fontSize: 80, color: dark ? "rgba(255,255,255,0.05)" : "rgba(22,19,15,0.05)", pointerEvents: "none" }}>{rank}</div>
-      <ScoreHead layout="slate" game={game} score={score} anim={anim} dark={dark} ink={ink} muted={muted} primary={primary} secondary={secondary} rivalryNames={rivalryNames} />
+      <ScoreHead layout="slate" game={game} score={score} anim={anim} dark={dark} ink={ink} muted={muted} primary={primary} secondary={secondary} rivalryNames={rivalryNames} playerFlag={playerFlag} />
 
       {(recommendation || standingMine || standingOpp) && (
         <div style={{ marginTop: 12, textAlign: "center", borderRadius: 13, padding: "13px 15px 14px", background: dark ? "rgba(0,0,0,0.28)" : "rgba(22,19,15,0.05)", border: dark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(22,19,15,0.08)", boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.04), inset 0 2px 8px rgba(0,0,0,0.32)" : "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 2px 6px rgba(22,19,15,0.06)" }}>
@@ -354,7 +360,7 @@ export function interestBoost(g, favTeams, players) {
   if ((favTeams || []).some((t) => t?.name && new RegExp(`\\b${t.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(hay))) boost += 1.2;
   const favGenres = new Set((favTeams || []).map((t) => LEAGUE_GENRE[t?.league]).filter(Boolean));
   if (g.sport && favGenres.has(g.sport)) boost += 0.5;
-  if ((players || []).some((p) => p && hay.toLowerCase().includes(p.toLowerCase()))) boost += 0.6;
+  if (playerHit(players, `${hay} ${g.homeTeam || ""} ${g.awayTeam || ""}`)) boost += 0.9;
   return boost;
 }
 const dots = (t) => (
@@ -836,10 +842,11 @@ export default function GameScoreApp() {
           const sMine = idx && !neutral ? findStanding(idx, { label: team.label, name: team.name }) : null;
           const sOpp = idx ? findStanding(idx, { teamId: g.oppId, name: g.opp, label: g.opp }) : null;
           const rec = recommend(g, weights, neutral ? null : fanCtxFor(g), voice);
+          const pflag = playerFlag(g, players);
           return (
             <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={neutral ? null : team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={neutral ? null : fanCtxFor(g)}
               primary={cardPrimary} secondary={cardSecondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch}
-              standingMine={sMine} standingOpp={sOpp} recommendation={rec} whyView={whyView} />
+              standingMine={sMine} standingOpp={sOpp} recommendation={rec} whyView={whyView} playerFlag={pflag} />
           );
         })}
         {remaining > 0 && (
@@ -1202,10 +1209,28 @@ export default function GameScoreApp() {
           </div>
         </Section>
         <Section primary={primary} label="Players you follow">
-        <div style={field}>
-          <User size={16} color="rgba(236,231,219,0.5)" />
-          <input className="g-in-dark" placeholder="Add a player…" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && playerInput.trim()) { setPlayers([...players, playerInput.trim()]); setPlayerInput(""); } }} />
+        <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>Follow a player and their national team&rsquo;s games rise in your feed, flagged on the card. We surface the team, lineups aren&rsquo;t set until kickoff.</div>
+        <div style={{ position: "relative" }}>
+          <div style={field}>
+            <User size={16} color="rgba(236,231,219,0.5)" />
+            <input className="g-in-dark" placeholder="Search a player by name\u2026" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { const top = searchStars(playerInput).filter((s) => !players.includes(s.name))[0]; if (top) { setPlayers([...players, top.name]); setPlayerInput(""); track("follow_player", { name: top.name }); } } }} />
+          </div>
+          {playerInput.trim() && (() => {
+            const sugg = searchStars(playerInput).filter((s) => !players.includes(s.name));
+            if (!sugg.length) return <div style={{ marginTop: 8, fontSize: 12, color: ON_FAINT }}>No match yet, we cover marquee internationals first.</div>;
+            return (
+              <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(236,231,219,0.12)", background: "rgba(255,255,255,0.04)" }}>
+                {sugg.map((s, i) => (
+                  <button key={s.name} onClick={() => { setPlayers([...players, s.name]); setPlayerInput(""); track("follow_player", { name: s.name }); }}
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 13px", background: "none", border: "none", borderTop: i === 0 ? "none" : "1px solid rgba(236,231,219,0.06)", cursor: "pointer", textAlign: "left", fontFamily: "'Archivo',sans-serif" }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>{s.name}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: ON_MUTED }}>{s.label || s.team}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
       </Section>
