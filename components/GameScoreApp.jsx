@@ -62,20 +62,64 @@ function useCountUp(target, dep) {
   return v;
 }
 
-function Ring({ value }) {
-  const R = 27, C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, value / 10));
+function Ring({ value, size = 66 }) {
+  const c = size / 2, R = size * (27 / 66), C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, value / 10));
   return (
-    <svg width="66" height="66" viewBox="0 0 66 66">
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <defs>
-        <linearGradient id="ringGrad" x1="0" y1="0" x2="66" y2="66" gradientUnits="userSpaceOnUse">
+        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FFA52B" /><stop offset="55%" stopColor="#FF5A2C" /><stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
       </defs>
-      <circle cx="33" cy="33" r={R} fill="none" strokeWidth="5" stroke="rgba(255,255,255,0.13)" />
-      <circle cx="33" cy="33" r={R} fill="none" strokeWidth="5.5" stroke="url(#ringGrad)" strokeLinecap="round"
-        strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 33 33)" />
-      <text x="33" y="33" textAnchor="middle" dominantBaseline="central" className="g-display" fontSize="17" fill="#FF7A2E">{value.toFixed(1)}</text>
+      <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5 / 66)} stroke="rgba(255,255,255,0.13)" />
+      <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5.5 / 66)} stroke="url(#ringGrad)" strokeLinecap="round"
+        strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform={`rotate(-90 ${c} ${c})`} />
+      <text x={c} y={c} textAnchor="middle" dominantBaseline="central" className="g-display" fontSize={size * (17 / 66)} fill="#FF7A2E">{value.toFixed(1)}</text>
     </svg>
+  );
+}
+
+// Shared score head. layout="slate" is the live card's ring-beside-title row (the card uses
+// this so it stays the source of truth); layout="poster" is the centered stacked presentation
+// for the welcome sample card and empty states. Both render from the same Ring + verdict(), so
+// the poster can never drift from the real card.
+function ScoreHead({ layout = "slate", game, score, anim, dark = true, ink, muted, primary, secondary, rivalryNames, why }) {
+  const title = game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`;
+  if (layout === "poster") {
+    const pInk = ink || ON, pMuted = muted || ON_MUTED;
+    return (
+      <div style={{ textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}><Ring value={score} size={104} /></div>
+        <div className="g-display" style={{ fontSize: 22, color: pInk, lineHeight: 1.06, marginTop: 14, overflowWrap: "anywhere" }}>{title}</div>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: pMuted, marginTop: 8 }}>{[game.tag, game.date].filter(Boolean).join(" \u00b7 ")}</div>
+        {why && <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.4, color: pInk, margin: "16px 10px 0" }}>{why}</div>}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 14, fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#FF7A2E" }}>
+          <Flame size={12} /> {verdict(score)}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
+      {dark ? <Ring value={anim} />
+        : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: FLAME(135), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span className="g-display" style={{ fontSize: 21, color: ink, lineHeight: 1.08, minWidth: 0, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</span>
+          {game.topRivals ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: dark ? "#fff" : INK, fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
+              <Flame size={10} /> {(rivalryNames !== false && game.rivalryName) || "Top Rivals"}
+            </span>
+          ) : (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: dark ? "rgba(255,255,255,0.10)" : hexA(primary, 0.10), color: dark ? "rgba(255,255,255,0.85)" : INK, fontSize: 10, fontWeight: 700 }}>
+              <Flame size={10} /> {verdict(score)}
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 10.5, fontWeight: 600, color: muted, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{game.tag}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
+      </div>
+    </div>
   );
 }
 
@@ -131,26 +175,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
   const body = (
     <div style={card}>
       <div className="g-display" aria-hidden="true" style={{ position: "absolute", top: -8, right: 4, fontSize: 80, color: dark ? "rgba(255,255,255,0.05)" : "rgba(22,19,15,0.05)", pointerEvents: "none" }}>{rank}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
-        {dark ? <Ring value={anim} />
-          : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: FLAME(135), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span className="g-display" style={{ fontSize: 21, color: ink, lineHeight: 1.08, minWidth: 0, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{game.matchup ? game.matchup.toUpperCase() : `VS ${(game.opp || "TBD").toUpperCase()}`}</span>
-            {game.topRivals ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: dark ? "#fff" : INK, fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
-                <Flame size={10} /> {(rivalryNames !== false && game.rivalryName) || "Top Rivals"}
-              </span>
-            ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: dark ? "rgba(255,255,255,0.10)" : hexA(primary, 0.10), color: dark ? "rgba(255,255,255,0.85)" : INK, fontSize: 10, fontWeight: 700 }}>
-                <Flame size={10} /> {verdict(score)}
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 10.5, fontWeight: 600, color: muted, marginTop: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{game.tag}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 12, color: muted }}><Calendar size={12} /> {game.date} · {game.home ? "Home" : "Away"}</div>
-        </div>
-      </div>
+      <ScoreHead layout="slate" game={game} score={score} anim={anim} dark={dark} ink={ink} muted={muted} primary={primary} secondary={secondary} rivalryNames={rivalryNames} />
 
       {(recommendation || standingMine || standingOpp) && (
         <div style={{ marginTop: 12, textAlign: "center", borderRadius: 13, padding: "13px 15px 14px", background: dark ? "rgba(0,0,0,0.28)" : "rgba(22,19,15,0.05)", border: dark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(22,19,15,0.08)", boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.04), inset 0 2px 8px rgba(0,0,0,0.32)" : "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 2px 6px rgba(22,19,15,0.06)" }}>
