@@ -197,11 +197,10 @@ export async function GET(request) {
       const base = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${key}&sort=date,asc&size=199&startDateTime=${nowISO}`;
       const furl = `${base}&classificationName=${encodeURIComponent(sportFeed)}`;
       let fres = await fetch(furl, { next: { revalidate: 300 } });
-      if (!fres.ok) return Response.json({ games: [], source: "none", reason: `tm_${fres.status}`, mode: "sportfeed" });
-      let fdata = await fres.json();
+      let fdata = fres.ok ? await fres.json() : null;
       let fevents = fdata?._embedded?.events || [];
-      // Fallback: some sports' classification string doesn't match TM's exact genre name
-      // (e.g. "MMA" vs "Mixed Martial Arts"). Retry as a keyword so the chip never dead-ends.
+      // Fallback: a value that isn't a TM classification ("World Cup", "MMA" vs "Mixed
+      // Martial Arts") returns nothing or errors. Retry as a keyword so the chip never dead-ends.
       if (!fevents.length) {
         const kurl = `${base}&keyword=${encodeURIComponent(sportFeed)}&classificationName=Sports`;
         const kres = await fetch(kurl, { next: { revalidate: 300 } });

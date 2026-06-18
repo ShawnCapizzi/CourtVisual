@@ -28,6 +28,7 @@ const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketbal
 // Sports a user can follow in the bottom bar, each taps into a ranked league/sport feed.
 // `q` is the Ticketmaster classification name the feed queries.
 const FOLLOW_SPORTS = [
+  { id: "worldcup", label: "World Cup", q: "FIFA World Cup" },
   { id: "nba", label: "NBA", q: "NBA" },
   { id: "wnba", label: "WNBA", q: "WNBA" },
   { id: "mlb", label: "MLB", q: "MLB" },
@@ -770,9 +771,14 @@ export default function GameScoreApp() {
     setEventLoading(false);
   };
   // Bar sports: explicit follows once the user edits in Settings; otherwise auto from team leagues.
-  const barSports = followedSports !== null
+  const baseBarSports = followedSports !== null
     ? FOLLOW_SPORTS.filter((sp) => followedSports.includes(sp.id))
     : FOLLOW_SPORTS.filter((sp) => favTeams.some((t) => t.league === sp.id));
+  // The World Cup is the marquee event for first US users (2026), so it always leads the bar.
+  const WORLD_CUP = FOLLOW_SPORTS.find((sp) => sp.id === "worldcup");
+  const barSports = WORLD_CUP && !baseBarSports.some((sp) => sp.id === "worldcup")
+    ? [WORLD_CUP, ...baseBarSports]
+    : baseBarSports;
   const fetchWeekend = async (lat, lng) => {
     try {
       const u = (lat != null && lng != null) ? `/api/games?weekend=1&lat=${lat}&lng=${lng}` : "/api/games?weekend=1";
@@ -1275,19 +1281,23 @@ export default function GameScoreApp() {
             const leagueOrdered = orderSlate(eventResults);
             return (
               <>
-                <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: "#FF5A2C" }} />League view</div>
-                <h1 className="g-display" style={screenH}>{(feedSport.label || eventQuery).toUpperCase()}</h1>
-                <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Loading the slate…" : eventResults.length ? "Live events, ranked by your taste." : "No live events listed right now. Check back closer to game day."}</p>
-                {eventResults.length > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-                    <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly, where: "league" }); }} style={slatePill(todayOnly)}>
-                      <Tv size={14} /> Watch today
-                    </button>
-                    <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={slatePill(false)}>
-                      {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
-                    </button>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: "#FF5A2C" }} />League view</div>
+                    <h1 className="g-display" style={{ ...screenH, minWidth: 0 }}>{(feedSport.label || eventQuery).toUpperCase()}</h1>
+                    <p style={{ fontSize: 11.5, color: ON_FAINT, margin: 0 }}>{eventLoading ? "Loading the slate…" : eventResults.length ? "Live events, ranked by your taste." : "No live events listed right now. Check back closer to game day."}</p>
                   </div>
-                )}
+                  {eventResults.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                      <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly, where: "league" }); }} style={slatePill(todayOnly)}>
+                        <Tv size={14} /> Watch today
+                      </button>
+                      <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={slatePill(false)}>
+                        {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {todayOnly && leagueOrdered.length === 0
                   ? <p style={{ fontSize: 12, color: ON_FAINT }}>Nothing listed for today yet. Tap Watch today again for the full slate.</p>
                   : renderGames(leagueOrdered, null, true, sortMode === "date")}
@@ -1309,22 +1319,13 @@ export default function GameScoreApp() {
                 <Zap size={14} color={primary} /> Ranked for your taste, your top games right now
               </div>
             )}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-              <h1 className="g-display" style={{ ...screenH, minWidth: 0 }}>{team.label.toUpperCase()}</h1>
-            </div>
-            <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
-            <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 12 }}>{gamesView.sub}</p>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: liveGames ? 10 : 16 }}>
-              {favTeams.length > 0 ? (
-                <button onClick={() => { const next = lens === "fan" ? "neutral" : "fan"; setLens(next); track("lens_flip", { lens: next, where: "games" }); }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                  <span style={{ width: 38, height: 22, borderRadius: 999, background: lens === "fan" ? "#FF5A2C" : "rgba(236,231,219,0.18)", position: "relative", flexShrink: 0, transition: "background 0.2s ease" }}>
-                    <span style={{ position: "absolute", top: 2, left: lens === "fan" ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#FBFAF7", boxShadow: "0 1px 3px rgba(0,0,0,0.4)", transition: "left 0.2s ease" }} />
-                  </span>
-                  <span style={{ fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, color: ON }}>My choices 1st</span>
-                </button>
-              ) : <span />}
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 12 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h1 className="g-display" style={{ ...screenH, minWidth: 0 }}>{team.label.toUpperCase()}</h1>
+                <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
+                <p style={{ fontSize: 11.5, color: ON_FAINT, margin: 0 }}>{gamesView.sub}</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                 <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly }); }} style={slatePill(todayOnly)}>
                   <Tv size={14} /> Watch today
                 </button>
@@ -1335,6 +1336,15 @@ export default function GameScoreApp() {
                 )}
               </div>
             </div>
+            {favTeams.length > 0 && (
+              <button onClick={() => { const next = lens === "fan" ? "neutral" : "fan"; setLens(next); track("lens_flip", { lens: next, where: "games" }); }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 12 }}>
+                <span style={{ width: 38, height: 22, borderRadius: 999, background: lens === "fan" ? "#FF5A2C" : "rgba(236,231,219,0.18)", position: "relative", flexShrink: 0, transition: "background 0.2s ease" }}>
+                  <span style={{ position: "absolute", top: 2, left: lens === "fan" ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#FBFAF7", boxShadow: "0 1px 3px rgba(0,0,0,0.4)", transition: "left 0.2s ease" }} />
+                </span>
+                <span style={{ fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, color: ON }}>My choices 1st</span>
+              </button>
+            )}
             {liveGames && (
               <p style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, marginBottom: 16 }}>{sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}</p>
             )}
