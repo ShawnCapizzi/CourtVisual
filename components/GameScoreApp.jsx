@@ -98,11 +98,14 @@ function Ring({ value, size = 66 }) {
         <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FFA52B" /><stop offset="55%" stopColor="#FF5A2C" /><stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
+        <radialGradient id="ringWell" cx="50%" cy="40%" r="62%">
+          <stop offset="0%" stopColor="#1B1E25" /><stop offset="58%" stopColor="#13141A" /><stop offset="100%" stopColor="#0A0B0F" />
+        </radialGradient>
       </defs>
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5 / 66)} stroke="rgba(255,255,255,0.13)" />
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5.5 / 66)} stroke="url(#ringGrad)" strokeLinecap="round"
         strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform={`rotate(-90 ${c} ${c})`} />
-      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="#13141A" />
+      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="url(#ringWell)" />
       <text x={c} y={c} textAnchor="middle" dominantBaseline="central" className="g-display" fontSize={size * (17 / 66)} fill="#FF7A2E">{value.toFixed(1)}</text>
     </svg>
   );
@@ -118,9 +121,16 @@ function ScoreHead({ layout = "slate", game, score, anim, dark = true, ink, mute
     const pInk = ink || ON, pMuted = muted || ON_MUTED;
     return (
       <div style={{ textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "center" }}><Ring value={score} size={104} /></div>
-        <div className="g-display" style={{ fontSize: 22, color: pInk, lineHeight: 1.06, marginTop: 14, overflowWrap: "anywhere" }}>{title}</div>
-        <div className="g-eyebrow" style={{ fontSize: 10, color: pMuted, marginTop: 8 }}>{[game.tag, game.date].filter(Boolean).join(" \u00b7 ")}</div>
+        <div style={{ display: "flex", justifyContent: "center" }}><Ring value={score} size={128} /></div>
+        <div className="g-display" style={{ fontSize: 22, color: pInk, lineHeight: 1.06, marginTop: 16, overflowWrap: "anywhere" }}>{title}</div>
+        {game.tag && <div className="g-eyebrow" style={{ fontSize: 10.5, color: pMuted, marginTop: 10 }}>{game.tag}</div>}
+        {game.date && (
+          <div style={{ marginTop: 6, fontFamily: "'Archivo',sans-serif", lineHeight: 1.22 }}>
+            {String(game.date).split(" \u00b7 ").map((part, i) => (
+              <div key={i} style={{ fontSize: i === 0 ? 16 : 14, fontWeight: i === 0 ? 700 : 600, color: i === 0 ? pInk : pMuted }}>{part}</div>
+            ))}
+          </div>
+        )}
         {why && <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.4, color: pInk, margin: "16px 10px 0" }}>{why}</div>}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 14, fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#FF7A2E" }}>
           <Flame size={12} /> {verdict(score)}

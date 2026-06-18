@@ -21,10 +21,13 @@ function Ring({ value, size = 66 }) {
         <linearGradient id="scRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FFA52B" /><stop offset="55%" stopColor="#FF5A2C" /><stop offset="100%" stopColor="#B3122A" />
         </linearGradient>
+        <radialGradient id="scRingWell" cx="50%" cy="40%" r="62%">
+          <stop offset="0%" stopColor="#1B1E25" /><stop offset="58%" stopColor="#13141A" /><stop offset="100%" stopColor="#0A0B0F" />
+        </radialGradient>
       </defs>
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5 / 66)} stroke="rgba(255,255,255,0.13)" />
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5.5 / 66)} stroke="url(#scRingGrad)" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform={`rotate(-90 ${c} ${c})`} />
-      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="#13141A" />
+      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="url(#scRingWell)" />
       <text x={c} y={c} textAnchor="middle" dominantBaseline="central" className="g-display" fontSize={size * (17 / 66)} fill="#FF7A2E">{value.toFixed(1)}</text>
     </svg>
   );
