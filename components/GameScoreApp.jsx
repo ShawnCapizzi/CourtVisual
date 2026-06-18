@@ -133,11 +133,7 @@ function ScoreHead({ layout = "slate", game, score, anim, dark = true, ink, mute
         <div className="g-display" style={{ fontSize: 22, color: pInk, lineHeight: 1.06, marginTop: 16, overflowWrap: "anywhere" }}>{title}</div>
         {game.tag && <div className="g-eyebrow" style={{ fontSize: 10.5, color: pMuted, marginTop: 10 }}>{game.tag}</div>}
         {game.date && (
-          <div style={{ marginTop: 6, fontFamily: "'Archivo',sans-serif", lineHeight: 1.22 }}>
-            {String(game.date).split(" \u00b7 ").map((part, i) => (
-              <div key={i} style={{ fontSize: i === 0 ? 16 : 14, fontWeight: i === 0 ? 700 : 600, color: i === 0 ? pInk : pMuted }}>{part}</div>
-            ))}
-          </div>
+          <div style={{ marginTop: 7, fontFamily: "'Archivo',sans-serif", fontSize: 15, fontWeight: 700, color: pInk, lineHeight: 1.25 }}>{game.date}</div>
         )}
         {why && <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.4, color: pInk, margin: "16px 10px 0" }}>{why}</div>}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 14, fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#FF7A2E" }}>
@@ -447,6 +443,7 @@ export default function GameScoreApp() {
   const [showTopper, setShowTopper] = useState(false); // first-run "ranked for your taste" banner (session-only, never persisted)
   const [topperGone, setTopperGone] = useState(false);
   const [obStep, setObStep] = useState(1); // onboarding: 1 = teams, 2 = your kind of exciting
+  const [addMode, setAddMode] = useState(false); // "+" in the swap bar: focused add-a-team/sport, returns to games (vs full first-run welcome)
   const [teamSlugs, setTeamSlugs] = useState([]);
   const [primarySlug, setPrimarySlug] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -541,7 +538,7 @@ export default function GameScoreApp() {
   }, []);
 
   // Land at the top of every screen when switching views (don't inherit scroll).
-  useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } if (view === "onboarding") setObStep(1); }, [view]);
+  useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } if (view === "onboarding") setObStep(1); else setAddMode(false); }, [view]);
   // Advancing a setup step should land at the top of that step (e.g. the quick-start intro),
   // not wherever the previous step left the scroll, which made step 2 jump straight to the sliders.
   useEffect(() => { try { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); } catch { window.scrollTo(0, 0); } }, [obStep]);
@@ -917,12 +914,18 @@ export default function GameScoreApp() {
       <Shell stadiumLight={stadiumLight}>
         <SiteHeader view={view} setView={setView} />
         {obStep === 1 ? (<>
+        {addMode && (<>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Add to your lineup</div>
+        <h1 className="g-display" style={{ ...screenH, fontSize: 36 }}>ADD A TEAM<br />OR SPORT</h1>
+        <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.55, margin: "16px 2px 6px", maxWidth: 320 }}>Pick another team or follow a sport. It drops into your swap bar and we rank its games for you.</p>
+        </>)}
+        {!addMode && (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
 
         <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.55, margin: "16px 2px 0", maxWidth: 320 }}>One honest number per game, so you find the ones worth your night before they pass. Here&rsquo;s what every game looks like.</p>
 
-        <div style={{ marginTop: 26, borderRadius: 18, padding: "26px 20px 22px", background: "#13141A", border: "1px solid rgba(236,231,219,0.09)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)" }}>
+        <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 26, padding: "26px 20px 22px" }}>
           <ScoreHead layout="poster" game={SHOWCASE_GAME} score={scoreOf(SHOWCASE_GAME, DEFAULT_WEIGHTS)} why={SHOWCASE_WHY} />
         </div>
 
@@ -946,6 +949,7 @@ export default function GameScoreApp() {
           <Flame size={13} color="#FF5A2C" style={{ flexShrink: 0 }} />
           <span style={{ fontSize: 12, color: ON_FAINT, lineHeight: 1.35 }}>The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E", fontWeight: 700 }}>CourtVisual&rsquo;s own</span>.</span>
         </div>
+        </>)}
 
         <div id="ob-pick" className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "26px 0 8px" }}>Pick your team or sport</div>
         <p style={{ fontSize: 13, color: ON_FAINT, lineHeight: 1.45, margin: "0 0 12px" }}>
@@ -991,13 +995,13 @@ export default function GameScoreApp() {
             </>
           );
         })()}
-        {favTeams.length > 0 && (
+        {!addMode && favTeams.length > 0 && (
           <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 16, padding: "18px 20px", fontSize: 13, color: "rgba(236,231,219,0.85)", lineHeight: 1.6 }}>
             <div>Every game&rsquo;s scored for a <b style={{ color: ON }}>neutral fan</b>, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a <b style={{ color: ON }}>plain-English read</b> of why it&rsquo;s worth watching.</div>
             <div style={{ marginTop: 10 }}>Prefer quick chips, or a different announcer voice? Switch anytime in <b style={{ color: ON }}>Settings</b>, where you can fine-tune what counts too.</div>
           </div>
         )}
-        {(() => {
+        {!addMode && (() => {
           const hasSport = followedSports && followedSports.length > 0;
           const canContinue = teamSlugs.length > 0 || hasSport;
           // A sport-first user has no taste step value yet, but presets still apply, so send them through too.
@@ -1008,6 +1012,12 @@ export default function GameScoreApp() {
             </button>
           );
         })()}
+        {addMode && (
+          <button onClick={() => { setAddMode(false); setView("games"); }}
+            style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>
+            Done, back to my games
+          </button>
+        )}
         </>) : (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Step 2 of 2 · Your taste</div>
         <h1 className="g-display" style={screenH}>WHAT MAKES A GAME WORTH IT, TO YOU?</h1>
@@ -1030,6 +1040,30 @@ export default function GameScoreApp() {
             );
           })}
         </div>
+        <div className="g-eyebrow" style={{ fontSize: 10, color: "#FF7A2E", margin: "26px 0 10px", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF5A2C" }} />Your custom results preview</div>
+        {(() => {
+          const demo = { tag: "Rivalry night", playoff: 6, rivalry: 9, hot: 7, historic: 8, topRivals: true };
+          const sc = scoreOf(demo, weights);
+          const cp = scoreParts(demo, weights).contrib;
+          const top = FACTORS.reduce((a, f) => (cp[f.key] > cp[a.key] ? f : a), FACTORS[0]);
+          return (
+            <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
+                <Ring value={sc} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span className="g-display" style={{ fontSize: 18, color: ON, lineHeight: 1.08 }}>RIVALRY NIGHT</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)", fontSize: 10, fontWeight: 700 }}><Flame size={10} /> {verdict(sc)}</span>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: ON_MUTED, marginTop: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>A sample game, scored by your mix</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 14, lineHeight: 1.45 }}>
+                Move a slider below and this score moves. Right now it leans on your <b style={{ color: ON_MUTED }}>{top.label}</b> weight, exactly how we rank every real game on your slate.
+              </div>
+            </div>
+          );
+        })()}
         <div className="g-eyebrow" style={{ fontSize: 9.5, color: ON_FAINT, margin: "26px 0 12px" }}>Or score each factor yourself</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {FACTORS.map((f, fi) => (
@@ -1044,29 +1078,6 @@ export default function GameScoreApp() {
             </div>
           ))}
         </div>
-        {(() => {
-          const demo = { tag: "Rivalry night", playoff: 6, rivalry: 9, hot: 7, historic: 8, topRivals: true };
-          const sc = scoreOf(demo, weights);
-          const cp = scoreParts(demo, weights).contrib;
-          const top = FACTORS.reduce((a, f) => (cp[f.key] > cp[a.key] ? f : a), FACTORS[0]);
-          return (
-            <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 22 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
-                <Ring value={sc} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span className="g-display" style={{ fontSize: 18, color: ON, lineHeight: 1.08 }}>RIVALRY NIGHT</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)", fontSize: 10, fontWeight: 700 }}><Flame size={10} /> {verdict(sc)}</span>
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: ON_MUTED, marginTop: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>A sample game, scored by your mix</div>
-                </div>
-              </div>
-              <div style={{ fontSize: 11.5, color: ON_FAINT, marginTop: 14, lineHeight: 1.45 }}>
-                Move a slider and this score moves. Right now it leans on your <b style={{ color: ON_MUTED }}>{top.label}</b> weight, exactly how we rank every real game on your slate.
-              </div>
-            </div>
-          );
-        })()}
         <button onClick={() => {
           track("onboarding_complete", { preset, teams: teamSlugs.length, sports: (followedSports || []).length });
           setShowTopper(true);
@@ -1302,7 +1313,7 @@ export default function GameScoreApp() {
   };
   // One pill style so Watch today and Sort by date are the same shape and size.
   const slatePill = (active) => ({
-    display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 13px", borderRadius: 999, cursor: "pointer",
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "9px 14px", borderRadius: 999, cursor: "pointer",
     fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700,
     background: active ? "#FF5A2C" : "rgba(236,231,219,0.06)",
     color: active ? "#1A120E" : ON,
@@ -1357,7 +1368,7 @@ export default function GameScoreApp() {
               </div>
             )}
           </div>
-          <button aria-label="Filter games" onClick={() => setFilterOpen((v) => !v)} style={{ flexShrink: 0, width: 46, display: "flex", alignItems: "center", justifyContent: "center", background: filterOpen ? "rgba(236,231,219,0.14)" : "rgba(236,231,219,0.06)", color: ON, border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, cursor: "pointer" }}>
+          <button aria-label="Filter games" onClick={() => setFilterOpen((v) => !v)} style={{ flexShrink: 0, width: 44, display: "flex", alignItems: "center", justifyContent: "center", background: filterOpen ? "rgba(236,231,219,0.14)" : "rgba(236,231,219,0.06)", color: ON, border: "1px solid rgba(236,231,219,0.12)", borderRadius: 12, cursor: "pointer" }}>
             <SlidersHorizontal size={18} />
           </button>
           {filterOpen && <div onClick={() => setFilterOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 35 }} />}
@@ -1391,7 +1402,7 @@ export default function GameScoreApp() {
                     <p style={{ fontSize: 11.5, color: ON_FAINT, margin: 0 }}>{eventLoading ? "Loading the slate…" : eventResults.length ? "Live events, ranked by your taste." : "No live events listed right now. Check back closer to game day."}</p>
                   </div>
                   {eventResults.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8, flexShrink: 0 }}>
                       <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly, where: "league" }); }} style={slatePill(todayOnly)}>
                         <Tv size={14} /> Watch today
                       </button>
@@ -1428,7 +1439,7 @@ export default function GameScoreApp() {
                 <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
                 <p style={{ fontSize: 11.5, color: ON_FAINT, margin: 0 }}>{gamesView.sub}</p>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8, flexShrink: 0 }}>
                 <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly }); }} style={slatePill(todayOnly)}>
                   <Tv size={14} /> Watch today
                 </button>
@@ -1531,7 +1542,7 @@ export default function GameScoreApp() {
                   </button>
                 );
               })}
-              <button onClick={() => setView("onboarding")} aria-label="Add teams or sports"
+              <button onClick={() => { setAddMode(true); setView("onboarding"); }} aria-label="Add teams or sports"
                 style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 35, borderRadius: 999, border: "1px dashed rgba(236,231,219,0.25)", background: "none", color: ON_MUTED, cursor: "pointer" }}>
                 <Plus size={15} />
               </button>
