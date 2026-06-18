@@ -527,6 +527,7 @@ export default function GameScoreApp() {
   const [jump, setJump] = useState("");
   const [eventResults, setEventResults] = useState(null);
   const [eventQuery, setEventQuery] = useState("");
+  const [feedSport, setFeedSport] = useState(null); // set when the swap bar opens a league view (vs a typed search)
   const [eventLoading, setEventLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [todayOnly, setTodayOnly] = useState(false); // "Watch today" chip: limit slate to games on today (ranking unchanged, so picks still float up)
@@ -634,21 +635,44 @@ export default function GameScoreApp() {
     else text = hot ? `Gotta-see game: ${matchup}, a ${score} on CourtVisual (${v}). Don't miss this one.` : `${matchup}, scored ${score} on CourtVisual. Here's the rundown.`;
     return { score, matchup, url, text };
   };
+  // Robust clipboard. The async API needs a secure context + focus and fails silently in
+  // some installed-PWA webviews, so fall back to a hidden textarea + execCommand.
+  const fallbackCopy = (s) => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = s; ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.top = "-9999px"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, s.length);
+      document.execCommand("copy"); document.body.removeChild(ta);
+    } catch {}
+  };
+  const copyText = (s) => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard && typeof window !== "undefined" && window.isSecureContext) {
+        navigator.clipboard.writeText(s).catch(() => fallbackCopy(s));
+        return;
+      }
+    } catch {}
+    fallbackCopy(s);
+  };
   // Channel senders. Each picks the right transport; all close the sheet + flash the confirm.
   const sendVia = (g, intent, channel) => {
     const { score, matchup, url, text } = sharePayload(g, intent);
     const full = `${text} ${url}`;
     if (channel === "sms") {
-      // sms: syntax is platform-split: iOS wants sms:&body=, Android wants sms:?body=.
-      // Use a real navigation (location.href), not window.open, popups don't trigger Messages.
-      const isAppleDevice = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
-      const sep = isAppleDevice ? "&" : "?";
-      try { window.location.href = `sms:${sep}body=${encodeURIComponent(full)}`; } catch { try { navigator.clipboard?.writeText(full); } catch {} }
+      // The sms: URI is unreliable inside an installed PWA on iOS (Messages shows encoded
+      // gibberish), so hand off to the native share sheet when present; fall back otherwise.
+      if (typeof navigator !== "undefined" && navigator.share) {
+        navigator.share({ text: full }).catch(() => {});
+      } else {
+        const isApple = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent || "");
+        try { window.location.href = `sms:${isApple ? "&" : "?"}body=${encodeURIComponent(full)}`; } catch { copyText(full); }
+      }
     } else if (channel === "copy") {
-      try { navigator.clipboard?.writeText(full); } catch {}
+      copyText(url); // the link, matching the label
       setShared(g.oppSlug + "-copied"); setTimeout(() => setShared(null), 1600);
     } else { // "native", the OS share sheet (WhatsApp, Messenger, email, Instagram on mobile, etc.)
-      try { if (navigator.share) { navigator.share({ title: matchup, text, url }).catch(() => {}); } else { navigator.clipboard?.writeText(full); } } catch { try { navigator.clipboard?.writeText(full); } catch {} }
+      try { if (navigator.share) { navigator.share({ title: matchup, text, url }).catch(() => {}); } else { copyText(full); } } catch { copyText(full); }
     }
     track("share_game", { opp: g.opp, ds: g.ds, score, intent, channel });
     if (channel !== "copy") { setShared(g.oppSlug); setTimeout(() => setShared(null), 1600); }
@@ -720,10 +744,10 @@ export default function GameScoreApp() {
 
   // ---------- search (jump to team / search any sport, place, or event) ----------
   const teamMatches = jump.trim() ? TEAMS.filter((t) => t.label.toLowerCase().includes(jump.trim().toLowerCase())).slice(0, 5) : [];
-  const jumpToTeam = (t) => { if (!teamSlugs.includes(t.slug)) setTeamSlugs([...teamSlugs, t.slug]); setPrimarySlug(t.slug); setJump(""); setEventResults(null); setEventQuery(""); };
+  const jumpToTeam = (t) => { if (!teamSlugs.includes(t.slug)) setTeamSlugs([...teamSlugs, t.slug]); setPrimarySlug(t.slug); setJump(""); setEventResults(null); setEventQuery(""); setFeedSport(null); };
   // Switch to the results view immediately with a loading state, so taps feel responsive
   // (esp. weekend, where the geolocation prompt can take a few seconds).
-  const beginSearch = (label) => { setEventLoading(true); setEventResults([]); setEventQuery(label); setJump(""); setFilterOpen(false); setView("games"); };
+  const beginSearch = (label) => { setEventLoading(true); setEventResults([]); setEventQuery(label); setFeedSport(null); setJump(""); setFilterOpen(false); setView("games"); };
   const runEventSearch = async (query) => {
     const qq = (query || "").trim(); if (!qq) return;
     // A team search opens that team's full experience (and adds it to the swap bar so it can be
@@ -738,10 +762,11 @@ export default function GameScoreApp() {
     catch { setEventResults([]); }
     setEventLoading(false);
   };
-  const clearSearch = () => { setEventResults(null); setEventQuery(""); setJump(""); };
+  const clearSearch = () => { setEventResults(null); setEventQuery(""); setFeedSport(null); setJump(""); };
   const runSportFeed = async (sp) => {
     track("sport_feed", { id: sp.id });
     beginSearch(sp.label);
+    setFeedSport(sp); // first-class league view: gets the same Watch today + Sort controls, no "back" button
     try { const r = await fetch(`/api/games?sportfeed=${encodeURIComponent(sp.q)}`); const d = await r.json(); setEventResults(d.games || []); }
     catch { setEventResults([]); }
     setEventLoading(false);
@@ -1150,6 +1175,32 @@ export default function GameScoreApp() {
 
   // ---------- GAMES ----------
   const LEAGUE = (team.league || "").toUpperCase();
+  // Shared ordering for any slate (team view or league view): score (lens-aware) or date,
+  // then the Watch today filter. One source of truth so both views sort identically.
+  const isTodayG = (g) => {
+    if (!g.iso) return false;
+    const d = new Date(g.iso), now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  };
+  const byDateG = (a, b) => {
+    const ax = a.iso || (a.ds && a.ds !== "tbd" ? a.ds : null);
+    const bx = b.iso || (b.ds && b.ds !== "tbd" ? b.ds : null);
+    if (ax && bx) return ax < bx ? -1 : ax > bx ? 1 : 0;
+    if (ax) return -1; if (bx) return 1; return 0; // games without a date sink to the bottom
+  };
+  const orderSlate = (list) => {
+    let o = sortMode === "date" ? [...list].sort(byDateG) : [...list].sort((a, b) => activeScore(b) - activeScore(a));
+    if (todayOnly) o = o.filter(isTodayG);
+    return o;
+  };
+  // One pill style so Watch today and Sort by date are the same shape and size.
+  const slatePill = (active) => ({
+    display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 13px", borderRadius: 999, cursor: "pointer",
+    fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700,
+    background: active ? "#FF5A2C" : "rgba(236,231,219,0.06)",
+    color: active ? "#1A120E" : ON,
+    border: active ? "1px solid #FF5A2C" : "1px solid rgba(236,231,219,0.14)",
+  });
   let gamesView;
   {
     let base, sub, context = null;
@@ -1168,26 +1219,10 @@ export default function GameScoreApp() {
       base = sampleSlate(team); sub = "Example matchups, ranked by your taste.";
       context = <ContextCard primary={primary} teamRecord={teamRecord} title="No upcoming games listed yet" body={`We don't see scheduled ${team.name} games right now. Here's a taste of the matchups to come while the schedule fills in.`} />;
     }
-    const byDate = (a, b) => {
-      // Chronological for trip planning. Use the route's iso date; fall back to ds, TBD last.
-      const ax = a.iso || (a.ds && a.ds !== "tbd" ? a.ds : null);
-      const bx = b.iso || (b.ds && b.ds !== "tbd" ? b.ds : null);
-      if (ax && bx) return ax < bx ? -1 : ax > bx ? 1 : 0;
-      if (ax) return -1; if (bx) return 1; return 0; // games without a date sink to the bottom
-    };
-    let ordered = sortMode === "date"
-      ? [...base].sort(byDate)
-      : [...base].sort((a, b) => activeScore(b) - activeScore(a));
+    const ordered = orderSlate(base);
     if (todayOnly) {
-      const now = new Date();
-      const onToday = ordered.filter((g) => {
-        if (!g.iso) return false;
-        const d = new Date(g.iso);
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-      });
-      ordered = onToday;
       context = null;
-      sub = onToday.length ? "On today, your picks first." : "Nothing listed for today yet. Tap Watch today again for the full slate.";
+      sub = ordered.length ? "On today, your picks first." : "Nothing listed for today yet. Tap Watch today again for the full slate.";
     }
     gamesView = { sub, context, ranked: ordered };
   }
@@ -1237,7 +1272,31 @@ export default function GameScoreApp() {
           )}
         </div>
 
-        {eventResults !== null ? (
+        {eventResults !== null && feedSport ? (
+          (() => {
+            const leagueOrdered = orderSlate(eventResults);
+            return (
+              <>
+                <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: "#FF5A2C" }} />League view</div>
+                <h1 className="g-display" style={screenH}>{(feedSport.label || eventQuery).toUpperCase()}</h1>
+                <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Loading the slate…" : eventResults.length ? "Live events, ranked by your taste." : "No live events listed right now. Check back closer to game day."}</p>
+                {eventResults.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                    <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly, where: "league" }); }} style={slatePill(todayOnly)}>
+                      <Tv size={14} /> Watch today
+                    </button>
+                    <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={slatePill(false)}>
+                      {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
+                    </button>
+                  </div>
+                )}
+                {todayOnly && leagueOrdered.length === 0
+                  ? <p style={{ fontSize: 12, color: ON_FAINT }}>Nothing listed for today yet. Tap Watch today again for the full slate.</p>
+                  : renderGames(leagueOrdered, null, true, sortMode === "date")}
+              </>
+            );
+          })()
+        ) : eventResults !== null ? (
           <>
             <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: primary }} />Search results</div>
             <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
@@ -1257,8 +1316,8 @@ export default function GameScoreApp() {
             </div>
             <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 12 }}>{gamesView.sub}</p>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: favTeams.length ? "space-between" : "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-              {favTeams.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: liveGames ? 10 : 16 }}>
+              {favTeams.length > 0 ? (
                 <button onClick={() => { const next = lens === "fan" ? "neutral" : "fan"; setLens(next); track("lens_flip", { lens: next, where: "games" }); }}
                   style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                   <span style={{ width: 38, height: 22, borderRadius: 999, background: lens === "fan" ? "#FF5A2C" : "rgba(236,231,219,0.18)", position: "relative", flexShrink: 0, transition: "background 0.2s ease" }}>
@@ -1266,28 +1325,27 @@ export default function GameScoreApp() {
                   </span>
                   <span style={{ fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, color: ON }}>My choices 1st</span>
                 </button>
-              )}
-              <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly }); }}
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 999, cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, background: todayOnly ? "#FF5A2C" : "rgba(236,231,219,0.06)", color: todayOnly ? "#1A120E" : ON, border: todayOnly ? "1px solid #FF5A2C" : "1px solid rgba(236,231,219,0.14)" }}>
-                <Tv size={14} /> Watch today
-              </button>
+              ) : <span />}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly }); }} style={slatePill(todayOnly)}>
+                  <Tv size={14} /> Watch today
+                </button>
+                {liveGames && (
+                  <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={slatePill(false)}>
+                    {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
+                  </button>
+                )}
+              </div>
             </div>
             {liveGames && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: ON_MUTED }}>
-                  {sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}
-                </span>
-                <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
-                </button>
-              </div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, marginBottom: 16 }}>{sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}</p>
             )}
             {gamesView.context}
             {renderGames(gamesView.ranked, team.league, false, liveGames && sortMode === "date")}
             <button onClick={() => { setSettingsJump("excitement"); setView("settings"); }} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <SlidersHorizontal size={14} /> Set your teams & hype
             </button>
-                    </>
+          </>
         )}
         {/* Share-intent picker, three score-aware captions in the app's voice */}
         {shareGame && (
@@ -1347,14 +1405,14 @@ export default function GameScoreApp() {
                 const on = !eventQuery && primarySlug === t.slug;
                 const tColor = t.primary || CREAM;
                 return (
-                  <button key={t.slug} onClick={() => { track("bar_switch", { kind: "team", id: t.slug }); setEventResults(null); setEventQuery(""); setPrimarySlug(t.slug); }}
+                  <button key={t.slug} onClick={() => { track("bar_switch", { kind: "team", id: t.slug }); setEventResults(null); setEventQuery(""); setFeedSport(null); setPrimarySlug(t.slug); }}
                     style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1.5px solid ${on ? tColor : "rgba(236,231,219,0.22)"}`, background: on ? tColor : "rgba(255,255,255,0.05)", color: on ? textOn(tColor) : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: on ? "0 2px 10px rgba(0,0,0,0.35)" : "none" }}>
                     {dots(t)} {t.name}
                   </button>
                 );
               })}
               {barSports.map((sp) => {
-                const on = eventQuery === sp.label;
+                const on = feedSport?.id === sp.id;
                 return (
                   <button key={sp.id} onClick={() => runSportFeed(sp)}
                     style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 999, border: `1.5px solid ${on ? "#FF5A2C" : "rgba(236,231,219,0.22)"}`, background: on ? "#FF5A2C" : "rgba(255,255,255,0.05)", color: on ? "#FFFFFF" : ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, cursor: "pointer", boxShadow: on ? "0 2px 10px rgba(0,0,0,0.35)" : "none" }}>
