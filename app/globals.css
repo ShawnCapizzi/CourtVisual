@@ -6,6 +6,8 @@ html, body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 /* One family, two weights — display is the same material as the UI, machined heavier */

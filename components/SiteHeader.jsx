@@ -12,15 +12,15 @@ const INK = "#16130F";
 
 export function LogoPlate() {
   return (
-    <span style={{ fontFamily: "'Anton','Archivo Black',sans-serif", fontSize: "clamp(20px, 5.6vw, 25px)", lineHeight: 1, letterSpacing: "0.01em", color: ON }}>
+    <span style={{ fontFamily: "'Anton','Archivo Black',sans-serif", fontSize: "clamp(18px, 5vw, 23px)", lineHeight: 1, letterSpacing: "0.01em", color: ON, whiteSpace: "nowrap" }}>
       Court<span style={{ color: "#E1641F" }}>Visual</span>
     </span>
   );
 }
 
 // pillBg/border are the exact in-app values so the two surfaces are pixel-identical.
-const groupWrap = { display: "inline-flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" };
-const gearBase = { width: 46, height: 44, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" };
+const groupWrap = { display: "inline-flex", gap: 4, padding: 3, background: "rgba(255,255,255,0.07)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 };
+const gearBase = { width: 42, height: 42, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" };
 
 // view/setView present → app (button) mode. Absent → link mode (the /about route).
 export default function SiteHeader({ view, setView }) {
@@ -29,14 +29,14 @@ export default function SiteHeader({ view, setView }) {
   const gamesOn = !linkMode && view === "games";
   const settingsOn = !linkMode && view === "settings";
 
-  const gamesPillStyle = (on) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", height: 34, textDecoration: "none", border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, padding: "0 16px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" });
+  const gamesPillStyle = (on) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", height: 32, textDecoration: "none", border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12, fontWeight: 600, padding: "0 13px", borderRadius: 9, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED, boxShadow: on ? "0 1px 3px rgba(0,0,0,0.35)" : "none" });
   const gearStyle = (on) => ({ ...gearBase, background: on ? CREAM : "rgba(255,255,255,0.07)", color: on ? INK : ON_MUTED, textDecoration: "none" });
 
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 18, minWidth: 0 }}>
       {linkMode
-        ? <a href="/" style={{ textDecoration: "none" }}><LogoPlate /></a>
-        : <LogoPlate />}
+        ? <a href="/" style={{ textDecoration: "none", minWidth: 0, overflow: "hidden" }}><LogoPlate /></a>
+        : <span style={{ minWidth: 0, overflow: "hidden" }}><LogoPlate /></span>}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div style={groupWrap}>
           {linkMode

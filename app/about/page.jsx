@@ -9,6 +9,7 @@
 
 import SiteHeader from "../../components/SiteHeader";
 import StageBackdrop from "../../components/StageBackdrop";
+import SampleScoreCard from "../../components/SampleScoreCard";
 
 export const metadata = {
   title: "About",
@@ -158,6 +159,8 @@ export default function AboutPage() {
         <p style={sub}>
           <strong>Independent product.</strong> Schedules and tickets via Ticketmaster, broadcasts via ESPN, matchup projections via The Odds API. <strong>The rivalry catalog and scoring engine are CourtVisual&rsquo;s own.</strong>
         </p>
+
+        <SampleScoreCard style={{ margin: "26px 0 8px" }} note="Every upcoming game gets a 0&ndash;10 score like this, from four factors weighted by what you find exciting. Move your sliders and the whole slate re-ranks." />
 
         <h2 style={h2}>Frequently asked</h2>
         {FAQ.map((item, i) => (

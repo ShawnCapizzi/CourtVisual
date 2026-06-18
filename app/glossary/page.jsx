@@ -9,6 +9,7 @@
 
 import SiteHeader from "../../components/SiteHeader";
 import StageBackdrop from "../../components/StageBackdrop";
+import SampleScoreCard from "../../components/SampleScoreCard";
 
 export const metadata = {
   title: "Sports glossary",
@@ -196,6 +197,8 @@ export default function GlossaryPage() {
         <p style={sub}>
           It answers three questions: <strong>why a game matters</strong>, <strong>where each team stands</strong>, and <strong>how you can actually watch or attend</strong>. Written to be quick for casual fans and still useful to serious ones.
         </p>
+
+        <SampleScoreCard style={{ margin: "26px 0 8px" }} note="This is a CourtVisual card. Every term below is something you&rsquo;ll meet on one, starting with the score in the ring." />
 
         <nav style={jumpNav} aria-label="Jump to a section">
           {BUCKETS.map((b) => (
