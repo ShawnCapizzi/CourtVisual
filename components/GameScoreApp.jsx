@@ -1300,7 +1300,7 @@ export default function GameScoreApp() {
                 </div>
                 {todayOnly && leagueOrdered.length === 0
                   ? <p style={{ fontSize: 12, color: ON_FAINT }}>Nothing listed for today yet. Tap Watch today again for the full slate.</p>
-                  : renderGames(leagueOrdered, null, true, sortMode === "date")}
+                  : renderGames(leagueOrdered, feedSport.id, true, sortMode === "date")}
               </>
             );
           })()
