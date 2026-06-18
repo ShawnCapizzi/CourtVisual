@@ -28,6 +28,7 @@ const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 // Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
 const deepen = (hex, target) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = (n & 255); const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; const k = lum > target ? target / lum : 1; r = Math.round(r * k); g = Math.round(g * k); b = Math.round(b * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
+const lift = (hex, minLum = 0.5) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = (n & 255); const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; if (lum >= minLum) return hex; const t = (minLum - lum) / (1 - lum); r = Math.round(r + (255 - r) * t); g = Math.round(g + (255 - g) * t); b = Math.round(b + (255 - b) * t); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketball" }, { id: "mlb", label: "Baseball" }, { id: "nhl", label: "Hockey" }, { id: "mls", label: "Soccer" }, { id: "wnba", label: "WNBA" }, { id: "boxing", label: "Boxing" }];
 // Sports a user can follow in the bottom bar, each taps into a ranked league/sport feed.
 // `q` is the Ticketmaster classification name the feed queries.
@@ -148,6 +149,18 @@ function ScoreHead({ layout = "slate", game, score, anim, dark = true, ink, mute
         : <div className="g-display" style={{ fontSize: 58, lineHeight: 0.8, backgroundImage: FLAME(135), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{anim.toFixed(1)}</div>}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {(game.homeLogo || game.awayLogo) && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+              {[[game.homeLogo, game.homeColor], [game.awayLogo, game.awayColor]].map(([logo, col], i) => {
+                const c = col ? lift(col, 0.58) : null;
+                return (
+                  <span key={i} style={{ width: 27, height: 27, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: c ? hexA(c, 0.16) : "rgba(255,255,255,0.06)", border: `1px solid ${c ? hexA(c, 0.55) : "rgba(255,255,255,0.14)"}` }}>
+                    {logo ? <img src={logo} alt="" width={18} height={18} loading="lazy" referrerPolicy="no-referrer" style={{ display: "block", objectFit: "contain" }} /> : null}
+                  </span>
+                );
+              })}
+            </span>
+          )}
           <span className="g-display" style={{ fontSize: 21, color: ink, lineHeight: 1.08, minWidth: 0, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</span>
           {game.topRivals ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: hexA(secondary, 0.16), border: `1px solid ${hexA(secondary, 0.34)}`, color: dark ? "#fff" : INK, fontSize: 10, fontWeight: 700, letterSpacing: "0.02em" }}>
