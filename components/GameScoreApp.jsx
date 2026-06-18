@@ -153,7 +153,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
 
       {(recommendation || standingMine || standingOpp) && (
-        <div style={{ marginTop: 12, textAlign: "center" }}>
+        <div style={{ marginTop: 12, textAlign: "center", borderRadius: 13, padding: "13px 15px 14px", background: dark ? "rgba(0,0,0,0.28)" : "rgba(22,19,15,0.05)", border: dark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(22,19,15,0.08)", boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.04), inset 0 2px 8px rgba(0,0,0,0.32)" : "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 2px 6px rgba(22,19,15,0.06)" }}>
           {whyView !== "chips" && (standingMine || standingOpp) && (
             <div style={{ marginBottom: recommendation ? 7 : 0, fontSize: 11, color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}>
               <Trophy size={11} />
@@ -330,11 +330,11 @@ function StyleMini({ variant }) {
   );
 }
 
-function Shell({ children }) {
+function Shell({ children, stadiumLight }) {
   return (
     <div className="g-ui" style={{ color: INK, width: "100%", minHeight: "100vh", position: "relative" }}>
-      <div className="cv-stage" aria-hidden="true" />
-      <div className="cv-grain" aria-hidden="true" />
+      {stadiumLight && <div className="cv-stage" aria-hidden="true" />}
+      {stadiumLight && <div className="cv-grain" aria-hidden="true" />}
       <div style={{ position: "relative", zIndex: 1, maxWidth: 540, margin: "0 auto", padding: "26px 20px calc(48px + env(safe-area-inset-bottom))" }}>
         {children}
         <footer style={{ marginTop: 36, paddingTop: 16, borderTop: "1px solid rgba(236,231,219,0.08)", textAlign: "center" }}>
@@ -383,6 +383,7 @@ export default function GameScoreApp() {
   const [weights, setWeights] = useState(DEFAULT_WEIGHTS);
   const [preset, setPreset] = useState("balanced");
   const [cardStyle, setCardStyle] = useState("dashboard");
+  const [stadiumLight, setStadiumLight] = useState(false); // matte black by default; opt-in floodlit stadium backdrop
   const [rivalryNames, setRivalryNames] = useState(true); // show "El Tráfico" / "Subway Series" on pills (Settings)
   const [viewMode, setViewMode] = useState("watch"); // "watch" | "tickets", the card's action layer (watch is the everyday default)
   const [followedSports, setFollowedSports] = useState(null); // null = auto from team leagues
@@ -401,7 +402,7 @@ export default function GameScoreApp() {
   const [authEmail, setAuthEmail] = useState("");
   const [authMsg, setAuthMsg] = useState("");
 
-  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode, followedSports, intensities, lens, whyView, voice };
+  const snapshot = { teams: teamSlugs, primary: primarySlug, players, location, weights, preset, cardStyle, override, reactions, rivalryNames, viewMode, followedSports, intensities, lens, whyView, voice, stadiumLight };
   const snapRef = useRef(snapshot);
   snapRef.current = snapshot;
   const applyState = (st) => {
@@ -420,6 +421,7 @@ export default function GameScoreApp() {
     if (st.lens) setLens(st.lens);
     if (st.whyView) setWhyView(st.whyView);
     if (st.voice) setVoice(st.voice);
+    if (st.stadiumLight !== undefined) setStadiumLight(st.stadiumLight);
   };
 
   // hydrate from on-device storage (swap for Supabase later)
@@ -443,6 +445,7 @@ export default function GameScoreApp() {
     if (s.lens) setLens(s.lens);
     if (s.whyView) setWhyView(s.whyView);
     if (s.voice) setVoice(s.voice);
+    if (s.stadiumLight !== undefined) setStadiumLight(s.stadiumLight);
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
   }, []);
@@ -508,7 +511,7 @@ export default function GameScoreApp() {
   useEffect(() => {
     store.save(snapshot);
     if (session?.user) { const t = setTimeout(() => saveRemote(session.user.id, snapshot), 600); return () => clearTimeout(t); }
-  }, [teamSlugs, primarySlug, players, location, weights, preset, cardStyle, override, reactions, session, rivalryNames, viewMode, followedSports, intensities, lens, whyView, voice]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [teamSlugs, primarySlug, players, location, weights, preset, cardStyle, override, reactions, session, rivalryNames, viewMode, followedSports, intensities, lens, whyView, voice, stadiumLight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const favTeams = teamSlugs.map(teamBySlug).filter(Boolean);
   const team = teamBySlug(primarySlug) || favTeams[0] || TEAMS[0];
@@ -833,7 +836,7 @@ export default function GameScoreApp() {
   // ---------- ONBOARDING ----------
   if (view === "onboarding") {
     return (
-      <Shell>
+      <Shell stadiumLight={stadiumLight}>
         <SiteHeader view={view} setView={setView} />
         {obStep === 1 ? (<>
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
@@ -1001,7 +1004,7 @@ export default function GameScoreApp() {
   // ---------- SETTINGS ----------
   if (view === "settings") {
     return (
-      <Shell>
+      <Shell stadiumLight={stadiumLight}>
         <SiteHeader view={view} setView={setView} />
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
         <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
@@ -1065,6 +1068,18 @@ export default function GameScoreApp() {
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
       </Section>
         <Section primary={primary} label="Display">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(236,231,219,0.08)" }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Stadium light the background</div>
+              <div style={{ fontSize: 12, color: ON_MUTED, marginTop: 3, lineHeight: 1.4 }}>Off keeps a clean matte black. On lights the app like a stadium, with soft floodlights that drift behind your games.</div>
+            </div>
+            <button onClick={() => { const next = !stadiumLight; setStadiumLight(next); track("stadium_light", { on: next }); }} aria-pressed={stadiumLight} aria-label="Stadium light the background"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+              <span style={{ width: 38, height: 22, borderRadius: 999, background: stadiumLight ? "#FF5A2C" : "rgba(236,231,219,0.18)", position: "relative", flexShrink: 0, transition: "background 0.2s ease" }}>
+                <span style={{ position: "absolute", top: 2, left: stadiumLight ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#FBFAF7", boxShadow: "0 1px 3px rgba(0,0,0,0.4)", transition: "left 0.2s ease" }} />
+              </span>
+            </button>
+          </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Rivalry names on cards</div>
@@ -1232,7 +1247,7 @@ export default function GameScoreApp() {
   }
   if (view === "games") {
     return (
-      <Shell>
+      <Shell stadiumLight={stadiumLight}>
         <SiteHeader view={view} setView={setView} />
         <div style={{ display: "flex", alignItems: "stretch", gap: 8, marginBottom: 16, position: "relative" }}>
           <div style={{ flex: 1, position: "relative", minWidth: 0 }}>

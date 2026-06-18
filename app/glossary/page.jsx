@@ -8,6 +8,7 @@
 // deep-link straight to the definition: /glossary#the-race , /glossary#blackout , etc.
 
 import SiteHeader from "../../components/SiteHeader";
+import StageBackdrop from "../../components/StageBackdrop";
 
 export const metadata = {
   title: "Sports glossary",
@@ -183,8 +184,7 @@ const creditLink = { color: "rgba(236,231,219,0.6)", fontWeight: 600, textDecora
 export default function GlossaryPage() {
   return (
     <main className="g-ui" style={stage}>
-      <div className="cv-stage" aria-hidden="true" />
-      <div className="cv-grain" aria-hidden="true" />
+      <StageBackdrop />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(GLOSSARY_LD) }} />
       <div style={{ ...wrap, position: "relative", zIndex: 1 }}>
         <SiteHeader />

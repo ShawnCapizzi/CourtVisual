@@ -8,6 +8,7 @@
 //   - League coverage: GUIDES keys in lib/watch.js
 
 import SiteHeader from "../../components/SiteHeader";
+import StageBackdrop from "../../components/StageBackdrop";
 
 export const metadata = {
   title: "About",
@@ -142,8 +143,7 @@ const FAQ_LD = {
 export default function AboutPage() {
   return (
     <main className="g-ui" style={stage}>
-      <div className="cv-stage" aria-hidden="true" />
-      <div className="cv-grain" aria-hidden="true" />
+      <StageBackdrop />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_LD) }} />
       <div style={{ ...wrap, position: "relative", zIndex: 1 }}>
         <SiteHeader />
