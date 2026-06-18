@@ -18,11 +18,11 @@ html, body {
 /* Modern range slider: thin rounded track, flame fill up to the thumb (driven by the
    inline --g-fill percentage), clean white thumb with a flame ring. One look everywhere. */
 .g-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; background: transparent; outline: none; cursor: pointer; --g-fill: 50%; touch-action: pan-y; }
-.g-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(90deg, #FF7A2E 0%, #FF5A2C var(--g-fill), rgba(236,231,219,0.16) var(--g-fill), rgba(236,231,219,0.16) 100%); }
-.g-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 30px; margin-top: -12px; border-radius: 6px; background-color: #FBFAF7; background-image: repeating-linear-gradient(0deg, rgba(22,19,15,0.16) 0 1px, transparent 1px 4px); border: 1.5px solid #FF5A2C; box-shadow: 0 2px 7px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.7); }
+.g-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(90deg, #FFA52B 0%, #FF5A2C calc(var(--g-fill) * 0.5), #B3122A var(--g-fill), rgba(236,231,219,0.16) var(--g-fill), rgba(236,231,219,0.16) 100%); }
+.g-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 30px; margin-top: -12px; border-radius: 6px; background-color: #C4C8CE; background-image: repeating-linear-gradient(0deg, rgba(22,19,15,0.22) 0 1px, transparent 1px 4px); border: 1px solid rgba(22,19,15,0.34); box-shadow: 0 2px 7px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.45); }
 .g-slider::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(236,231,219,0.16); }
-.g-slider::-moz-range-progress { height: 6px; border-radius: 999px; background: linear-gradient(90deg, #FF7A2E, #FF5A2C); }
-.g-slider::-moz-range-thumb { width: 17px; height: 30px; border: 1.5px solid #FF5A2C; border-radius: 6px; background-color: #FBFAF7; background-image: repeating-linear-gradient(0deg, rgba(22,19,15,0.16) 0 1px, transparent 1px 4px); box-shadow: 0 2px 7px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.7); }
+.g-slider::-moz-range-progress { height: 6px; border-radius: 999px; background: linear-gradient(90deg, #FFA52B, #FF5A2C, #B3122A); }
+.g-slider::-moz-range-thumb { width: 17px; height: 30px; border: 1px solid rgba(22,19,15,0.34); border-radius: 6px; background-color: #C4C8CE; background-image: repeating-linear-gradient(0deg, rgba(22,19,15,0.22) 0 1px, transparent 1px 4px); box-shadow: 0 2px 7px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.45); }
 .g-slider:focus-visible { outline: none; }
 .g-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(255,90,44,0.30), 0 2px 7px rgba(0,0,0,0.5); }
 .g-slider:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(255,90,44,0.30), 0 2px 7px rgba(0,0,0,0.5); }

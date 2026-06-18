@@ -32,7 +32,7 @@ const SPORTS = [{ id: "nfl", label: "Football" }, { id: "nba", label: "Basketbal
 // Sports a user can follow in the bottom bar, each taps into a ranked league/sport feed.
 // `q` is the Ticketmaster classification name the feed queries.
 const FOLLOW_SPORTS = [
-  { id: "worldcup", label: "World Cup", q: "FIFA World Cup" },
+  { id: "worldcup", label: "World Cup", q: "World Cup" },
   { id: "nba", label: "NBA", q: "NBA" },
   { id: "wnba", label: "WNBA", q: "WNBA" },
   { id: "mlb", label: "MLB", q: "MLB" },
@@ -102,6 +102,7 @@ function Ring({ value, size = 66 }) {
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5 / 66)} stroke="rgba(255,255,255,0.13)" />
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5.5 / 66)} stroke="url(#ringGrad)" strokeLinecap="round"
         strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform={`rotate(-90 ${c} ${c})`} />
+      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="#13141A" />
       <text x={c} y={c} textAnchor="middle" dominantBaseline="central" className="g-display" fontSize={size * (17 / 66)} fill="#FF7A2E">{value.toFixed(1)}</text>
     </svg>
   );
@@ -593,7 +594,7 @@ export default function GameScoreApp() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [todayOnly, setTodayOnly] = useState(false); // "Watch today" chip: limit slate to games on today (ranking unchanged, so picks still float up)
   const [sportFocus, setSportFocus] = useState(null);
-  const [visible, setVisible] = useState(8);
+  const [visible, setVisible] = useState(12);
   const [sortMode, setSortMode] = useState("score"); // "score" (excitement, default) | "date" (chronological, for planning)
   const [hotSlugs, setHotSlugs] = useState([]);
   const [standings, setStandings] = useState({}); // { [league]: indexedRows }, cached standing context
@@ -607,7 +608,7 @@ export default function GameScoreApp() {
       .catch(() => {});
   }, [team?.league]); // eslint-disable-line react-hooks/exhaustive-deps
   const DEFAULT_POPULAR = ["giants", "mets", "cowboys", "new-york-red-bulls", "la-galaxy", "chiefs", "knicks", "bulls"];
-  useEffect(() => { setVisible(8); }, [primarySlug, eventQuery]); // reset reveal count on team/search change
+  useEffect(() => { setVisible(12); }, [primarySlug, eventQuery]); // reset reveal count on team/search change
   useEffect(() => { fetch("/api/popular").then((r) => r.json()).then((d) => { if (Array.isArray(d.hot)) setHotSlugs(d.hot); }).catch(() => {}); }, []);
   useEffect(() => {
     if (!team) return;
@@ -742,7 +743,7 @@ export default function GameScoreApp() {
 
 
   // ---------- ranked list renderer (progressive "Show more" + rivalry focus) ----------
-  const STEP = 8;
+  const STEP = 12;
   // When rivalry is ~the only thing the fan weights (>=90% share), show ONLY
   // rivalry matchups instead of padding the list with non-rivalry games.
   const RIVALRY_FOCUS = 0.9;
@@ -763,7 +764,7 @@ export default function GameScoreApp() {
       if (rivals.length) { full = rivals; note = "Rivalry focus, showing rivalry matchups only."; }
       else { note = "No rivalry games on this schedule right now, showing the full ranking."; }
     }
-    const shown = revealAll ? full : full.slice(0, visible);
+    const shown = full.slice(0, visible);
     const remaining = revealAll ? 0 : full.length - shown.length;
     // Neutral feeds (a league slate or a cross-sport list) shouldn't wear the user's team colors.
     // Theme each card by its feed's league, falling back to the house tone for unlisted/mixed feeds.
@@ -796,11 +797,6 @@ export default function GameScoreApp() {
             </button>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 11.5, color: ON_FAINT }}>Showing {shown.length} of {full.length}</span>
-              {remaining > STEP && (
-                <button onClick={() => setVisible(full.length)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700 }}>
-                  Show all {full.length}
-                </button>
-              )}
             </div>
           </>
         )}
@@ -1381,7 +1377,7 @@ export default function GameScoreApp() {
                       <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly, where: "league" }); }} style={slatePill(todayOnly)}>
                         <Tv size={14} /> Watch today
                       </button>
-                      <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={slatePill(false)}>
+                      <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(12); }} style={slatePill(false)}>
                         {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
                       </button>
                     </div>
@@ -1419,7 +1415,7 @@ export default function GameScoreApp() {
                   <Tv size={14} /> Watch today
                 </button>
                 {liveGames && (
-                  <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(8); }} style={slatePill(false)}>
+                  <button onClick={() => { const next = sortMode === "date" ? "score" : "date"; track("sort_mode", { mode: next }); setSortMode(next); setVisible(12); }} style={slatePill(false)}>
                     {sortMode === "date" ? <><Flame size={13} /> Sort by score</> : <><Calendar size={13} /> Sort by date</>}
                   </button>
                 )}

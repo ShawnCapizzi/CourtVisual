@@ -24,6 +24,7 @@ function Ring({ value, size = 66 }) {
       </defs>
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5 / 66)} stroke="rgba(255,255,255,0.13)" />
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5.5 / 66)} stroke="url(#scRingGrad)" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform={`rotate(-90 ${c} ${c})`} />
+      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="#13141A" />
       <text x={c} y={c} textAnchor="middle" dominantBaseline="central" className="g-display" fontSize={size * (17 / 66)} fill="#FF7A2E">{value.toFixed(1)}</text>
     </svg>
   );
