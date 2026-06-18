@@ -418,13 +418,36 @@ function Shell({ children, stadiumLight }) {
 
 function ContextCard({ title, body, primary, teamRecord }) {
   return (
-    <div style={{ background: "#fff", border: "1px solid rgba(22,19,15,0.06)", boxShadow: DEPTH, borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
+    <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(236,231,219,0.10)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)", borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ ...tick, background: primary, marginRight: 0 }} />
-        <span className="g-display" style={{ fontSize: 16, color: INK }}>{title}</span>
-        {teamRecord && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: "rgba(22,19,15,0.55)" }}>{teamRecord.str}</span>}
+        <span className="g-display" style={{ fontSize: 16, color: ON }}>{title}</span>
+        {teamRecord && <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: ON_MUTED }}>{teamRecord.str}</span>}
       </div>
-      <p style={{ fontSize: 13, color: "rgba(22,19,15,0.6)", marginTop: 8, lineHeight: 1.45 }}>{body}</p>
+      <p style={{ fontSize: 13, color: ON_MUTED, marginTop: 8, lineHeight: 1.45 }}>{body}</p>
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  const bar = (w, h, r) => <div className="cv-skel" style={{ width: w, height: h, borderRadius: r }} />;
+  return (
+    <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(236,231,219,0.08)", borderRadius: 18, padding: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+        <div className="cv-skel" style={{ width: 58, height: 58, borderRadius: "50%", flexShrink: 0 }} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 9 }}>{bar("72%", 14, 6)}{bar("44%", 11, 6)}</div>
+      </div>
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 9 }}>{bar("100%", 11, 6)}{bar("86%", 11, 6)}</div>
+      <div style={{ marginTop: 16, display: "flex", gap: 8 }}>{bar(96, 30, 999)}{bar(96, 30, 999)}</div>
+    </div>
+  );
+}
+
+function SkeletonSlate({ primary }) {
+  return (
+    <div aria-busy="true" aria-label="Loading your games">
+      <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, marginBottom: 14 }}><span style={{ ...tick, background: primary }} />Scoring your slate</div>
+      <SkeletonCard /><SkeletonCard /><SkeletonCard />
     </div>
   );
 }
@@ -1323,10 +1346,10 @@ export default function GameScoreApp() {
   let gamesView;
   {
     let base, sub, context = null;
-    if (gamesLoading && !liveGames) {
-      // Fetch still in flight. Don't conclude anything about the season yet.
+    const slateLoading = gamesLoading && !liveGames;
+    if (slateLoading) {
+      // Fetch still in flight. Don't conclude anything about the season yet; the skeleton renders below.
       base = []; sub = "Pulling your latest schedule\u2026";
-      context = <ContextCard primary={primary} title="Loading your slate" body="Checking the latest games, broadcasts, and prices." />;
     } else if (liveGames) {
       base = liveGames; sub = "Live schedule + prices via Ticketmaster.";
     } else if (slateMode === "league" && leagueGames?.length) {
@@ -1343,7 +1366,7 @@ export default function GameScoreApp() {
       context = null;
       sub = ordered.length ? "On today, your picks first." : "Nothing listed for today yet. Tap Watch today again for the full slate.";
     }
-    gamesView = { sub, context, ranked: ordered };
+    gamesView = { sub, context, ranked: ordered, loading: slateLoading };
   }
   if (view === "games") {
     return (
@@ -1463,8 +1486,7 @@ export default function GameScoreApp() {
             {liveGames && (
               <p style={{ fontSize: 11, fontWeight: 700, color: ON_MUTED, marginBottom: 16 }}>{sortMode === "date" ? "Upcoming schedule" : "Hottest games for you"}</p>
             )}
-            {gamesView.context}
-            {renderGames(gamesView.ranked, team.league, false, liveGames && sortMode === "date")}
+            {gamesView.loading ? <SkeletonSlate primary={primary} /> : (<>{gamesView.context}{renderGames(gamesView.ranked, team.league, false, liveGames && sortMode === "date")}</>)}
             <button onClick={() => { setSettingsJump("excitement"); setView("settings"); }} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <SlidersHorizontal size={14} /> Set your teams & hype
             </button>
