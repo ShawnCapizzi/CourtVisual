@@ -49,6 +49,13 @@ const FOLLOW_SPORTS = [
   { id: "olympics", label: "Olympics", q: "Olympics" },
 ];
 
+// Event/sport feeds that have no club of their own get a dedicated identity here, so they never
+// inherit a random team's colors. World Cup = pitch green + trophy gold. Key by FOLLOW_SPORTS id;
+// anything not listed keeps the team-color fallback.
+const SPORT_THEME = {
+  worldcup: { primary: "#2E9E54", secondary: "#E6B43C" },
+};
+
 // Welcome showcase: a fixed marquee game that runs through the real scoring engine
 // (scoreParts -> 9.3 via the Championship floor, verdict -> "Hottest ticket") so the
 // onboarding poster proves the product. The why line is curated for the hero; the
@@ -551,8 +558,12 @@ export default function GameScoreApp() {
 
   const favTeams = teamSlugs.map(teamBySlug).filter(Boolean);
   const team = teamBySlug(primarySlug) || favTeams[0] || TEAMS[0];
-  const primary = override || team.primary;
-  const secondary = team.secondary;
+  // An event/sport feed (e.g. the World Cup) has no club, so it owns its own colors instead of
+  // borrowing a team's. SPORT_THEME wins over the manual override and the team fallback while open.
+  const [feedSport, setFeedSport] = useState(null); // set when the swap bar opens a league view (vs a typed search)
+  const sportTheme = (feedSport && SPORT_THEME[feedSport.id]) || null;
+  const primary = sportTheme?.primary || override || team.primary;
+  const secondary = sportTheme?.secondary || team.secondary;
 
   // Live schedule via /api/games (Ticketmaster). Falls back to the sample slate
   // when no API key is configured or the team has no upcoming listed events.
@@ -565,7 +576,6 @@ export default function GameScoreApp() {
   const [jump, setJump] = useState("");
   const [eventResults, setEventResults] = useState(null);
   const [eventQuery, setEventQuery] = useState("");
-  const [feedSport, setFeedSport] = useState(null); // set when the swap bar opens a league view (vs a typed search)
   const [eventLoading, setEventLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [todayOnly, setTodayOnly] = useState(false); // "Watch today" chip: limit slate to games on today (ranking unchanged, so picks still float up)
