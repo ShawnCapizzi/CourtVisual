@@ -16,6 +16,10 @@ const CREAM = "#ECE7DB"; /* solid cream replaces the old foil gradient on CTAs a
 const DEPTH = "0 1px 2px rgba(18,20,28,0.07), 0 6px 16px rgba(18,20,28,0.10), 0 22px 48px rgba(18,20,28,0.12)";
 // Very-light jersey weave for the dialed-back card magic on the Settings surfaces (lighter + coarser than the game card's)
 const FABRIC = "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 5px)";
+// The onboarding "setup card" surface: dark matte, fine jersey weave, soft top glow, depth +
+// inset vignette. Pair with className="cv-gleam" for the orbiting border light. One source of
+// truth so the sample-game card and the info notes on the setup screens read as one family.
+const SETUP_CARD = { borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", backgroundColor: "#171B23", backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.10), rgba(255,255,255,0) 55%)", border: "1px solid rgba(255,255,255,0.10)", boxShadow: `${DEPTH}, inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -46px 70px rgba(0,0,0,0.40)` };
 // The signature flame gradient, used by the score ring AND the factor bars so the
 // scoring system reads consistently on every team's card, regardless of team color.
 const FLAME_STOPS = ["#FFA52B", "#FF5A2C", "#B3122A"];
@@ -44,6 +48,13 @@ const FOLLOW_SPORTS = [
   { id: "golf", label: "Golf", q: "Golf" },
   { id: "olympics", label: "Olympics", q: "Olympics" },
 ];
+
+// Welcome showcase: a fixed marquee game that runs through the real scoring engine
+// (scoreParts -> 9.3 via the Championship floor, verdict -> "Hottest ticket") so the
+// onboarding poster proves the product. The why line is curated for the hero; the
+// score and verdict are computed, not hard-coded.
+const SHOWCASE_GAME = { matchup: "Knicks vs Spurs", tag: "Championship", date: "Jun 19 \u00b7 8:30 PM", home: false, playoff: 10, rivalry: 5, hot: 9, historic: 10, topRivals: false };
+const SHOWCASE_WHY = "Worth the watch. Everything on the line.";
 
 function useCountUp(target, dep) {
   const [v, setV] = useState(0);
@@ -867,22 +878,31 @@ export default function GameScoreApp() {
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
 
-        <div className="cv-gleam" style={{ marginTop: 16, borderRadius: 20, padding: "20px", position: "relative", overflow: "hidden", background: "linear-gradient(180deg, rgba(255,90,44,0.11) 0%, rgba(255,90,44,0.035) 100%)", backgroundImage: FABRIC, border: "1px solid rgba(255,90,44,0.22)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
-          <p style={{ fontSize: 17, color: ON, fontWeight: 600, lineHeight: 1.4, margin: 0, letterSpacing: "-0.01em" }}>
-            CourtVisual helps busy fans find the games <span style={{ color: "#FF7A2E", fontWeight: 800 }}>worth watching, attending, or sharing</span>, before they miss them.
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "7px 11px", marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,90,44,0.18)" }}>
-            {["Tonight\u2019s best games", "Your teams", "Your city", "One simple score"].map((t, i) => (
-              <React.Fragment key={t}>
-                {i > 0 && <span style={{ width: 4, height: 4, borderRadius: 999, background: "rgba(255,122,46,0.75)", flexShrink: 0 }} />}
-                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.005em", color: ON }}>{t}</span>
-              </React.Fragment>
-            ))}
-          </div>
+        <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.55, margin: "16px 2px 0", maxWidth: 320 }}>One honest number per game, so you find the ones worth your night before they pass. Here&rsquo;s what every game looks like.</p>
+
+        <div style={{ marginTop: 26, borderRadius: 18, padding: "26px 20px 22px", background: "#13141A", border: "1px solid rgba(236,231,219,0.09)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)" }}>
+          <ScoreHead layout="poster" game={SHOWCASE_GAME} score={scoreOf(SHOWCASE_GAME, DEFAULT_WEIGHTS)} why={SHOWCASE_WHY} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 2px 0" }}>
-          <Flame size={14} color="#FF5A2C" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.35 }}>The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E", fontWeight: 700 }}>CourtVisual&rsquo;s own</span>.</span>
+
+        <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 26, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 15 }}>
+          {[
+            ["Tonight\u2019s best games", "ranked by what you find exciting"],
+            ["Your teams and your city", "lifted to the top when you want them"],
+            ["Where to watch, in one tap", "TV, streaming, or a ticket"],
+          ].map(([t, s]) => (
+            <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 13 }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#FF5A2C", flexShrink: 0, marginTop: 5 }} />
+              <div>
+                <div style={{ fontSize: 14, color: ON, fontWeight: 600 }}>{t}</div>
+                <div style={{ fontSize: 12, color: ON_FAINT, marginTop: 1 }}>{s}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "22px 2px 0" }}>
+          <Flame size={13} color="#FF5A2C" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: ON_FAINT, lineHeight: 1.35 }}>The rivalry catalog and scoring engine are <span style={{ color: "#FF7A2E", fontWeight: 700 }}>CourtVisual&rsquo;s own</span>.</span>
         </div>
 
         <div id="ob-pick" className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, margin: "26px 0 8px" }}>Pick your team or sport</div>
@@ -930,8 +950,9 @@ export default function GameScoreApp() {
           );
         })()}
         {favTeams.length > 0 && (
-          <div className="cv-gleam" style={{ fontSize: 12.5, color: "rgba(236,231,219,0.85)", lineHeight: 1.5, marginTop: 16, borderRadius: 18, padding: "16px 18px", position: "relative", overflow: "hidden", background: "rgba(96,128,176,0.12)", backgroundImage: FABRIC, border: "1px solid rgba(120,150,190,0.24)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)" }}>
-            Every game&rsquo;s scored for a <b style={{ color: ON }}>neutral fan</b>, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a <b style={{ color: ON }}>plain-English read</b> of why it&rsquo;s worth watching. Prefer quick chips, or a different announcer voice? Switch anytime in <b style={{ color: ON }}>Settings</b>, where you can fine-tune what counts too.
+          <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 16, padding: "18px 20px", fontSize: 13, color: "rgba(236,231,219,0.85)", lineHeight: 1.6 }}>
+            <div>Every game&rsquo;s scored for a <b style={{ color: ON }}>neutral fan</b>, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a <b style={{ color: ON }}>plain-English read</b> of why it&rsquo;s worth watching.</div>
+            <div style={{ marginTop: 10 }}>Prefer quick chips, or a different announcer voice? Switch anytime in <b style={{ color: ON }}>Settings</b>, where you can fine-tune what counts too.</div>
           </div>
         )}
         {(() => {
@@ -987,7 +1008,7 @@ export default function GameScoreApp() {
           const cp = scoreParts(demo, weights).contrib;
           const top = FACTORS.reduce((a, f) => (cp[f.key] > cp[a.key] ? f : a), FACTORS[0]);
           return (
-            <div className="cv-gleam" style={{ marginTop: 22, borderRadius: 22, padding: 18, position: "relative", overflow: "hidden", backgroundColor: "#171B23", backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 4px), radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.10), rgba(255,255,255,0) 55%)", border: "1px solid rgba(255,255,255,0.10)", boxShadow: `${DEPTH}, inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -46px 70px rgba(0,0,0,0.40)` }}>
+            <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 22 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
                 <Ring value={sc} />
                 <div style={{ flex: 1, minWidth: 0 }}>
