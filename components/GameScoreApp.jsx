@@ -286,11 +286,9 @@ const tick = { display: "inline-block", width: 16, height: 4, background: "#E840
 // app is tuned the moment a team or sport is added. Plain language on purpose: zero jargon to parse.
 const GOALS = [
   { id: "watch", label: "A great game to watch tonight", preset: "matchup" },
-  { id: "go", label: "A game worth going to", preset: "stakes" },
-  { id: "team", label: "My team's best upcoming games", preset: "balanced" },
-  { id: "cheap", label: "A cheap live sports night", preset: "balanced" },
+  { id: "go", label: "A game I can go see live", preset: "stakes" },
+  { id: "team", label: "My team's biggest games", preset: "balanced" },
   { id: "rivalry", label: "Rivalries and big moments", preset: "rivalry" },
-  { id: "friends", label: "Games my friends might care about", preset: "rivalry" },
 ];
 
 function StyleMini({ variant }) {
@@ -943,7 +941,7 @@ export default function GameScoreApp() {
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 13.5, color: ON }}>
                   <span style={{ width: 9, height: 9, borderRadius: 2, background: ["#B3122A", "#E8401F", "#FF7A2E", "#ECE7DB"][fi] }} /> {f.label}
                 </span>
-                <span className="g-display" style={{ fontSize: 16, backgroundImage: FLAME(180), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{weights[f.key]}</span>
+                <span className="g-display" style={{ fontSize: 17, color: "#FF7A2E" }}>{weights[f.key]}</span>
               </div>
               <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} style={{ "--g-fill": weights[f.key] + "%" }} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
             </div>
@@ -1044,7 +1042,7 @@ export default function GameScoreApp() {
             <div key={f.key}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: ON }}>{f.label}</span>
-                <span className="g-display" style={{ fontSize: 16, backgroundImage: FLAME(180), WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "#FF5A2C" }}>{weights[f.key]}</span>
+                <span className="g-display" style={{ fontSize: 17, color: "#FF7A2E" }}>{weights[f.key]}</span>
               </div>
               <input className="g-slider" type="range" min="0" max="100" value={weights[f.key]} style={{ "--g-fill": weights[f.key] + "%" }} onChange={(e) => { setWeights({ ...weights, [f.key]: +e.target.value }); setPreset(null); }} />
             </div>
