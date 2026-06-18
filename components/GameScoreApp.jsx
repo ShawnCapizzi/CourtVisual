@@ -929,7 +929,7 @@ export default function GameScoreApp() {
           <ScoreHead layout="poster" game={SHOWCASE_GAME} score={scoreOf(SHOWCASE_GAME, DEFAULT_WEIGHTS)} why={SHOWCASE_WHY} />
         </div>
 
-        <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 26, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 15 }}>
+        <div style={{ ...SETUP_CARD, marginTop: 26, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 15 }}>
           {[
             ["Tonight\u2019s best games", "ranked by what you find exciting"],
             ["Your teams and your city", "lifted to the top when you want them"],
@@ -995,10 +995,10 @@ export default function GameScoreApp() {
             </>
           );
         })()}
-        {!addMode && favTeams.length > 0 && (
+        {!addMode && (favTeams.length > 0 || (followedSports && followedSports.length > 0)) && (
           <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 16, padding: "18px 20px", fontSize: 13, color: "rgba(236,231,219,0.85)", lineHeight: 1.6 }}>
-            <div>Every game&rsquo;s scored for a <b style={{ color: ON }}>neutral fan</b>, so the ranking&rsquo;s fair whether you&rsquo;re rooting or just watching. Each one gets a <b style={{ color: ON }}>plain-English read</b> of why it&rsquo;s worth watching.</div>
-            <div style={{ marginTop: 10 }}>Prefer quick chips, or a different announcer voice? Switch anytime in <b style={{ color: ON }}>Settings</b>, where you can fine-tune what counts too.</div>
+            <div>Follow a <b style={{ color: ON }}>team or a sport</b> and CourtVisual builds <b style={{ color: ON }}>your feed</b>, ranking tonight&rsquo;s games by how they align with your settings.</div>
+            <div style={{ marginTop: 10 }}>Revise what matters most to you anytime in <b style={{ color: ON }}>Settings</b>.</div>
           </div>
         )}
         {!addMode && (() => {
