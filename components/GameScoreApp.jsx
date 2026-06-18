@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
-import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv } from "lucide-react";
+import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv, BookOpen } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf, recommend, VOICE_LIST } from "../lib/data";
-import { indexStandings, findStanding, rankOnly, rankGroup } from "../lib/standings-read";
+import { indexStandings, findStanding, rankOnly } from "../lib/standings-read";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { watchOptions } from "../lib/watch";
 import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
@@ -153,20 +153,21 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
 
       {(recommendation || standingMine || standingOpp) && (
         <div style={{ marginTop: 12, textAlign: "center" }}>
+          {whyView !== "chips" && (standingMine || standingOpp) && (
+            <div style={{ marginBottom: recommendation ? 7 : 0, fontSize: 11, color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Trophy size={11} />
+              {[standingMine && `${teamName || "Home"} ${rankOnly(standingMine)}`, standingOpp && `${game.opp} ${rankOnly(standingOpp)}`].filter(Boolean).join(" · ")}
+            </div>
+          )}
           {recommendation && <div style={{ fontSize: 19.5, fontWeight: 600, lineHeight: 1.34, color: ink }}>{recommendation}</div>}
-          {whyView === "chips" ? (
+          {whyView === "chips" && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: recommendation ? 8 : 0 }}>
               {game.topRivals && <span style={whyChip(dark, ink)}>{(rivalryNames !== false && game.rivalryName) || "Rivalry"}</span>}
               {game.matchupWhy && <span style={whyChip(dark, ink)}>{game.matchupWhy.charAt(0).toUpperCase() + game.matchupWhy.slice(1)}</span>}
               {standingMine && <span style={whyChip(dark, ink)}>{teamName} {rankOnly(standingMine)}</span>}
               {standingOpp && <span style={whyChip(dark, ink)}>{game.opp} {rankOnly(standingOpp)}</span>}
             </div>
-          ) : (standingMine || standingOpp) ? (
-            <div style={{ marginTop: 5, fontSize: 11, color: muted, display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <Trophy size={11} />
-              {[standingMine && `${teamName || "Home"} ${rankOnly(standingMine)}`, standingOpp && `${game.opp} ${rankOnly(standingOpp)}`].filter(Boolean).join(" · ")}
-            </div>
-          ) : null}
+          )}
         </div>
       )}
 
@@ -232,18 +233,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       </div>
       {open && <div className="cv-gleam" style={{ marginTop: 8, padding: "12px 14px 11px", borderRadius: 13, background: dark ? "linear-gradient(180deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.025) 100%)" : "linear-gradient(180deg, rgba(22,19,15,0.05) 0%, rgba(22,19,15,0.015) 100%)", boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.06)" : "inset 0 1px 0 rgba(255,255,255,0.45)" }}>
         <Bars g={game} accent={primary} weights={weights} dark={dark} />
-        {(standingMine || standingOpp) && (
-          <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
-            <Trophy size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
-            Standings: {[standingMine && `${teamName || "Home"}: ${rankGroup(standingMine)}`, standingOpp && `${game.opp}: ${rankGroup(standingOpp)}`].filter(Boolean).join(" · ")}.
-          </div>
-        )}
-        {game.matchupWhy ? (
-          <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.55)" : "rgba(22,19,15,0.55)" }}>
-            <Zap size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
-            Matchup: {game.matchupWhy}.
-          </div>
-        ) : (
+        {!game.matchupWhy && (
           <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: dark ? "rgba(236,231,219,0.4)" : "rgba(22,19,15,0.4)" }}>
             <Zap size={11} style={{ verticalAlign: "-1px", marginRight: 5 }} />
             Matchup read available closer to game day.
@@ -539,6 +529,7 @@ export default function GameScoreApp() {
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [todayOnly, setTodayOnly] = useState(false); // "Watch today" chip: limit slate to games on today (ranking unchanged, so picks still float up)
   const [sportFocus, setSportFocus] = useState(null);
   const [visible, setVisible] = useState(8);
   const [sortMode, setSortMode] = useState("score"); // "score" (excitement, default) | "date" (chronological, for planning)
@@ -984,7 +975,7 @@ export default function GameScoreApp() {
       <Shell>
         <SiteHeader view={view} setView={setView} />
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
-        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, your excitement, and how the app looks and behaves.</p>
+        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
         <Section primary={primary} label="Your teams">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
@@ -1008,19 +999,18 @@ export default function GameScoreApp() {
             );
           })}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(236,231,219,0.08)" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: ON }}>Scored as</span>
-            <div style={{ display: "inline-flex", gap: 4, background: "rgba(255,255,255,0.05)", borderRadius: 9, padding: 3 }}>
-              {[["neutral", "Neutral"], ["fan", "Fan view"]].map(([k, l]) => {
-                const on = lens === k;
-                return (<button key={k} onClick={() => { setLens(k); track("lens_flip", { lens: k }); }}
-                  style={{ padding: "5px 11px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 11.5, fontWeight: 700, background: on ? CREAM : "transparent", color: on ? INK : ON_MUTED }}>{l}</button>);
-              })}
-            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: ON }}>My choices 1st</span>
+            <button onClick={() => { const next = lens === "fan" ? "neutral" : "fan"; setLens(next); track("lens_flip", { lens: next }); }}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center" }}>
+              <span style={{ width: 38, height: 22, borderRadius: 999, background: lens === "fan" ? "#FF5A2C" : "rgba(236,231,219,0.18)", position: "relative", flexShrink: 0, transition: "background 0.2s ease" }}>
+                <span style={{ position: "absolute", top: 2, left: lens === "fan" ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#FBFAF7", boxShadow: "0 1px 3px rgba(0,0,0,0.4)", transition: "left 0.2s ease" }} />
+              </span>
+            </button>
           </div>
-          <div style={{ fontSize: 11, color: ON_FAINT, marginTop: 8, lineHeight: 1.4 }}>Fan view lifts your teams&rsquo; games with disclosed bumps, shown on every card. Neutral is the honest baseline. Flip back anytime.</div>
+          <div style={{ fontSize: 11, color: ON_FAINT, marginTop: 8, lineHeight: 1.4 }}>On lifts games from the teams and sports you&rsquo;ve picked, with disclosed bumps shown on every card. Off ranks everything by your taste alone.</div>
         </div>
       </Section>
-        <div id="settings-excitement"><Section primary={primary} label="Your excitement">
+        <div id="settings-excitement"><Section primary={primary} label="What gets you hyped">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
           {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
         </div>
@@ -1090,7 +1080,7 @@ export default function GameScoreApp() {
             </div>
           </div>
         </Section>
-        <Section primary={primary} label="Onboarding">
+        <Section primary={primary} label="How CourtVisual works">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup: how scoring, the why-watch read, and watch options work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
             <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
@@ -1124,8 +1114,12 @@ export default function GameScoreApp() {
             Every upcoming game gets a 0&ndash;10 score from these four factors, weighted by your excitement sliders. Championship-size games carry a floor, games that big can&rsquo;t score low.{" "}
             <a href="/about" style={{ color: ON, textDecoration: "underline", textUnderlineOffset: 2 }}>Read the full FAQ</a>.
           </p>
+          <a href="/glossary" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 14, padding: "11px 14px", borderRadius: 11, background: "rgba(236,231,219,0.06)", border: "1px solid rgba(236,231,219,0.12)", textDecoration: "none", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}><BookOpen size={15} color={primary} /> Sports glossary</span>
+            <span style={{ color: ON_MUTED, fontSize: 12, fontWeight: 600 }}>What the words mean &rarr;</span>
+          </a>
         </Section>
-        <Section primary={primary} label="Home market">
+        <Section primary={primary} label="Your city">
           <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; and your local market.</p>
           <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region, for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
         </Section>
@@ -1181,9 +1175,20 @@ export default function GameScoreApp() {
       if (ax && bx) return ax < bx ? -1 : ax > bx ? 1 : 0;
       if (ax) return -1; if (bx) return 1; return 0; // games without a date sink to the bottom
     };
-    const ordered = sortMode === "date"
+    let ordered = sortMode === "date"
       ? [...base].sort(byDate)
       : [...base].sort((a, b) => activeScore(b) - activeScore(a));
+    if (todayOnly) {
+      const now = new Date();
+      const onToday = ordered.filter((g) => {
+        if (!g.iso) return false;
+        const d = new Date(g.iso);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+      });
+      ordered = onToday;
+      context = null;
+      sub = onToday.length ? "On today, your picks first." : "Nothing listed for today yet. Tap Watch today again for the full slate.";
+    }
     gamesView = { sub, context, ranked: ordered };
   }
   if (view === "games") {
@@ -1226,7 +1231,7 @@ export default function GameScoreApp() {
                 );
               })}
               <button onClick={() => { setFilterOpen(false); setSettingsJump("excitement"); setView("settings"); }} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "12px 16px", border: "none", borderTop: "1px solid rgba(22,19,15,0.08)", background: "rgba(22,19,15,0.03)", cursor: "pointer", textAlign: "left", color: INK, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700 }}>
-                <SlidersHorizontal size={16} color={primary} /> Adjust your excitement mix →
+                <SlidersHorizontal size={16} color={primary} /> Adjust what gets you hyped →
               </button>
             </div>
           )}
@@ -1252,6 +1257,21 @@ export default function GameScoreApp() {
             </div>
             <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 3px" }}>Upcoming · ranked for you</p>
             <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 12 }}>{gamesView.sub}</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: favTeams.length ? "space-between" : "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+              {favTeams.length > 0 && (
+                <button onClick={() => { const next = lens === "fan" ? "neutral" : "fan"; setLens(next); track("lens_flip", { lens: next, where: "games" }); }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                  <span style={{ width: 38, height: 22, borderRadius: 999, background: lens === "fan" ? "#FF5A2C" : "rgba(236,231,219,0.18)", position: "relative", flexShrink: 0, transition: "background 0.2s ease" }}>
+                    <span style={{ position: "absolute", top: 2, left: lens === "fan" ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#FBFAF7", boxShadow: "0 1px 3px rgba(0,0,0,0.4)", transition: "left 0.2s ease" }} />
+                  </span>
+                  <span style={{ fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, color: ON }}>My choices 1st</span>
+                </button>
+              )}
+              <button onClick={() => { setTodayOnly((v) => !v); track("watch_today", { on: !todayOnly }); }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 999, cursor: "pointer", fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, background: todayOnly ? "#FF5A2C" : "rgba(236,231,219,0.06)", color: todayOnly ? "#1A120E" : ON, border: todayOnly ? "1px solid #FF5A2C" : "1px solid rgba(236,231,219,0.14)" }}>
+                <Tv size={14} /> Watch today
+              </button>
+            </div>
             {liveGames && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: ON_MUTED }}>
@@ -1265,7 +1285,7 @@ export default function GameScoreApp() {
             {gamesView.context}
             {renderGames(gamesView.ranked, team.league, false, liveGames && sortMode === "date")}
             <button onClick={() => { setSettingsJump("excitement"); setView("settings"); }} style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <SlidersHorizontal size={14} /> Set your teams & excitement
+              <SlidersHorizontal size={14} /> Set your teams & hype
             </button>
                     </>
         )}
