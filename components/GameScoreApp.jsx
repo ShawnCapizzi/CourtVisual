@@ -91,7 +91,7 @@ function useCountUp(target, dep) {
 }
 
 function Ring({ value, size = 66 }) {
-  const c = size / 2, R = size * (27 / 66), C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, value / 10));
+  const c = size / 2, R = size * (27 / 66), C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, value / 10)), big = size >= 110;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <defs>
@@ -101,11 +101,19 @@ function Ring({ value, size = 66 }) {
         <radialGradient id="ringWell" cx="50%" cy="40%" r="62%">
           <stop offset="0%" stopColor="#1B1E25" /><stop offset="58%" stopColor="#13141A" /><stop offset="100%" stopColor="#0A0B0F" />
         </radialGradient>
+        <radialGradient id="ringWellDark" cx="50%" cy="40%" r="62%">
+          <stop offset="0%" stopColor="#13151A" /><stop offset="58%" stopColor="#0D0E12" /><stop offset="100%" stopColor="#07080B" />
+        </radialGradient>
+        <pattern id="ringWeave" patternUnits="userSpaceOnUse" width="5.5" height="5.5">
+          <path d="M0 5.5 L5.5 0" stroke="rgba(255,255,255,0.05)" strokeWidth="0.7" />
+          <path d="M0 0 L5.5 5.5" stroke="rgba(255,255,255,0.05)" strokeWidth="0.7" />
+        </pattern>
       </defs>
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5 / 66)} stroke="rgba(255,255,255,0.13)" />
       <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5.5 / 66)} stroke="url(#ringGrad)" strokeLinecap="round"
         strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform={`rotate(-90 ${c} ${c})`} />
-      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="url(#ringWell)" />
+      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill={big ? "url(#ringWellDark)" : "url(#ringWell)"} />
+      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="url(#ringWeave)" />
       <text x={c} y={c} textAnchor="middle" dominantBaseline="central" className="g-display" fontSize={size * (17 / 66)} fill="#FF7A2E">{value.toFixed(1)}</text>
     </svg>
   );
