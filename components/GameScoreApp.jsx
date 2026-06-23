@@ -471,11 +471,20 @@ function SkeletonSlate({ primary }) {
   );
 }
 
-function Section({ label, children, primary, first }) {
+function Section({ label, children, primary, first, tip, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ padding: first ? "4px 0 22px" : "22px 0", borderTop: first ? "none" : "1px solid rgba(236,231,219,0.09)" }}>
-      <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, marginBottom: 15 }}><span style={{ ...tick, background: primary }} />{label}</div>
-      {children}
+    <div style={{ borderTop: first ? "none" : "1px solid rgba(236,231,219,0.09)" }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "18px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "'Archivo',sans-serif" }}>
+        <span className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, display: "inline-flex", alignItems: "center" }}><span style={{ ...tick, background: primary }} />{label}</span>
+        <ChevronDown size={17} style={{ color: ON_MUTED, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      </button>
+      {open && (
+        <div style={{ paddingBottom: 22 }}>
+          {tip && <div style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.45, marginTop: -2, marginBottom: 16 }}>{tip}</div>}
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -1151,7 +1160,7 @@ export default function GameScoreApp() {
         <SiteHeader view={view} setView={setView} />
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
         <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
-        <Section primary={primary} label="Your teams" first>
+        <Section primary={primary} label="Your teams" first tip="Add the teams you follow. Set each to Follow or Die-hard, and Die-hards get a bigger boost up your rankings.">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
           <button style={chip(false)} onClick={() => setView("onboarding")}><Plus size={13} /> Add</button>
@@ -1185,7 +1194,7 @@ export default function GameScoreApp() {
           <div style={{ fontSize: 11, color: ON_FAINT, marginTop: 8, lineHeight: 1.4 }}>On lifts games from the teams and sports you&rsquo;ve picked, with disclosed bumps shown on every card. Off ranks everything by your taste alone.</div>
         </div>
       </Section>
-        <div id="settings-excitement"><Section primary={primary} label="What gets you hyped">
+        <div id="settings-excitement"><Section primary={primary} label="What gets you hyped" defaultOpen={settingsJump === "excitement"} tip="Dial what makes a game worth watching: stakes, rivalry, the race, and the matchup. Grab a preset or set each slider yourself.">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
           {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
         </div>
@@ -1202,13 +1211,13 @@ export default function GameScoreApp() {
         </div>
       </Section></div>
 
-        <Section primary={primary} label="How CourtVisual works">
+        <Section primary={primary} label="How CourtVisual works" tip="Replay the first-run walkthrough of how scoring and watch options work.">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup: how scoring, the why-watch read, and watch options work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
             <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
           </div>
         </Section>
-        <Section primary={primary} label="Players you follow">
+        <Section primary={primary} label="Players you follow" tip="Follow a player and their national team’s games rise in your feed, flagged on the card.">
         <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>Follow a player and their national team&rsquo;s games rise in your feed, flagged on the card. We surface the team, lineups aren&rsquo;t set until kickoff.</div>
         <div style={{ position: "relative" }}>
           <div style={field}>
@@ -1234,7 +1243,7 @@ export default function GameScoreApp() {
         </div>
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
       </Section>
-        <Section primary={primary} label="Display">
+        <Section primary={primary} label="Display" tip="Make it yours: stadium-light background, announcer tone for the write-ups, rivalry nicknames, and card style.">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(236,231,219,0.08)" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Stadium light the background</div>
@@ -1291,7 +1300,7 @@ export default function GameScoreApp() {
             </div>
           </div>
         </Section>
-        <Section primary={primary} label="Sports you follow">
+        <Section primary={primary} label="Sports you follow" tip="Follow whole sports to pull their marquee games into your feed.">
           <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>These appear in the bottom bar next to your teams. Tap one for that sport&rsquo;s ranked slate.</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {FOLLOW_SPORTS.map((sp) => {
@@ -1301,7 +1310,7 @@ export default function GameScoreApp() {
             })}
           </div>
         </Section>
-        <Section primary={primary} label="How scoring works">
+        <Section primary={primary} label="How scoring works" tip="The plain-English breakdown of every factor behind a score, plus the glossary.">
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
             {[
               ["Stakes", "Championships, knockout rounds, and playoff races. Games with something on the line."],
@@ -1324,11 +1333,11 @@ export default function GameScoreApp() {
             <span style={{ color: ON_MUTED, fontSize: 12, fontWeight: 600 }}>What the words mean &rarr;</span>
           </a>
         </Section>
-        <Section primary={primary} label="Your city">
+        <Section primary={primary} label="Your city" tip="Set your city so local games and ticket options surface first.">
           <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; and your local market.</p>
           <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region, for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
         </Section>
-        <Section primary={primary} label="Account">
+        <Section primary={primary} label="Account" tip="Sign in to sync your teams and settings across devices.">
           {session?.user ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b>, your teams and settings sync to your account.</span>
