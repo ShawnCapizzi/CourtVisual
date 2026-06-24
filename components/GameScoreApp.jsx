@@ -475,7 +475,7 @@ function Section({ label, children, primary, first, tip, defaultOpen = false }) 
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ marginBottom: 10 }}>
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "15px 44px", background: open ? "#171A21" : "#101216", border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, cursor: "pointer" }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ position: "relative", overflow: "hidden", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "15px 44px", backgroundColor: open ? "#171A21" : "#101216", backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 5px), radial-gradient(120% 100% at 50% -25%, rgba(255,255,255,0.07), rgba(255,255,255,0) 62%)", border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", cursor: "pointer" }}>
         <span className="g-display" style={{ fontSize: 17, letterSpacing: "0.02em", color: ON, textTransform: "uppercase", lineHeight: 1, textAlign: "center" }}>{label}</span>
         <ChevronDown size={18} style={{ position: "absolute", right: 16, top: "50%", transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`, color: ON_MUTED, transition: "transform .2s" }} />
       </button>
@@ -569,6 +569,14 @@ export default function GameScoreApp() {
     if (s.stadiumLight !== undefined) setStadiumLight(s.stadiumLight);
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     if (typeof caches !== "undefined") caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
+    // Deep-link target from the standalone /about route's gear: open Settings, then clean the URL.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "settings") {
+        setView("settings");
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => { try { setIsTouch(window.matchMedia("(hover: none)").matches); } catch {} }, []);
