@@ -1159,7 +1159,9 @@ export default function GameScoreApp() {
       <Shell stadiumLight={stadiumLight}>
         <SiteHeader view={view} setView={setView} />
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
-        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 16px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
+        <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 4px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
+        <p style={{ fontSize: 12.5, color: ON, fontWeight: 600, margin: "0 0 16px", lineHeight: 1.45 }}>The more you set here, the sharper tonight&rsquo;s ranking gets, every game scored for how you actually watch.</p>
+        <button onClick={() => setView("onboarding")} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 16px", marginBottom: 20, background: "rgba(236,231,219,0.06)", border: "1px solid rgba(236,231,219,0.16)", borderRadius: 12, color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}><ArrowUpRight size={15} /> Open setup screen</button>
         <Section primary={primary} label="Your teams" first tip="Add the teams you follow. Set each to Follow or Die-hard, and Die-hards get a bigger boost up your rankings.">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
@@ -1211,11 +1213,8 @@ export default function GameScoreApp() {
         </div>
       </Section></div>
 
-        <Section primary={primary} label="How CourtVisual works" tip="Replay the first-run walkthrough of how scoring and watch options work.">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.4 }}>The first-run setup: how scoring, the why-watch read, and watch options work. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</span>
-            <button onClick={() => setView("onboarding")} style={chip(false)}>Open setup screen</button>
-          </div>
+        <Section primary={primary} label="How CourtVisual works" tip="What the first-run setup covers, and who designed and built CourtVisual.">
+          <p style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.5, margin: 0 }}>The first-run setup walks through how scoring, the why-watch read, and watch options work, and you can reopen it anytime from the button up top. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</p>
         </Section>
         <Section primary={primary} label="Players you follow" tip="Follow a player and their national team’s games rise in your feed, flagged on the card.">
         <div style={{ fontSize: 12, color: ON_MUTED, marginBottom: 10, lineHeight: 1.4 }}>Follow a player and their national team&rsquo;s games rise in your feed, flagged on the card. We surface the team, lineups aren&rsquo;t set until kickoff.</div>
