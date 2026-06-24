@@ -474,14 +474,14 @@ function SkeletonSlate({ primary }) {
 function Section({ label, children, primary, first, tip, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ borderTop: first ? "none" : "1px solid rgba(236,231,219,0.09)" }}>
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "18px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "'Archivo',sans-serif" }}>
-        <span className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED, display: "inline-flex", alignItems: "center" }}><span style={{ ...tick, background: primary }} />{label}</span>
-        <ChevronDown size={17} style={{ color: ON_MUTED, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+    <div style={{ marginBottom: 10 }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "15px 44px", background: open ? "#171A21" : "#101216", border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, cursor: "pointer" }}>
+        <span className="g-display" style={{ fontSize: 17, letterSpacing: "0.02em", color: ON, textTransform: "uppercase", lineHeight: 1, textAlign: "center" }}>{label}</span>
+        <ChevronDown size={18} style={{ position: "absolute", right: 16, top: "50%", transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`, color: ON_MUTED, transition: "transform .2s" }} />
       </button>
       {open && (
-        <div style={{ paddingBottom: 22 }}>
-          {tip && <div style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.45, marginTop: -2, marginBottom: 16 }}>{tip}</div>}
+        <div style={{ padding: "16px 2px 6px" }}>
+          {tip && <div style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.45, marginBottom: 16 }}>{tip}</div>}
           {children}
         </div>
       )}
