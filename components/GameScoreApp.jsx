@@ -471,6 +471,18 @@ function SkeletonSlate({ primary }) {
   );
 }
 
+function HeroPosterSkeleton() {
+  const bar = (w, h) => <div className="cv-skel" style={{ width: w, height: h, borderRadius: 7 }} />;
+  return (
+    <div aria-busy="true" aria-label="Finding the hottest game on right now" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "6px 0" }}>
+      <div className="cv-skel" style={{ width: 124, height: 124, borderRadius: "50%" }} />
+      {bar(120, 13)}
+      {bar("64%", 19)}
+      {bar("82%", 13)}
+    </div>
+  );
+}
+
 function Section({ label, children, primary, first, tip, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -489,7 +501,7 @@ function Section({ label, children, primary, first, tip, defaultOpen = false }) 
   );
 }
 
-export default function GameScoreApp() {
+export default function GameScoreApp({ initialSeedTeam = null } = {}) {
   const [view, setView] = useState("onboarding");
   const [settingsJump, setSettingsJump] = useState(null); // deep-link target inside Settings (e.g. "excitement")
   const [settingsSeen, setSettingsSeen] = useState(() => { try { return typeof window !== "undefined" && localStorage.getItem("cv_settings_seen") === "1"; } catch { return false; } }); // first-ever Settings visit opens "How it works"
@@ -553,7 +565,7 @@ export default function GameScoreApp() {
       setTeamSlugs(s.teams);
       setPrimarySlug(s.primary || s.teams[0]);
     }
-    if (s.teams?.length || s.followedSports?.length) setView("games");
+    if ((s.teams?.length || s.followedSports?.length) && !seedForcedRef.current) setView("games");
     if (s.players) setPlayers(s.players);
     if (s.location) setLocation(s.location);
     if (s.weights) setWeights(s.weights);
@@ -647,6 +659,7 @@ export default function GameScoreApp() {
         const top = cands.slice().sort((a, b) => scoreOf(b, DEFAULT_WEIGHTS) - scoreOf(a, DEFAULT_WEIGHTS))[0];
         if (alive && top) setHeroGame(top);
       } catch {}
+      finally { if (alive) setHeroLoading(false); }
     })();
     return () => { alive = false; };
   }, []);
@@ -701,8 +714,9 @@ export default function GameScoreApp() {
   const [jump, setJump] = useState("");
   const [eventResults, setEventResults] = useState(null);
   const [heroGame, setHeroGame] = useState(null); // live "hottest game right now" for the entry hero (replaces the static sample)
-  const [seedTeamSlug, setSeedTeamSlug] = useState(null); // ?team= from a shared link, pre-seeds the entry doorway
-  const seedForcedRef = useRef(false); // a ?team= link forced the entry screen; don't let remote sync bounce it away
+  const [heroLoading, setHeroLoading] = useState(true); // hero fetch in flight: show a skeleton, never the stale sample
+  const [seedTeamSlug, setSeedTeamSlug] = useState(initialSeedTeam || null); // ?team= from a shared link, pre-seeds the entry doorway
+  const seedForcedRef = useRef(!!initialSeedTeam); // a ?team= link forced the entry screen; don't let saved state or remote sync bounce it away
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -1026,10 +1040,14 @@ export default function GameScoreApp() {
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
 
-        <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.55, margin: "16px 2px 0", maxWidth: 320 }}>One honest number per game, so you find the ones worth your night before they pass.{heroGame ? " Here\u2019s the hottest game on right now." : " Here\u2019s what a scored game looks like."}</p>
+        <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.55, margin: "16px 2px 0", maxWidth: 320 }}>One honest number per game, so you find the ones worth your night before they pass.{(heroGame || heroLoading) ? " Here\u2019s the hottest game on right now." : " Here\u2019s what a scored game looks like."}</p>
 
         <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 26, padding: "26px 20px 22px" }}>
-          {(() => { const hero = heroGame || SHOWCASE_GAME; const heroWhy = heroGame ? recommend(heroGame, DEFAULT_WEIGHTS, null, voice) : SHOWCASE_WHY; return <ScoreHead layout="poster" game={hero} score={scoreOf(hero, DEFAULT_WEIGHTS)} why={heroWhy} />; })()}
+          {heroGame
+            ? <ScoreHead layout="poster" game={heroGame} score={scoreOf(heroGame, DEFAULT_WEIGHTS)} why={recommend(heroGame, DEFAULT_WEIGHTS, null, voice)} />
+            : heroLoading
+              ? <HeroPosterSkeleton />
+              : <ScoreHead layout="poster" game={SHOWCASE_GAME} score={scoreOf(SHOWCASE_GAME, DEFAULT_WEIGHTS)} why={SHOWCASE_WHY} />}
         </div>
 
         {(() => {
