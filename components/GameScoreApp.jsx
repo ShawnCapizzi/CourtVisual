@@ -25,6 +25,13 @@ const SETUP_CARD = { borderRadius: 22, padding: 18, position: "relative", overfl
 // scoring system reads consistently on every team's card, regardless of team color.
 const FLAME_STOPS = ["#FFA52B", "#FF5A2C", "#B3122A"];
 const FLAME = (deg) => `linear-gradient(${deg}deg, ${FLAME_STOPS[0]} 0%, ${FLAME_STOPS[1]} 55%, ${FLAME_STOPS[2]} 100%)`;
+const PRIMARY_FLAME = "linear-gradient(135deg, #FF8A2E 0%, #F4471F 52%, #A8112A 100%)"; // deeper flame: warm-white text stays legible across the whole button
+const ON_FLAME = "#FFF6EC"; // warm near-white text on the flame primary
+// Shared CTA styles, one source of truth so the button system can't drift apart again.
+// primaryBtn = forward / commit (the one move on a screen). Team color overrides the flame when a team is in context.
+// ghostBtn   = secondary / return (Back, Done, Open setup). Cream/ink is reserved for the "selected" chip state, never a CTA.
+const primaryBtn = { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, padding: 15, borderRadius: 13, border: "none", background: PRIMARY_FLAME, color: ON_FLAME, fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: DEPTH };
+const ghostBtn = { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 13, background: "rgba(236,231,219,0.05)", border: "1px solid rgba(236,231,219,0.16)", color: ON, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer" };
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
 // Scale a team color down to a target luminance -> a clean, deep, readable team tone (no gray mud).
@@ -1055,7 +1062,6 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           const curSports = followedSports || [];
           const followSport = (id) => { if (!curSports.includes(id)) setFollowedSports([...curSports, id]); };
           const toPicker = () => { const el = document.getElementById("ob-pick"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
-          const btnBg = seedTeam ? seedTeam.primary : CREAM;
           return (
             <div style={{ ...SETUP_CARD, marginTop: 22, padding: "20px 18px" }}>
               <h2 className="g-display" style={{ fontSize: 26, lineHeight: 1.05, textTransform: "uppercase", margin: 0, color: ON }}>Your: team, sport, and time.</h2>
@@ -1065,7 +1071,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
                   : <>Up top is the hottest game on right now. Follow your team and your sport, and we&rsquo;ll rank what&rsquo;s worth watching, your games rising to the top the moment they play.</>}
               </p>
               <button onClick={() => { if (seedTeam) { addTeam(seedTeam); track("entry_follow", { kind: "team", slug: seedTeam.slug }); } else { followSport("worldcup"); track("entry_follow", { kind: "worldcup" }); } setView("games"); }}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, padding: 15, borderRadius: 13, border: "none", background: btnBg, color: textOn(btnBg), fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: DEPTH }}>
+                style={{ ...primaryBtn, ...(seedTeam ? { background: seedTeam.primary, color: textOn(seedTeam.primary) } : {}) }}>
                 {seedTeam ? `Follow the ${seedTeam.label || seedTeam.name}` : "Follow the World Cup"}
               </button>
               <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "16px 0 9px" }}>Or start here</div>
@@ -1157,14 +1163,14 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           // A sport-first user has no taste step value yet, but presets still apply, so send them through too.
           return (
             <button disabled={!canContinue} onClick={() => setObStep(2)}
-              style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: canContinue ? CREAM : "rgba(255,255,255,0.08)", color: canContinue ? INK : ON_FAINT, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: canContinue ? "pointer" : "default", boxShadow: canContinue ? DEPTH : "none" }}>
+              style={{ ...primaryBtn, marginTop: 24, ...(canContinue ? {} : { background: "rgba(255,255,255,0.08)", color: ON_FAINT, boxShadow: "none", cursor: "default" }) }}>
               {canContinue ? "Next: your kind of exciting \u2192" : "Add a team or sport to continue"}
             </button>
           );
         })()}
         {addMode && (
           <button onClick={() => { setAddMode(false); setView("games"); }}
-            style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>
+            style={{ ...ghostBtn, marginTop: 24 }}>
             Done, back to my games
           </button>
         )}
@@ -1239,7 +1245,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           }
           setView("games");
         }}
-          style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>
+          style={{ ...primaryBtn, marginTop: 24 }}>
           Show my games
         </button>
         <button onClick={() => setObStep(1)} style={{ marginTop: 12, width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", color: ON_MUTED, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600 }}>
@@ -1258,7 +1264,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
         <h1 className="g-display" style={screenH}>SETTINGS</h1>
         <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 4px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
         <p style={{ fontSize: 12.5, color: ON, fontWeight: 600, margin: "0 0 16px", lineHeight: 1.45 }}>The more you set here, the sharper tonight&rsquo;s ranking gets, every game scored for how you actually watch.</p>
-        <button onClick={() => setView("onboarding")} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 16px", marginBottom: 20, background: "rgba(236,231,219,0.06)", border: "1px solid rgba(236,231,219,0.16)", borderRadius: 12, color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}><ArrowUpRight size={15} /> Open setup screen</button>
+        <button onClick={() => setView("onboarding")} style={{ ...ghostBtn, marginBottom: 20 }}><ArrowUpRight size={15} /> Open setup screen</button>
         <Section primary={primary} label="How it works" defaultOpen={!settingsSeen} tip="What the first-run setup covers, and who designed and built CourtVisual.">
           <p style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.5, margin: 0 }}>The first-run setup walks through how scoring, the why-watch read, and watch options work, and you can reopen it anytime from the button up top. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</p>
         </Section>
@@ -1455,7 +1461,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
             <span style={{ color: ON_MUTED, fontSize: 12, fontWeight: 600 }}>What the words mean &rarr;</span>
           </a>
         </Section>
-        <button onClick={() => setView("games")} style={{ marginTop: 24, width: "100%", padding: "15px", borderRadius: 12, border: "none", background: CREAM, color: INK, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: DEPTH }}>Back to the ranking</button>
+        <button onClick={() => setView("games")} style={{ ...ghostBtn, marginTop: 24 }}>Back to the ranking</button>
       </Shell>
     );
   }
