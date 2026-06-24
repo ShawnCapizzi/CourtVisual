@@ -27,10 +27,11 @@ const FLAME_STOPS = ["#FFA52B", "#FF5A2C", "#B3122A"];
 const FLAME = (deg) => `linear-gradient(${deg}deg, ${FLAME_STOPS[0]} 0%, ${FLAME_STOPS[1]} 55%, ${FLAME_STOPS[2]} 100%)`;
 const PRIMARY_FLAME = "linear-gradient(135deg, #FF8A2E 0%, #F4471F 52%, #A8112A 100%)"; // deeper flame: warm-white text stays legible across the whole button
 const ON_FLAME = "#FFF6EC"; // warm near-white text on the flame primary
+const WEAVE = "repeating-linear-gradient(45deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 5px), radial-gradient(120% 100% at 50% -25%, rgba(255,255,255,0.12), rgba(255,255,255,0) 62%)"; // same cross-hatch weave + top glow as the Settings section bars, opacity nudged so it reads on the bright flame
 // Shared CTA styles, one source of truth so the button system can't drift apart again.
 // primaryBtn = forward / commit (the one move on a screen). Team color overrides the flame when a team is in context.
 // ghostBtn   = secondary / return (Back, Done, Open setup). Cream/ink is reserved for the "selected" chip state, never a CTA.
-const primaryBtn = { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, padding: 15, borderRadius: 13, border: "none", background: PRIMARY_FLAME, color: ON_FLAME, fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: DEPTH };
+const primaryBtn = { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, padding: 15, borderRadius: 13, border: "none", backgroundColor: "#A8112A", backgroundImage: `${WEAVE}, ${PRIMARY_FLAME}`, color: ON_FLAME, fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: `${DEPTH}, inset 0 1px 0 rgba(255,255,255,0.12)` };
 const ghostBtn = { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 13, background: "rgba(236,231,219,0.05)", border: "1px solid rgba(236,231,219,0.16)", color: ON, fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer" };
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
 const mulHex = (hex, k) => { const n = parseInt(hex.slice(1), 16); const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k); return "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1); };
@@ -1061,6 +1062,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           const sport = seedTeam ? FOLLOW_SPORTS.find((s) => s.id === seedTeam.league) : null;
           const curSports = followedSports || [];
           const followSport = (id) => { if (!curSports.includes(id)) setFollowedSports([...curSports, id]); };
+          const openSport = (sp) => { if (!sp) { setView("games"); return; } followSport(sp.id); runSportFeed(sp); }; // follow it (persists in the bar) AND open its feed now, so "Follow the World Cup" lands on the World Cup, not the primary team
           const toPicker = () => { const el = document.getElementById("ob-pick"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
           return (
             <div style={{ ...SETUP_CARD, marginTop: 22, padding: "20px 18px" }}>
@@ -1070,14 +1072,14 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
                   ? <>Up top is the hottest game on right now. Follow the {seedTeam.label || seedTeam.name}{sport ? <> and {sport.label}</> : null}, and we&rsquo;ll rank their games for you the same honest way, every week they play.</>
                   : <>Up top is the hottest game on right now. Follow your team and your sport, and we&rsquo;ll rank what&rsquo;s worth watching, your games rising to the top the moment they play.</>}
               </p>
-              <button onClick={() => { if (seedTeam) { addTeam(seedTeam); track("entry_follow", { kind: "team", slug: seedTeam.slug }); } else { followSport("worldcup"); track("entry_follow", { kind: "worldcup" }); } setView("games"); }}
-                style={{ ...primaryBtn, ...(seedTeam ? { background: seedTeam.primary, color: textOn(seedTeam.primary) } : {}) }}>
+              <button onClick={() => { if (seedTeam) { addTeam(seedTeam); track("entry_follow", { kind: "team", slug: seedTeam.slug }); setView("games"); } else { track("entry_follow", { kind: "worldcup" }); openSport(WORLD_CUP); } }}
+                style={{ ...primaryBtn, ...(seedTeam ? { backgroundColor: seedTeam.primary, backgroundImage: WEAVE, color: textOn(seedTeam.primary) } : {}) }}>
                 {seedTeam ? `Follow the ${seedTeam.label || seedTeam.name}` : "Follow the World Cup"}
               </button>
               <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "16px 0 9px" }}>Or start here</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {seedTeam && sport && <button style={chip(false)} onClick={() => { followSport(sport.id); track("entry_follow", { kind: "sport", id: sport.id }); setView("games"); }}>Follow {sport.label}</button>}
-                {seedTeam && <button style={chip(false)} onClick={() => { followSport("worldcup"); track("entry_follow", { kind: "worldcup" }); setView("games"); }}>Follow the World Cup</button>}
+                {seedTeam && sport && <button style={chip(false)} onClick={() => { track("entry_follow", { kind: "sport", id: sport.id }); openSport(sport); }}>Follow {sport.label}</button>}
+                {seedTeam && <button style={chip(false)} onClick={() => { track("entry_follow", { kind: "worldcup" }); openSport(WORLD_CUP); }}>Follow the World Cup</button>}
                 <button style={{ ...chip(false), borderStyle: "dashed", color: ON_MUTED }} onClick={toPicker}><Plus size={13} /> Another sport or team</button>
               </div>
               <button onClick={() => { track("entry_skip"); setView("games"); }} style={{ display: "block", width: "100%", textAlign: "center", marginTop: 16, background: "none", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: ON_FAINT, fontFamily: "'Archivo',sans-serif" }}>Just browse tonight&rsquo;s games &rsaquo;</button>
@@ -1163,7 +1165,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           // A sport-first user has no taste step value yet, but presets still apply, so send them through too.
           return (
             <button disabled={!canContinue} onClick={() => setObStep(2)}
-              style={{ ...primaryBtn, marginTop: 24, ...(canContinue ? {} : { background: "rgba(255,255,255,0.08)", color: ON_FAINT, boxShadow: "none", cursor: "default" }) }}>
+              style={{ ...primaryBtn, marginTop: 24, ...(canContinue ? {} : { backgroundColor: "rgba(255,255,255,0.08)", backgroundImage: "none", color: ON_FAINT, boxShadow: "none", cursor: "default" }) }}>
               {canContinue ? "Next: your kind of exciting \u2192" : "Add a team or sport to continue"}
             </button>
           );
