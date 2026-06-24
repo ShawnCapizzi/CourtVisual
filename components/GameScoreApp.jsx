@@ -1267,7 +1267,7 @@ export default function GameScoreApp() {
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
           </div>
         </Section>
-        <Section primary={primary} label="Lite and dark mode" tip="Stadium lite or matte dark, plus announcer tone for the write-ups, rivalry nicknames, and card style.">
+        <Section primary={primary} label="Stadium display & customizations" tip="Stadium light or matte dark, plus announcer tone for the write-ups, rivalry nicknames, and card style.">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(236,231,219,0.08)" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Stadium light the background</div>
