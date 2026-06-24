@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
 import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv, BookOpen } from "lucide-react";
-import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf, recommend, VOICE_LIST } from "../lib/data";
+import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf, recommend, VOICE_LIST, gameStartMs, isFinished } from "../lib/data";
 import { indexStandings, findStanding, rankOnly } from "../lib/standings-read";
 import { store, loadRemote, saveRemote } from "../lib/storage";
 import { watchOptions } from "../lib/watch";
@@ -573,12 +573,11 @@ export default function GameScoreApp() {
     // Deep-link target from the standalone /about route's gear: open Settings, then clean the URL.
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("view") === "settings") {
-        setView("settings");
-        window.history.replaceState(null, "", window.location.pathname);
-      }
+      let handled = false;
+      if (params.get("view") === "settings") { setView("settings"); handled = true; }
       const tparam = params.get("team");
-      if (tparam) setSeedTeamSlug(tparam);
+      if (tparam) { setSeedTeamSlug(tparam); setView("onboarding"); seedForcedRef.current = true; handled = true; }
+      if (handled) window.history.replaceState(null, "", window.location.pathname);
     } catch {}
   }, []);
 
@@ -622,17 +621,30 @@ export default function GameScoreApp() {
     if (view === "settings" && !settingsSeen) { try { localStorage.setItem("cv_settings_seen", "1"); } catch {} setSettingsSeen(true); }
   }, [view, settingsSeen]);
 
-  // Entry hero: fetch the live hot slate once and pick the hottest game by the neutral mix,
-  // so the first screen proves the score on a real, current game instead of a static sample.
+  // Entry hero: pull the live hot slate plus the World Cup, drop finished games (via the iso
+  // timestamp), and pick the hottest one that is live now or coming up soon. Proves the score
+  // on a real, current game instead of a static or stale one.
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const r = await fetch("/api/games?hot=1");
-        const d = await r.json();
-        const games = d.games || [];
-        if (!games.length) return;
-        const top = games.slice().sort((a, b) => scoreOf(b, DEFAULT_WEIGHTS) - scoreOf(a, DEFAULT_WEIGHTS))[0];
+        const [hotR, wcR] = await Promise.all([
+          fetch("/api/games?hot=1").then((r) => r.json()).catch(() => ({})),
+          fetch(`/api/games?sportfeed=${encodeURIComponent("World Cup")}`).then((r) => r.json()).catch(() => ({})),
+        ]);
+        const seen = new Set();
+        const pool = [...(wcR.games || []), ...(hotR.games || [])].filter((g) => {
+          const k = `${g.matchup || g.oppSlug}|${g.iso || ""}`;
+          if (seen.has(k)) return false; seen.add(k); return true;
+        });
+        if (!pool.length) return;
+        const now = Date.now();
+        const ms = gameStartMs;
+        const fresh = (g) => { const t = ms(g); return t !== null && t > now - 2.5 * 3600e3; }; // live or future, not finished
+        const soon = pool.filter((g) => { const t = ms(g); return t !== null && t > now - 2.5 * 3600e3 && t < now + 48 * 3600e3; });
+        const upcoming = pool.filter(fresh);
+        const cands = soon.length ? soon : (upcoming.length ? upcoming : pool);
+        const top = cands.slice().sort((a, b) => scoreOf(b, DEFAULT_WEIGHTS) - scoreOf(a, DEFAULT_WEIGHTS))[0];
         if (alive && top) setHeroGame(top);
       } catch {}
     })();
@@ -655,7 +667,7 @@ export default function GameScoreApp() {
       if (cancel) return;
       if (remote && Object.keys(remote).length) {
         applyState(remote);
-        if (remote.teams?.length) setView((v) => (v === "onboarding" ? "games" : v));
+        if (remote.teams?.length && !seedForcedRef.current) setView((v) => (v === "onboarding" ? "games" : v));
       } else {
         await saveRemote(session.user.id, snapRef.current);
       }
@@ -690,6 +702,7 @@ export default function GameScoreApp() {
   const [eventResults, setEventResults] = useState(null);
   const [heroGame, setHeroGame] = useState(null); // live "hottest game right now" for the entry hero (replaces the static sample)
   const [seedTeamSlug, setSeedTeamSlug] = useState(null); // ?team= from a shared link, pre-seeds the entry doorway
+  const seedForcedRef = useRef(false); // a ?team= link forced the entry screen; don't let remote sync bounce it away
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -858,6 +871,7 @@ export default function GameScoreApp() {
   const activeScore = (g) => (lens === "fan" ? fanScoreOf(g, weights, fanCtxFor(g)) : scoreOf(g, weights));
 
   const renderGames = (list, leagueHint = null, neutral = false, revealAll = false) => {
+    list = (list || []).filter((g) => !isFinished(g)); // last-line guard: a finished game never renders, whatever the source
     let full = list;
     let note = null;
     if (rivalryOnly && !neutral) {
