@@ -260,7 +260,7 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
       )}
 
       {(() => {
-        const w = watchOptions(league || game.sport, game);
+        const w = watchOptions(league || game.league || game.sport, game);
         const chipS = { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.07)", color: ink, border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(22,19,15,0.10)" };
         return (
           <div style={{ marginTop: 14 }}>
@@ -552,8 +552,8 @@ export default function GameScoreApp() {
     if (s.teams?.length) {
       setTeamSlugs(s.teams);
       setPrimarySlug(s.primary || s.teams[0]);
-      setView("games");
     }
+    if (s.teams?.length || s.followedSports?.length) setView("games");
     if (s.players) setPlayers(s.players);
     if (s.location) setLocation(s.location);
     if (s.weights) setWeights(s.weights);
@@ -577,6 +577,8 @@ export default function GameScoreApp() {
         setView("settings");
         window.history.replaceState(null, "", window.location.pathname);
       }
+      const tparam = params.get("team");
+      if (tparam) setSeedTeamSlug(tparam);
     } catch {}
   }, []);
 
@@ -619,6 +621,23 @@ export default function GameScoreApp() {
   useEffect(() => {
     if (view === "settings" && !settingsSeen) { try { localStorage.setItem("cv_settings_seen", "1"); } catch {} setSettingsSeen(true); }
   }, [view, settingsSeen]);
+
+  // Entry hero: fetch the live hot slate once and pick the hottest game by the neutral mix,
+  // so the first screen proves the score on a real, current game instead of a static sample.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/games?hot=1");
+        const d = await r.json();
+        const games = d.games || [];
+        if (!games.length) return;
+        const top = games.slice().sort((a, b) => scoreOf(b, DEFAULT_WEIGHTS) - scoreOf(a, DEFAULT_WEIGHTS))[0];
+        if (alive && top) setHeroGame(top);
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // track auth session
   useEffect(() => {
@@ -669,6 +688,8 @@ export default function GameScoreApp() {
   const [teamRecord, setTeamRecord] = useState(null);
   const [jump, setJump] = useState("");
   const [eventResults, setEventResults] = useState(null);
+  const [heroGame, setHeroGame] = useState(null); // live "hottest game right now" for the entry hero (replaces the static sample)
+  const [seedTeamSlug, setSeedTeamSlug] = useState(null); // ?team= from a shared link, pre-seeds the entry doorway
   const [eventQuery, setEventQuery] = useState("");
   const [eventLoading, setEventLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -865,9 +886,10 @@ export default function GameScoreApp() {
           const sOpp = idx ? findStanding(idx, { teamId: g.oppId, name: g.opp, label: g.opp }) : null;
           const rec = recommend(g, weights, neutral ? null : fanCtxFor(g), voice);
           const pflag = playerFlag(g, players);
+          const gTheme = neutral ? (SPORT_THEME[g.league] || SPORT_THEME[g.sport]) : null;
           return (
-            <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={neutral ? null : team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={leagueHint} fanCtx={neutral ? null : fanCtxFor(g)}
-              primary={cardPrimary} secondary={cardSecondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch}
+            <GameModule key={(g.matchup || g.oppSlug) + i} rank={i + 1} game={g} teamName={neutral ? null : team.name} weights={weights} style={cardStyle} rivalryNames={rivalryNames} mode={viewMode} league={g.league || g.sport || leagueHint} fanCtx={neutral ? null : fanCtxFor(g)}
+              primary={gTheme?.primary || cardPrimary} secondary={gTheme?.secondary || cardSecondary} onShare={onShare} shared={shared === g.oppSlug} laser={i === 0} isTouch={isTouch}
               standingMine={sMine} standingOpp={sOpp} recommendation={rec} whyView={whyView} playerFlag={pflag} />
           );
         })}
@@ -976,6 +998,7 @@ export default function GameScoreApp() {
 
   // ---------- ONBOARDING ----------
   if (view === "onboarding") {
+    const seedTeam = seedTeamSlug ? teamBySlug(seedTeamSlug) : null;
     return (
       <Shell stadiumLight={stadiumLight}>
         <SiteHeader view={view} setView={setView} />
@@ -989,11 +1012,40 @@ export default function GameScoreApp() {
         <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={tick} />Welcome</div>
         <h1 className="g-display" style={{ ...screenH, fontSize: 42 }}>EVERY GAME,<br />SCORED FOR YOU</h1>
 
-        <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.55, margin: "16px 2px 0", maxWidth: 320 }}>One honest number per game, so you find the ones worth your night before they pass. Here&rsquo;s what every game looks like.</p>
+        <p style={{ fontSize: 13.5, color: ON_MUTED, lineHeight: 1.55, margin: "16px 2px 0", maxWidth: 320 }}>One honest number per game, so you find the ones worth your night before they pass.{heroGame ? " Here\u2019s the hottest game on right now." : " Here\u2019s what a scored game looks like."}</p>
 
         <div className="cv-gleam" style={{ ...SETUP_CARD, marginTop: 26, padding: "26px 20px 22px" }}>
-          <ScoreHead layout="poster" game={SHOWCASE_GAME} score={scoreOf(SHOWCASE_GAME, DEFAULT_WEIGHTS)} why={SHOWCASE_WHY} />
+          {(() => { const hero = heroGame || SHOWCASE_GAME; const heroWhy = heroGame ? recommend(heroGame, DEFAULT_WEIGHTS, null, voice) : SHOWCASE_WHY; return <ScoreHead layout="poster" game={hero} score={scoreOf(hero, DEFAULT_WEIGHTS)} why={heroWhy} />; })()}
         </div>
+
+        {(() => {
+          const sport = seedTeam ? FOLLOW_SPORTS.find((s) => s.id === seedTeam.league) : null;
+          const curSports = followedSports || [];
+          const followSport = (id) => { if (!curSports.includes(id)) setFollowedSports([...curSports, id]); };
+          const toPicker = () => { const el = document.getElementById("ob-pick"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
+          const btnBg = seedTeam ? seedTeam.primary : CREAM;
+          return (
+            <div style={{ ...SETUP_CARD, marginTop: 22, padding: "20px 18px" }}>
+              <h2 className="g-display" style={{ fontSize: 26, lineHeight: 1.05, textTransform: "uppercase", margin: 0, color: ON }}>Your: team,<br />sport, and time.</h2>
+              <p style={{ fontSize: 13, color: ON_MUTED, lineHeight: 1.45, margin: "9px 0 16px" }}>
+                {seedTeam
+                  ? <>Up top is the hottest game on right now. Follow the {seedTeam.label || seedTeam.name}{sport ? <> and {sport.label}</> : null}, and we&rsquo;ll rank their games for you the same honest way, every week they play.</>
+                  : <>Up top is the hottest game on right now. Follow your team and your sport, and we&rsquo;ll rank what&rsquo;s worth watching, your games rising to the top the moment they play.</>}
+              </p>
+              <button onClick={() => { if (seedTeam) { addTeam(seedTeam); track("entry_follow", { kind: "team", slug: seedTeam.slug }); } else { followSport("worldcup"); track("entry_follow", { kind: "worldcup" }); } setView("games"); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, padding: 15, borderRadius: 13, border: "none", background: btnBg, color: textOn(btnBg), fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 15, cursor: "pointer", boxShadow: DEPTH }}>
+                {seedTeam ? `Follow the ${seedTeam.label || seedTeam.name}` : "Follow the World Cup"}
+              </button>
+              <div className="g-eyebrow" style={{ fontSize: 9, color: ON_MUTED, margin: "16px 0 9px" }}>Or start here</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {seedTeam && sport && <button style={chip(false)} onClick={() => { followSport(sport.id); track("entry_follow", { kind: "sport", id: sport.id }); setView("games"); }}>Follow {sport.label}</button>}
+                {seedTeam && <button style={chip(false)} onClick={() => { followSport("worldcup"); track("entry_follow", { kind: "worldcup" }); setView("games"); }}>Follow the World Cup</button>}
+                <button style={{ ...chip(false), borderStyle: "dashed", color: ON_MUTED }} onClick={toPicker}><Plus size={13} /> Another sport or team</button>
+              </div>
+              <button onClick={() => { track("entry_skip"); setView("games"); }} style={{ display: "block", width: "100%", textAlign: "center", marginTop: 16, background: "none", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: ON_FAINT, fontFamily: "'Archivo',sans-serif" }}>Just browse tonight&rsquo;s games &rsaquo;</button>
+            </div>
+          );
+        })()}
 
         <div style={{ ...SETUP_CARD, marginTop: 26, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 15 }}>
           {[
@@ -1267,7 +1319,7 @@ export default function GameScoreApp() {
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
           </div>
         </Section>
-        <Section primary={primary} label="Stadium display & customizations" tip="Stadium light or matte dark, plus announcer tone for the write-ups, rivalry nicknames, and card style.">
+        <Section primary={primary} label="Stadium display + customizations" tip="Stadium light or matte dark, plus announcer tone for the write-ups, rivalry nicknames, and card style.">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(236,231,219,0.08)" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Stadium light the background</div>
