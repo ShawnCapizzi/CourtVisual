@@ -1058,7 +1058,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           const btnBg = seedTeam ? seedTeam.primary : CREAM;
           return (
             <div style={{ ...SETUP_CARD, marginTop: 22, padding: "20px 18px" }}>
-              <h2 className="g-display" style={{ fontSize: 26, lineHeight: 1.05, textTransform: "uppercase", margin: 0, color: ON }}>Your: team,<br />sport, and time.</h2>
+              <h2 className="g-display" style={{ fontSize: 26, lineHeight: 1.05, textTransform: "uppercase", margin: 0, color: ON }}>Your: team, sport, and time.</h2>
               <p style={{ fontSize: 13, color: ON_MUTED, lineHeight: 1.45, margin: "9px 0 16px" }}>
                 {seedTeam
                   ? <>Up top is the hottest game on right now. Follow the {seedTeam.label || seedTeam.name}{sport ? <> and {sport.label}</> : null}, and we&rsquo;ll rank their games for you the same honest way, every week they play.</>

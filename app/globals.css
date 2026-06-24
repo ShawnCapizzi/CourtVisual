@@ -99,3 +99,11 @@ button:active { transform: scale(0.985); }
 .cv-skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(236,231,219,0.09), transparent); animation: cv-skel-sweep 1.6s ease-in-out infinite; }
 @keyframes cv-skel-sweep { 100% { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .cv-skel::after { animation: none; } }
+
+/* About FAQ accordions: native <details>, marker hidden, chevron rotates when open. */
+.cv-faq { border-top: 1px solid rgba(236,231,219,0.09); }
+.cv-faq > summary { list-style: none; cursor: pointer; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 18px 0; }
+.cv-faq > summary::-webkit-details-marker { display: none; }
+.cv-faq[open] > summary { padding-bottom: 8px; }
+.cv-faq-chev { transition: transform 0.2s ease; flex-shrink: 0; margin-top: 1px; }
+.cv-faq[open] > summary .cv-faq-chev { transform: rotate(180deg); }

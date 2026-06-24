@@ -10,6 +10,8 @@
 import SiteHeader from "../../components/SiteHeader";
 import StageBackdrop from "../../components/StageBackdrop";
 import SampleScoreCard from "../../components/SampleScoreCard";
+import ExpandAllButton from "../../components/ExpandAllButton";
+import { ChevronDown } from "lucide-react";
 
 export const metadata = {
   title: "About",
@@ -162,12 +164,18 @@ export default function AboutPage() {
 
         <SampleScoreCard style={{ margin: "26px 0 8px" }} note="Every upcoming game gets a 0&ndash;10 score like this, from four factors weighted by what you find exciting. Move your sliders and the whole slate re-ranks." />
 
-        <h2 style={h2}>Frequently asked</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "40px 0 16px" }}>
+          <h2 style={{ ...h2, margin: 0 }}>Frequently asked</h2>
+          <ExpandAllButton />
+        </div>
         {FAQ.map((item, i) => (
-          <div key={i} style={card}>
-            <p style={q}>{item.q}</p>
-            <p style={a}>{item.aNode || item.a}</p>
-          </div>
+          <details key={i} className="cv-faq" data-faq open={i === 0}>
+            <summary>
+              <span style={{ ...q, flex: 1 }}>{item.q}</span>
+              <ChevronDown size={18} className="cv-faq-chev" color="rgba(236,231,219,0.5)" />
+            </summary>
+            <p style={{ ...a, margin: "0 0 20px" }}>{item.aNode || item.a}</p>
+          </details>
         ))}
 
         <a href="/" style={backLink}>&larr; Back to the games</a>
