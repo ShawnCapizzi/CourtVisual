@@ -9,6 +9,9 @@ html, body {
   -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
   overflow-x: hidden;
 }
+/* Reserve the vertical scrollbar in every state so the centered column never shifts horizontally
+   when moving between a short view (Settings) and a tall one (My Games, About). */
+html { overflow-y: scroll; }
 
 /* One family, two weights — display is the same material as the UI, machined heavier */
 .g-display { font-family: 'Anton', 'Archivo Black', 'Archivo', sans-serif; letter-spacing: 0.005em; line-height: 0.95; font-variant-numeric: tabular-nums; }

@@ -35,8 +35,8 @@ export default function SiteHeader({ view, setView }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 18, minWidth: 0 }}>
       {linkMode
-        ? <a href="/" style={{ textDecoration: "none", minWidth: 0, overflow: "hidden" }}><LogoPlate /></a>
-        : <span style={{ minWidth: 0, overflow: "hidden" }}><LogoPlate /></span>}
+        ? <a href="/?view=onboarding" aria-label="CourtVisual, back to setup" style={{ textDecoration: "none", minWidth: 0, overflow: "hidden", display: "inline-flex", alignItems: "center" }}><LogoPlate /></a>
+        : <button onClick={() => setView("onboarding")} aria-label="CourtVisual, back to setup" style={{ background: "none", border: "none", padding: 0, margin: 0, font: "inherit", color: "inherit", minWidth: 0, overflow: "hidden", display: "inline-flex", alignItems: "center", cursor: "pointer" }}><LogoPlate /></button>}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div style={groupWrap}>
           {linkMode
