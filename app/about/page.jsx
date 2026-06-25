@@ -123,12 +123,12 @@ const stage = { color: "#ECE7DB", minHeight: "100vh", position: "relative" };
 const wrap = { maxWidth: 540, margin: "0 auto", padding: "26px 20px 96px" };
 const eyebrow = { fontSize: 11, letterSpacing: "0.14em", fontFamily: "'Archivo',sans-serif", fontWeight: 700, color: "#E1641F", textTransform: "uppercase" };
 const h1 = { fontFamily: "'Anton','Archivo Black',sans-serif", fontSize: "clamp(40px,7vw,64px)", lineHeight: 1.02, letterSpacing: "0.005em", margin: "10px 0 14px" };
-const lede = { fontSize: 17, lineHeight: 1.55, color: "#ECE7DB", margin: "0 0 24px", maxWidth: 600 };
-const sub = { fontFamily: "'Archivo',sans-serif", fontSize: 14, color: "rgba(236,231,219,0.6)", lineHeight: 1.55, marginBottom: 28 };
+const lede = { fontSize: 14, lineHeight: 1.55, color: "#ECE7DB", margin: "0 0 24px", maxWidth: 600 };
+const sub = { fontFamily: "'Archivo',sans-serif", fontSize: 13, color: "rgba(236,231,219,0.6)", lineHeight: 1.55, marginBottom: 28 };
 const h2 = { fontFamily: "'Anton','Archivo Black',sans-serif", fontSize: 22, letterSpacing: "0.01em", margin: "40px 0 16px", color: "#ECE7DB" };
 const card = { padding: "20px 0", borderTop: "1px solid rgba(236,231,219,0.09)" };
-const q = { fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 15, color: "#ECE7DB", margin: 0 };
-const a = { fontFamily: "'Archivo',sans-serif", fontSize: 14.5, lineHeight: 1.6, color: "rgba(236,231,219,0.78)", margin: "8px 0 0" };
+const q = { fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 14, color: "#ECE7DB", margin: 0 };
+const a = { fontFamily: "'Archivo',sans-serif", fontSize: 13.5, lineHeight: 1.6, color: "rgba(236,231,219,0.78)", margin: "8px 0 0" };
 const faqCta = { display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, color: "#FFF6EC", textDecoration: "none", background: "linear-gradient(135deg, #FF8A2E 0%, #F4471F 60%, #A8112A 100%)", padding: "9px 14px", borderRadius: 10 };
 
 // The four-factor teaser under "What are the four factors?" — illustrative bars, not live values.
