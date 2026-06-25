@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState, useRef, useId } from "react";
-import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv, BookOpen } from "lucide-react";
+import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star, User, Calendar, Ticket, Flame, Mail, SlidersHorizontal, Trophy, Zap, Settings, Tv, BookOpen, Monitor, UploadCloud, Gauge } from "lucide-react";
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf, recommend, VOICE_LIST, gameStartMs, isFinished } from "../lib/data";
 import { indexStandings, findStanding, rankOnly } from "../lib/standings-read";
 import { store, loadRemote, saveRemote } from "../lib/storage";
@@ -491,13 +491,17 @@ function HeroPosterSkeleton() {
   );
 }
 
-function Section({ label, children, primary, first, tip, defaultOpen = false }) {
+function Section({ label, children, primary, first, tip, defaultOpen = false, icon = null, id = null }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ marginBottom: 10 }}>
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ position: "relative", overflow: "hidden", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "15px 44px", backgroundColor: open ? "#171A21" : "#101216", backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 5px), radial-gradient(120% 100% at 50% -25%, rgba(255,255,255,0.07), rgba(255,255,255,0) 62%)", border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", cursor: "pointer" }}>
-        <span className="g-display" style={{ fontSize: 17, letterSpacing: "0.02em", color: ON, textTransform: "uppercase", lineHeight: 1, textAlign: "center" }}>{label}</span>
-        <ChevronDown size={18} style={{ position: "absolute", right: 16, top: "50%", transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`, color: ON_MUTED, transition: "transform .2s" }} />
+    <div id={id || undefined} style={{ marginBottom: 10 }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ position: "relative", overflow: "hidden", width: "100%", display: "flex", alignItems: "center", padding: "15px 16px", backgroundColor: open ? "#171A21" : "#101216", backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 5px), radial-gradient(120% 100% at 50% -25%, rgba(255,255,255,0.07), rgba(255,255,255,0) 62%)", border: "1px solid rgba(236,231,219,0.10)", borderRadius: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", cursor: "pointer" }}>
+        <span aria-hidden="true" style={{ width: 42, flexShrink: 0 }} />
+        <span className="g-display" style={{ flex: 1, minWidth: 0, fontSize: 17, letterSpacing: "0.02em", color: ON, textTransform: "uppercase", lineHeight: 1.05, textAlign: "center" }}>{label}</span>
+        <span style={{ width: 42, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 7 }}>
+          {icon && <span style={{ display: "flex", color: ON_MUTED }}>{icon}</span>}
+          <ChevronDown size={18} style={{ transform: `rotate(${open ? 180 : 0}deg)`, color: ON_MUTED, transition: "transform .2s", flexShrink: 0 }} />
+        </span>
       </button>
       {open && (
         <div style={{ padding: "16px 2px 6px" }}>
@@ -595,6 +599,9 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
       const params = new URLSearchParams(window.location.search);
       let handled = false;
       if (params.get("view") === "settings") { setView("settings"); handled = true; }
+      if (params.get("view") === "onboarding") { setView("onboarding"); handled = true; }
+      const jparam = params.get("jump");
+      if (jparam) { setSettingsJump(jparam); handled = true; }
       const tparam = params.get("team");
       if (tparam) { setSeedTeamSlug(tparam); setView("onboarding"); seedForcedRef.current = true; handled = true; }
       if (handled) window.history.replaceState(null, "", window.location.pathname);
@@ -1267,10 +1274,10 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
         <p style={{ fontSize: 12.5, color: ON_MUTED, margin: "2px 0 4px" }}>Your teams, what gets you hyped, and how the app looks and behaves.</p>
         <p style={{ fontSize: 12.5, color: ON, fontWeight: 600, margin: "0 0 16px", lineHeight: 1.45 }}>The more you set here, the sharper tonight&rsquo;s ranking gets, every game scored for how you actually watch.</p>
         <button onClick={() => setView("onboarding")} style={{ ...ghostBtn, marginBottom: 20 }}><ArrowUpRight size={15} /> Open setup screen</button>
-        <Section primary={primary} label="How it works" defaultOpen={!settingsSeen} tip="What the first-run setup covers, and who designed and built CourtVisual.">
+        <Section primary={primary} icon={<BookOpen size={15} />} label="How it works" defaultOpen={!settingsSeen} tip="What the first-run setup covers, and who designed and built CourtVisual.">
           <p style={{ fontSize: 12.5, color: ON_MUTED, lineHeight: 1.5, margin: 0 }}>The first-run setup walks through how scoring, the why-watch read, and watch options work, and you can reopen it anytime from the button up top. CourtVisual is designed &amp; built by <a href="https://www.shawncapizzi.com" target="_blank" rel="noopener" style={{ color: ON, fontWeight: 600 }}>Shawn M. Capizzi</a>.</p>
         </Section>
-        <div id="settings-excitement"><Section primary={primary} label="What gets you hyped" defaultOpen={settingsJump === "excitement"} tip="Dial what makes a game worth watching: stakes, rivalry, the race, and the matchup. Grab a preset or set each slider yourself.">
+        <div id="settings-excitement"><Section primary={primary} icon={<SlidersHorizontal size={15} />} label="What gets you hyped" defaultOpen={settingsJump === "excitement"} tip="Dial what makes a game worth watching: stakes, rivalry, the race, and the matchup. Grab a preset or set each slider yourself.">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
           {PRESETS.map((p) => (<button key={p.id} style={chip(preset === p.id)} onClick={() => applyPreset(p)}>{p.label}</button>))}
         </div>
@@ -1286,7 +1293,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           ))}
         </div>
       </Section></div>
-        <Section primary={primary} label="Your teams and sports" tip="The teams and whole sports you follow, plus players. Set teams to Follow or Die-hard for a bigger boost.">
+        <Section primary={primary} icon={<Star size={15} />} label="Your teams and sports" tip="The teams and whole sports you follow, plus players. Set teams to Follow or Die-hard for a bigger boost.">
           <div style={{ fontSize: 13.5, fontWeight: 600, color: ON, marginBottom: 10 }}>Teams</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {favTeams.map((t) => (<span key={t.slug} style={chip(primarySlug === t.slug)} onClick={() => setPrimarySlug(t.slug)}>{dots(t)} {t.name} <X size={12} onClick={(e) => { e.stopPropagation(); removeTeam(t); }} /></span>))}
@@ -1359,7 +1366,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
         {players.length > 0 && (<div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>{players.map((p, i) => (<span key={i} style={chip(true)} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>{p} <X size={12} /></span>))}</div>)}
           </div>
         </Section>
-        <Section primary={primary} label="Stadium display + customizations" tip="Stadium light or matte dark, plus announcer tone for the write-ups, rivalry nicknames, and card style.">
+        <Section primary={primary} icon={<Monitor size={15} />} id="settings-voice" defaultOpen={settingsJump === "voice"} label="Stadium display + customizations" tip="Stadium light or matte dark, plus announcer tone for the write-ups, rivalry nicknames, and card style.">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(236,231,219,0.08)" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: ON }}>Stadium light the background</div>
@@ -1416,7 +1423,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
             </div>
           </div>
         </Section>
-        <Section primary={primary} label="Account / save online" tip="Save your setup online and sync it across devices.">
+        <Section primary={primary} icon={<UploadCloud size={15} />} label="Account / save online" tip="Save your setup online and sync it across devices.">
           {session?.user ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: ON_MUTED }}>Signed in as <b style={{ color: ON }}>{session.user.email}</b>, your teams and settings sync to your account.</span>
@@ -1436,11 +1443,11 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
             </div>
           )}
         </Section>
-        <Section primary={primary} label="Your city" tip="Set your city so local games and ticket options surface first.">
+        <Section primary={primary} icon={<MapPin size={15} />} label="Your city" tip="Set your city so local games and ticket options surface first.">
           <p style={{ fontSize: 12, color: ON_MUTED, margin: "0 0 10px", lineHeight: 1.4 }}>Used for &ldquo;games near you&rdquo; and your local market.</p>
           <div style={field}><MapPin size={16} color="rgba(236,231,219,0.5)" /><input className="g-in-dark" placeholder="City or region, for games near you" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
         </Section>
-        <Section primary={primary} label="How scoring works" tip="The plain-English breakdown of every factor behind a score, plus the glossary.">
+        <Section primary={primary} icon={<Gauge size={15} />} label="How scoring works" tip="The plain-English breakdown of every factor behind a score, plus the glossary.">
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
             {[
               ["Stakes", "Championships, knockout rounds, and playoff races. Games with something on the line."],

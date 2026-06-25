@@ -11,7 +11,7 @@ import SiteHeader from "../../components/SiteHeader";
 import StageBackdrop from "../../components/StageBackdrop";
 import SampleScoreCard from "../../components/SampleScoreCard";
 import ExpandAllButton from "../../components/ExpandAllButton";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, SlidersHorizontal, MessageSquare, Gauge, Trophy, Tv, Database, Shield, Share2, Ticket, Info, ArrowUpRight } from "lucide-react";
 
 export const metadata = {
   title: "About",
@@ -129,6 +129,40 @@ const h2 = { fontFamily: "'Anton','Archivo Black',sans-serif", fontSize: 22, let
 const card = { padding: "20px 0", borderTop: "1px solid rgba(236,231,219,0.09)" };
 const q = { fontFamily: "'Archivo',sans-serif", fontWeight: 700, fontSize: 15, color: "#ECE7DB", margin: 0 };
 const a = { fontFamily: "'Archivo',sans-serif", fontSize: 14.5, lineHeight: 1.6, color: "rgba(236,231,219,0.78)", margin: "8px 0 0" };
+const faqCta = { display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 700, color: "#FFF6EC", textDecoration: "none", background: "linear-gradient(135deg, #FF8A2E 0%, #F4471F 60%, #A8112A 100%)", padding: "9px 14px", borderRadius: 10 };
+
+// The four-factor teaser under "What are the four factors?" — illustrative bars, not live values.
+function FactorBars() {
+  const rows = [["Stakes", 82], ["Rivalry", 64], ["Stars", 48], ["Matchup", 70]];
+  return (
+    <div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 9, margin: "0 0 16px" }}>
+      {rows.map(([label, pct]) => (
+        <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 64, fontFamily: "'Archivo',sans-serif", fontSize: 11, fontWeight: 700, color: "rgba(236,231,219,0.7)" }}>{label}</span>
+          <span style={{ flex: 1, height: 7, borderRadius: 99, background: "rgba(236,231,219,0.10)", overflow: "hidden" }}>
+            <span style={{ display: "block", height: "100%", width: `${pct}%`, borderRadius: 99, background: "linear-gradient(90deg, #FF8A2E, #F4471F)" }} />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Each FAQ gets a leading-edge icon, and where it maps to a control, a deep-link into that Settings section.
+function faqMeta(question) {
+  const t = (question || "").toLowerCase();
+  if (t.includes("four factors")) return { Icon: SlidersHorizontal, jump: "excitement", cta: "Tune the four factors", ratings: true };
+  if (t.includes("line under")) return { Icon: MessageSquare, jump: "voice", cta: "Pick a voice" };
+  if (t.includes("score a game")) return { Icon: Gauge, jump: "excitement", cta: "Set your factors" };
+  if (t.includes("change what counts")) return { Icon: SlidersHorizontal, jump: "excitement", cta: "Re-tune your mix" };
+  if (t.includes("championship")) return { Icon: Trophy };
+  if (t.includes("abc")) return { Icon: Tv };
+  if (t.includes("data come from")) return { Icon: Database };
+  if (t.includes("official")) return { Icon: Shield };
+  if (t.includes("share a game")) return { Icon: Share2 };
+  if (t.includes("find tickets")) return { Icon: Ticket };
+  return { Icon: Info };
+}
 const backLink = { display: "inline-block", marginTop: 40, fontFamily: "'Archivo',sans-serif", fontSize: 13, fontWeight: 700, color: "#ECE7DB", textDecoration: "none", padding: "11px 18px", borderRadius: 10, background: "rgba(236,231,219,0.08)", border: "1px solid rgba(236,231,219,0.14)" };
 const footer = { marginTop: 56, paddingTop: 18, borderTop: "1px solid rgba(236,231,219,0.08)", textAlign: "center", fontFamily: "'Archivo',sans-serif", fontSize: 11, color: "rgba(236,231,219,0.38)" };
 const creditLink = { color: "rgba(236,231,219,0.6)", fontWeight: 600, textDecoration: "none" };
@@ -168,15 +202,26 @@ export default function AboutPage() {
           <h2 style={{ ...h2, margin: 0 }}>Frequently asked</h2>
           <ExpandAllButton />
         </div>
-        {FAQ.map((item, i) => (
-          <details key={i} className="cv-faq" data-faq open={i === 0}>
-            <summary>
-              <span style={{ ...q, flex: 1 }}>{item.q}</span>
-              <ChevronDown size={18} className="cv-faq-chev" color="rgba(236,231,219,0.5)" />
-            </summary>
-            <p style={{ ...a, margin: "0 0 20px" }}>{item.aNode || item.a}</p>
-          </details>
-        ))}
+        {FAQ.map((item, i) => {
+          const meta = faqMeta(item.q);
+          const Icon = meta.Icon;
+          return (
+            <details key={i} className="cv-faq" data-faq open={i === 0}>
+              <summary>
+                <span style={{ ...q, flex: 1 }}>{item.q}</span>
+                <Icon size={16} aria-hidden="true" style={{ flexShrink: 0, color: "rgba(236,231,219,0.55)", marginTop: 1 }} />
+                <ChevronDown size={18} className="cv-faq-chev" color="rgba(236,231,219,0.5)" />
+              </summary>
+              <p style={{ ...a, margin: meta.ratings || meta.jump ? "0 0 14px" : "0 0 20px" }}>{item.aNode || item.a}</p>
+              {meta.ratings && <FactorBars />}
+              {meta.jump && (
+                <a href={`/?view=settings&jump=${meta.jump}`} style={faqCta}>
+                  <Icon size={14} aria-hidden="true" /> {meta.cta} <ArrowUpRight size={14} aria-hidden="true" />
+                </a>
+              )}
+            </details>
+          );
+        })}
 
         <a href="/" style={backLink}>&larr; Back to the games</a>
 
