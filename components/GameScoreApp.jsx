@@ -1344,7 +1344,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
         <div style={{ position: "relative" }}>
           <div style={field}>
             <User size={16} color="rgba(236,231,219,0.5)" />
-            <input className="g-in-dark" placeholder="Search a player by name\u2026" value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
+            <input className="g-in-dark" placeholder={"Search a player by name\u2026"} value={playerInput} onChange={(e) => setPlayerInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { const top = searchStars(playerInput).filter((s) => !players.includes(s.name))[0]; if (top) { setPlayers([...players, top.name]); setPlayerInput(""); track("follow_player", { name: top.name }); } } }} />
           </div>
           {playerInput.trim() && (() => {
