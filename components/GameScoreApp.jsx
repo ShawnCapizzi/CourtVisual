@@ -1511,7 +1511,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
       // Fetch still in flight. Don't conclude anything about the season yet; the skeleton renders below.
       base = []; sub = "Pulling your latest schedule\u2026";
     } else if (liveGames) {
-      base = liveGames; sub = "Live schedule + prices via Ticketmaster.";
+      base = liveGames; sub = "Live schedule and prices, updated live.";
     } else if (slateMode === "league" && leagueGames?.length) {
       base = leagueGames; sub = `Live in the ${LEAGUE} right now.`;
       context = <ContextCard primary={primary} teamRecord={teamRecord} title={`No upcoming ${team.name} games`} body={`Nothing on the ${team.name} calendar right now. Here's what's live in the ${LEAGUE}, ranked by your taste.`} />;
@@ -1606,7 +1606,7 @@ export default function GameScoreApp({ initialSeedTeam = null } = {}) {
           <>
             <div className="g-eyebrow" style={{ fontSize: 10, color: ON_MUTED }}><span style={{ ...tick, background: primary }} />Search results</div>
             <h1 className="g-display" style={screenH}>{eventQuery.toUpperCase()}</h1>
-            <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching Ticketmaster…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
+            <p style={{ fontSize: 11.5, color: ON_FAINT, marginBottom: 16 }}>{eventLoading ? "Searching live events…" : eventResults.length ? "Live events, ranked by your taste." : `No events found for “${eventQuery}.” Try a team, league, or event like “World Cup.”`}</p>
             <button onClick={clearSearch} style={{ marginBottom: 14, background: "none", border: "none", padding: 0, cursor: "pointer", color: ON, fontFamily: "'Archivo',sans-serif", fontSize: 12.5, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>← Back to {favTeams.length ? team.name : "my games"}</button>
             {renderGames([...eventResults].sort((a, b) => (scoreOf(b, weights) + (b._boost || 0)) - (scoreOf(a, weights) + (a._boost || 0))), null, true)}
           </>

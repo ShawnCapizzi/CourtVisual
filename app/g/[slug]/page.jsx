@@ -107,7 +107,7 @@ export default function SharePage({ params, searchParams }) {
       </div>
 
       <p style={{ fontSize: 11.5, color: "rgba(236,231,219,0.4)", marginTop: 22, textAlign: "center", maxWidth: 360, lineHeight: 1.5 }}>
-        Independent. Schedules &amp; tickets via Ticketmaster. The score is CourtVisual&rsquo;s own.
+        Independent. Live data from a proprietary blend of trusted feeds. The score is CourtVisual&rsquo;s own.
       </p>
     </main>
   );
