@@ -4,7 +4,7 @@ import { Search, Plus, X, Share2, ChevronDown, MapPin, Check, ArrowUpRight, Star
 import { TEAMS, teamBySlug, FACTORS, PRESETS, DEFAULT_WEIGHTS, sampleSlate, scoreOf, scoreParts, verdict, shade, textOn, fanBump, fanScoreOf, recommend, VOICE_LIST, gameStartMs, isFinished } from "../lib/data";
 import { indexStandings, findStanding, rankOnly } from "../lib/standings-read";
 import { store, loadRemote, saveRemote } from "../lib/storage";
-import { watchOptions } from "../lib/watch";
+import { watchOptions, watchLink } from "../lib/watch";
 import { ticketUrl, tickpickCompareUrl, streamUrl, liveTvOffer } from "../lib/affiliates";
 import { track } from "../lib/track";
 import { supabase } from "../lib/supabaseClient";
@@ -272,11 +272,16 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
         const chipS = { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: dark ? "rgba(255,255,255,0.10)" : "rgba(22,19,15,0.07)", color: ink, border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(22,19,15,0.10)" };
         return (
           <div style={{ marginTop: 14 }}>
-            {w.networks ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, borderRadius: 13, padding: "13px 16px", background: secondary, backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), linear-gradient(180deg, ${secondary} 0%, ${shade(secondary, 0.12)} 100%)`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.34), 0 6px 15px rgba(0,0,0,0.30)", color: textOn(secondary), fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 14 }}>
-                <Tv size={15} /> On {w.networks.join(" · ")}
-              </div>
-            ) : (
+            {w.networks ? (() => {
+              const bStyle = { display: "flex", alignItems: "center", justifyContent: "center", gap: 9, borderRadius: 13, padding: "13px 16px", background: secondary, backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.032) 0 1px, transparent 1px 7px), linear-gradient(180deg, ${secondary} 0%, ${shade(secondary, 0.12)} 100%)`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.34), 0 6px 15px rgba(0,0,0,0.30)", color: textOn(secondary), fontFamily: "'Archivo',sans-serif", fontWeight: 800, fontSize: 14 };
+              const url = watchLink(w.networks.join(" "));
+              const inner = <><Tv size={15} /> On {w.networks.join(" · ")}{url ? <ArrowUpRight size={13} /> : null}</>;
+              return url ? (
+                <button onClick={() => { track("network_click", { net: w.networks.join("/") }); window.open(url, "_blank", "noopener"); }} style={{ ...bStyle, width: "100%", cursor: "pointer", border: "none" }}>{inner}</button>
+              ) : (
+                <div style={bStyle}>{inner}</div>
+              );
+            })() : (
               <div className="g-eyebrow" style={{ fontSize: 9, color: muted, marginBottom: 8 }}>Where to watch</div>
             )}
             {(() => {
@@ -290,7 +295,15 @@ function GameModule({ rank, game, teamName, weights, style, primary, secondary, 
                 <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 6, marginTop: w.networks ? 9 : 0 }}>
                   {nets.map((n, i) => {
                     const last = !w.streamer && i === nets.length - 1;
-                    return <span key={n} style={{ ...gridChip, ...(odd && last ? { gridColumn: "1 / -1" } : {}) }}>{n}</span>;
+                    const cell = { ...gridChip, ...(odd && last ? { gridColumn: "1 / -1" } : {}) };
+                    const url = watchLink(n);
+                    return url ? (
+                      <button key={n} onClick={() => { track("network_click", { net: n }); window.open(url, "_blank", "noopener"); }} style={{ ...cell, cursor: "pointer", gap: 4 }}>
+                        <Tv size={11} /> {n} <ArrowUpRight size={10} />
+                      </button>
+                    ) : (
+                      <span key={n} style={cell}>{n}</span>
+                    );
                   })}
                   {w.streamer && (
                     <button onClick={() => { track("stream_click", { key: w.streamer.key }); window.open(streamUrl(w.streamer.key, w.streamer.url), "_blank", "noopener"); }} style={{ ...gridChip, cursor: "pointer", gap: 4, ...(odd ? { gridColumn: "1 / -1" } : {}) }}>
