@@ -12,14 +12,26 @@ export const alt = "A CourtVisual game score — how worth watching tonight's ga
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// ---- fonts: Archivo, fetched once and reused across renders (the image itself is CDN-cached) ----
-const FONT_BASE = "https://cdn.jsdelivr.net/npm/@fontsource/archivo/files";
-const FW = [400, 600, 700, 800];
+export const runtime = "edge";
+
+// Fonts are bundled next to this route and read from the deployment (NO network call at render —
+// an external font fetch inside an OG route is the classic cause of 500s). Cached per instance;
+// on any hiccup we fall back to the default font instead of throwing, so the card still renders.
 let _fonts = null;
-async function fonts() {
+async function loadFonts() {
   if (_fonts) return _fonts;
-  const bufs = await Promise.all(FW.map((w) => fetch(`${FONT_BASE}/archivo-latin-${w}-normal.woff`).then((r) => r.arrayBuffer())));
-  _fonts = FW.map((w, i) => ({ name: "Archivo", weight: w, style: "normal", data: bufs[i] }));
+  try {
+    const [w700, w800] = await Promise.all([
+      fetch(new URL("./archivo-latin-700-normal.woff", import.meta.url)).then((r) => r.arrayBuffer()),
+      fetch(new URL("./archivo-latin-800-normal.woff", import.meta.url)).then((r) => r.arrayBuffer()),
+    ]);
+    _fonts = [
+      { name: "Archivo", weight: 700, style: "normal", data: w700 },
+      { name: "Archivo", weight: 800, style: "normal", data: w800 },
+    ];
+  } catch {
+    _fonts = []; // render with the default font rather than 500
+  }
   return _fonts;
 }
 
@@ -165,6 +177,15 @@ function buildTree(d) {
 }
 
 export default async function OpengraphImage({ params }) {
-  const data = resolve(params.slug);
-  return new ImageResponse(buildTree(data), { ...size, fonts: await fonts() });
+  const fonts = await loadFonts();
+  const opts = fonts.length ? { ...size, fonts } : { ...size };
+  try {
+    return new ImageResponse(buildTree(resolve(params.slug)), opts);
+  } catch {
+    // Last resort: a plain but valid card, so a share link never dies on a 500.
+    return new ImageResponse(
+      h("div", { style: { display: "flex", width: 1200, height: 630, alignItems: "center", justifyContent: "center", background: "#0A0D12", color: "#FF7A2E", fontFamily: "Archivo", fontWeight: 800, fontSize: 72, letterSpacing: "-0.02em" } }, "CourtVisual"),
+      opts,
+    );
+  }
 }
