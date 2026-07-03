@@ -30,6 +30,30 @@ function parseSlug(slug) {
 const findTeam = (slug) => TEAMS.find((t) => t.slug === slug) || null;
 const titleCase = (s) => (s || "").split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
+// The signature flame score ring, identical to the app and the share card. Always the flame
+// gradient, never team color, so the number reads as "a CourtVisual score" on every card. The
+// arc fills to score/10; the numeral sits in the dark well.
+function FlameRing({ size = 100, value }) {
+  const c = size / 2, R = size * (27 / 66), C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, value / 10));
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+      <defs>
+        <linearGradient id="cvRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFA52B" /><stop offset="55%" stopColor="#FF5A2C" /><stop offset="100%" stopColor="#B3122A" />
+        </linearGradient>
+        <radialGradient id="cvRingWell" cx="50%" cy="40%" r="62%">
+          <stop offset="0%" stopColor="#13151A" /><stop offset="58%" stopColor="#0D0E12" /><stop offset="100%" stopColor="#07080B" />
+        </radialGradient>
+      </defs>
+      <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5 / 66)} stroke="rgba(255,255,255,0.13)" />
+      <circle cx={c} cy={c} r={R} fill="none" strokeWidth={size * (5.5 / 66)} stroke="url(#cvRingGrad)" strokeLinecap="round"
+        strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform={`rotate(-90 ${c} ${c})`} />
+      <circle cx={c} cy={c} r={R - size * (2.75 / 66)} fill="url(#cvRingWell)" />
+      <text x={c} y={c} textAnchor="middle" dominantBaseline="central" fontSize={size * (19 / 66)} fontWeight="800" fill="#FF7A2E" fontFamily="'Archivo', system-ui, sans-serif">{value.toFixed(1)}</text>
+    </svg>
+  );
+}
+
 function resolve(slug, search) {
   const { teamSlug, oppSlug, ds, slugScore, single } = parseSlug(slug);
   const team = findTeam(teamSlug);
@@ -63,7 +87,7 @@ export async function generateMetadata({ params, searchParams }) {
 
 export default function SharePage({ params, searchParams }) {
   const { team, teamName, oppName, score, verdict, dateLabel } = resolve(params.slug, searchParams);
-  const accent = team?.primary || ORANGE;
+  const accent = team?.primary || ORANGE; // team color still tints the verdict pill (identity); the ring is always flame
   const home = "https://courtvisual.com";
 
   return (
@@ -76,11 +100,7 @@ export default function SharePage({ params, searchParams }) {
         <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(236,231,219,0.55)", marginBottom: 16 }}>Scored on CourtVisual</div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          {score != null && (
-            <div style={{ flexShrink: 0, width: 92, height: 92, borderRadius: "50%", border: `3px solid ${accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, fontWeight: 800 }}>
-              {score}
-            </div>
-          )}
+          {score != null && <FlameRing size={100} value={+score} />}
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.08, margin: 0, letterSpacing: "-0.02em" }}>{teamName}<br /><span style={{ color: "rgba(236,231,219,0.6)" }}>vs</span> {oppName}</h1>
             {(verdict || dateLabel) && (
